@@ -1,0 +1,21 @@
+{
+  "input": {
+    "account_id": "sf_clear_001",
+    "questions": [
+      { "id": "FM-DEV-001", "text": "What credible initiative or event has the company disclosed in the last twelve months?" },
+      { "id": "FM-REL-001", "text": "Which prior meetings, opportunities, or support cases exist for this account?" }
+    ],
+    "requested_sources": ["crm", "public_source"]
+  },
+  "expected": {
+    "status": "partial",
+    "record_count": 1,
+    "record_ids": ["src_crm_act_3101"],
+    "source_outcomes": { "crm": "ok", "public_source": "unauthorized" },
+    "error_codes": ["ADAPTER_UNAUTHORIZED"],
+    "error_source": "public_source",
+    "forbidden_record_ids": ["src_web_3901"],
+    "forbidden_text": ["Restricted record that must not be returned"]
+  },
+  "note": "When the denied source is the only requested source, the same case returns blocked; see tests."
+}

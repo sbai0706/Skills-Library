@@ -1,0 +1,27 @@
+{
+  "input": {
+    "account_id": "sf_clear_001",
+    "questions": [
+      { "id": "FM-CTX-001", "text": "What does the company sell, to whom, and in which geographies?" },
+      { "id": "FM-DEV-001", "text": "What credible initiative or event has the company disclosed in the last twelve months?" },
+      { "id": "FM-REL-001", "text": "Which prior meetings, opportunities, or support cases exist for this account?" },
+      { "id": "FM-STK-001", "text": "Which named contacts are recorded on the account, with what evidenced role?" },
+      { "id": "FM-SVC-001", "text": "Which approved offering areas could plausibly relate to the evidenced initiatives?" }
+    ],
+    "requested_sources": ["crm", "public_source"]
+  },
+  "expected": {
+    "status": "success",
+    "record_count": 5,
+    "source_outcomes": { "crm": "ok", "public_source": "ok" },
+    "record_order": [
+      "src_site_1401",
+      "src_crm_act_1102",
+      "src_crm_act_1101",
+      "src_crm_rec_1201",
+      "src_web_1301"
+    ],
+    "evidence_ids_empty": true,
+    "no_claim_fields": true
+  }
+}

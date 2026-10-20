@@ -78,6 +78,9 @@ export function createFixtureAccountAdapter(options = {}) {
           .split(" ")
           .filter(Boolean),
       );
+      const exactId = accounts.filter((account) => account.account_id === query);
+      if (exactId.length > 0) return { ok: true, accounts: exactId };
+
       const matches = accounts.filter((account) => {
         const accountTokens = account.name
           .toLowerCase()

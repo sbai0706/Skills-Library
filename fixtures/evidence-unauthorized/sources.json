@@ -1,0 +1,43 @@
+{
+  "fixture": "evidence-unauthorized",
+  "description": "Public-source retrieval is denied; its would-be records must never reach the result. CRM succeeds.",
+  "account_id": "sf_clear_001",
+  "sources": {
+    "crm": {
+      "mode": "ok",
+      "records": [
+        {
+          "record_id": "src_crm_act_3101",
+          "account_id": "sf_clear_001",
+          "source_type": "crm_activity",
+          "title": "Intro call scheduled",
+          "content": "Intro call scheduled with operations leadership for next week.",
+          "source_uri": null,
+          "occurred_at": "2026-10-02T16:00:00Z",
+          "retrieved_at": "2026-10-20T14:40:00Z",
+          "access_classification": "internal",
+          "question_ids": ["FM-REL-001"],
+          "metadata": { "provider": "fixture-crm", "object_name": "Event", "record_type": "meeting" }
+        }
+      ]
+    },
+    "public_source": {
+      "mode": "unauthorized",
+      "records": [
+        {
+          "record_id": "src_web_3901",
+          "account_id": "sf_clear_001",
+          "source_type": "news",
+          "title": "Restricted record that must not be returned",
+          "content": "This record belongs to a denied source and must never appear in output.",
+          "source_uri": "https://news.example/restricted",
+          "occurred_at": "2026-09-01T00:00:00Z",
+          "retrieved_at": "2026-10-20T14:40:00Z",
+          "access_classification": "public",
+          "question_ids": ["FM-DEV-001"],
+          "metadata": { "provider": "fixture-public", "record_type": "news_article" }
+        }
+      ]
+    }
+  }
+}

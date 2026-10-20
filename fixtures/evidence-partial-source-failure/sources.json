@@ -1,0 +1,39 @@
+{
+  "fixture": "evidence-partial-source-failure",
+  "description": "CRM retrieval succeeds; public-source retrieval fails with a retryable availability error.",
+  "account_id": "sf_clear_001",
+  "sources": {
+    "crm": {
+      "mode": "ok",
+      "records": [
+        {
+          "record_id": "src_crm_act_2101",
+          "account_id": "sf_clear_001",
+          "source_type": "crm_activity",
+          "title": "Renewal review call",
+          "content": "Annual renewal review call. Customer confirmed the current contract end date and asked for an updated integration plan.",
+          "source_uri": null,
+          "occurred_at": "2026-08-21T11:00:00Z",
+          "retrieved_at": "2026-10-20T14:35:00Z",
+          "access_classification": "internal",
+          "question_ids": ["FM-REL-001"],
+          "metadata": { "provider": "fixture-crm", "object_name": "Task", "record_type": "renewal_review" }
+        },
+        {
+          "record_id": "src_crm_rec_2201",
+          "account_id": "sf_clear_001",
+          "source_type": "crm_record",
+          "title": "Account record",
+          "content": "Account owner: Dana Whitfield. Recorded contacts: Priya Raman, Director of Operations; Marcus Lee, IT Manager.",
+          "source_uri": null,
+          "occurred_at": null,
+          "retrieved_at": "2026-10-20T14:35:00Z",
+          "access_classification": "internal",
+          "question_ids": ["FM-STK-001"],
+          "metadata": { "provider": "fixture-crm", "object_name": "Account", "record_type": "account_profile" }
+        }
+      ]
+    },
+    "public_source": { "mode": "unavailable", "records": [] }
+  }
+}

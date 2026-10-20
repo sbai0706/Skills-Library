@@ -16,6 +16,9 @@
         "ADAPTER_UNAVAILABLE",
         "ADAPTER_UNAUTHORIZED",
         "ADAPTER_MALFORMED_RESPONSE",
+        "UNSUPPORTED_SOURCE",
+        "CONFIRMATION_REQUIRED",
+        "CLASSIFICATION_RESTRICTED",
         "INTERNAL_ERROR"
       ],
       "description": "Stable error code. Extend this enum when a new skill introduces a new failure class."

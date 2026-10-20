@@ -1,0 +1,82 @@
+{
+  "fixture": "evidence-complete",
+  "description": "Resolved account with CRM and public-source records for the first-meeting questions.",
+  "account_id": "sf_clear_001",
+  "sources": {
+    "crm": {
+      "mode": "ok",
+      "records": [
+        {
+          "record_id": "src_crm_act_1101",
+          "account_id": "sf_clear_001",
+          "source_type": "crm_activity",
+          "title": "Discovery call notes",
+          "content": "Call with operations leadership. They described manual yard scheduling at two Midwest depots and said a systems review is planned for Q1.",
+          "source_uri": null,
+          "occurred_at": "2026-09-12T15:00:00Z",
+          "retrieved_at": "2026-10-20T14:30:00Z",
+          "access_classification": "internal",
+          "question_ids": ["FM-CTX-001", "FM-REL-001"],
+          "metadata": { "provider": "fixture-crm", "object_name": "Task", "record_type": "discovery_call" }
+        },
+        {
+          "record_id": "src_crm_act_1102",
+          "account_id": "sf_clear_001",
+          "source_type": "crm_activity",
+          "title": "Support case summary",
+          "content": "Open case: nightly route export fails intermittently. Customer asked for a root-cause review.",
+          "source_uri": null,
+          "occurred_at": "2026-06-03T09:30:00Z",
+          "retrieved_at": "2026-10-20T14:30:00Z",
+          "access_classification": "internal",
+          "question_ids": ["FM-REL-001"],
+          "metadata": { "provider": "fixture-crm", "object_name": "Case", "record_type": "support_case" }
+        },
+        {
+          "record_id": "src_crm_rec_1201",
+          "account_id": "sf_clear_001",
+          "source_type": "crm_record",
+          "title": "Account record",
+          "content": "Account owner: Dana Whitfield. Industry: logistics. Region: Midwest. Recorded contact: Priya Raman, Director of Operations.",
+          "source_uri": null,
+          "occurred_at": null,
+          "retrieved_at": "2026-10-20T14:30:00Z",
+          "access_classification": "internal",
+          "question_ids": ["FM-CTX-001", "FM-STK-001"],
+          "metadata": { "provider": "fixture-crm", "object_name": "Account", "record_type": "account_profile" }
+        }
+      ]
+    },
+    "public_source": {
+      "mode": "ok",
+      "records": [
+        {
+          "record_id": "src_web_1301",
+          "account_id": "sf_clear_001",
+          "source_type": "news",
+          "title": "Northstar Logistics announces depot automation program",
+          "content": "Northstar Logistics said it will begin a multi-site warehouse automation program in 2027, starting with two Midwest depots.",
+          "source_uri": "https://news.example/northstar-automation-announcement",
+          "occurred_at": "2026-09-30T13:00:00Z",
+          "retrieved_at": "2026-10-20T14:30:05Z",
+          "access_classification": "public",
+          "question_ids": ["FM-DEV-001", "FM-SVC-001"],
+          "metadata": { "provider": "fixture-public", "record_type": "news_article", "author": "Example Newsroom" }
+        },
+        {
+          "record_id": "src_site_1401",
+          "account_id": "sf_clear_001",
+          "source_type": "company_site",
+          "title": "Company overview",
+          "content": "Northstar Logistics provides freight brokerage and dedicated fleet services to food and industrial shippers across the central United States.",
+          "source_uri": "https://northstar-logistics.example/about",
+          "occurred_at": null,
+          "retrieved_at": "2026-10-20T14:30:05Z",
+          "access_classification": "public",
+          "question_ids": ["FM-CTX-001"],
+          "metadata": { "provider": "fixture-public", "record_type": "company_page" }
+        }
+      ]
+    }
+  }
+}

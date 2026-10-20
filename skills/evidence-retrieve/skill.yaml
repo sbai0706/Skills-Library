@@ -1,0 +1,116 @@
+skill: evidence.retrieve
+version: 0.2.0
+status: draft
+business_owner: TBD
+
+intent: Retrieve permitted raw source records for a resolved account and a set of research questions, without producing claims.
+
+when_to_use:
+  - A resolved account_id and explicit research questions exist and source material is required.
+when_not_to_use:
+  - The account is unresolved; use account.resolve first.
+  - Claims, confidence, verification, summarization, or judgement are required.
+  - A source system must be written to.
+
+inputs:
+  required: [account_id, questions, requested_sources]
+  properties:
+    account_id:
+      type: string
+      description: Resolved account identifier; no whitespace, not a domain.
+    questions:
+      type: array
+      minItems: 1
+      maxItems: 50
+      items: { id: string, text: string }
+    requested_sources:
+      type: array
+      minItems: 1
+      items: { enum: [crm, public_source, internal_document] }
+    context:
+      type: object
+      properties:
+        requested_by: string
+        roles: string[]
+        permitted_classifications:
+          type: array
+          items: { enum: [public, internal, confidential] }
+          default: [public, internal]
+          notes: Omitted defaults to public+internal; an explicit empty array permits nothing; confidential requires explicit inclusion.
+
+outputs:
+  schema: ../../schemas/skill-result.schema.json
+  record_schema: ../../schemas/source-record.schema.json
+  fields: [data.records, data.source_results, data.record_count, data.question_ids]
+  statuses: [success, partial, blocked, failed]
+
+dependencies:
+  skills: [account.resolve]
+  reference: []
+  adapters:
+    - evidence-adapter.retrieve
+  runtime:
+    - schemas/index.js
+    - schemas/source-record.schema.json
+    - skills/evidence-retrieve/validate-input.js
+    - skills/evidence-retrieve/records.js
+
+authorization:
+  permitted_roles: [sales_partner, sales_owner]
+  record_scope: account_scoped_sources
+  permitted_fields: [record_id, account_id, source_type, title, content, source_uri, occurred_at, retrieved_at, access_classification, question_ids, metadata]
+  prohibited_fields: [claim, confidence, verification_status]
+  enforcement: adapter
+  classification_filter:
+    field: context.permitted_classifications
+    default: [public, internal]
+    confidential_requires_explicit_inclusion: true
+    empty_list_permits: none
+    unknown_classification: withhold_and_report
+    enforcement_point: skill
+  notes:
+    - A denied source must contribute no records or text to any result field.
+    - Withheld records are reported as aggregate counts only, never with identifiers, titles, content, or metadata.
+
+procedure:
+  - Validate account_id, questions, and requested_sources; reject unknown sources.
+  - Retrieve each requested source independently through the evidence adapter.
+  - Normalize adapter failures, thrown errors, and malformed envelopes to structured errors.
+  - Reject malformed records whole; never repair material fields.
+  - Withhold records above the caller's permitted classification and count them; withhold any record with an unrecognized classification.
+  - Deduplicate by record_id and sort deterministically.
+  - Derive status from the per-source outcomes.
+
+constraints:
+  - Never generate claims, confidence, verification status, summaries, or answers.
+  - Never treat an empty retrieval as an execution failure or as proof of absence.
+  - Never return records from an unauthorized source.
+  - Never call a live system from this repository; adapters are fixtures.
+  - Never accept an account name or domain in account_id.
+  - Never treat an unrecognized access classification as public.
+  - Never leak withheld record identifiers, titles, content, or metadata through warnings, errors, counts, or diagnostics.
+
+retry_policy:
+  skill_retries: 0
+  adapter_supplied_retryable_codes: [ADAPTER_UNAVAILABLE]
+  non_retryable_codes: [ADAPTER_MALFORMED_RESPONSE, ADAPTER_UNAUTHORIZED, UNSUPPORTED_SOURCE, CLASSIFICATION_RESTRICTED, INVALID_INPUT]
+  notes: Transient transport retries belong inside a future live adapter, not in the skill.
+
+gates:
+  - schema_valid
+  - authorized
+  - account_id_resolved
+  - every_requested_source_has_an_outcome
+  - no_records_from_denied_sources
+  - classification_filter_applied_fail_closed
+  - no_retries_performed
+  - partial_results_are_declared
+
+evals:
+  suites: [golden, negative, authorization, adapter_failure, determinism]
+  fixtures:
+    - fixtures/evidence-complete
+    - fixtures/evidence-sparse
+    - fixtures/evidence-partial-source-failure
+    - fixtures/evidence-unauthorized
+  command: npm test

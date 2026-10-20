@@ -1,0 +1,18 @@
+{
+  "input": {
+    "account_id": "sf_clear_003",
+    "questions": [
+      { "id": "FM-CTX-001", "text": "What does the company sell, to whom, and in which geographies?" },
+      { "id": "FM-DEV-001", "text": "What credible initiative or event has the company disclosed in the last twelve months?" }
+    ],
+    "requested_sources": ["crm", "public_source"]
+  },
+  "expected": {
+    "status": "success",
+    "record_count": 0,
+    "records": [],
+    "source_outcomes": { "crm": "empty", "public_source": "empty" },
+    "warning_codes": ["NO_RECORDS_RETRIEVED"],
+    "must_not_say": ["does not exist", "no information available"]
+  }
+}

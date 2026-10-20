@@ -88,6 +88,12 @@ for (const fixture of fixtures) {
           [...variant.expected.candidate_account_ids].sort(),
         );
       }
+      if (variant.expected.reason) {
+        assert.equal(result.data.reason, variant.expected.reason);
+        assert.equal(result.data.account, undefined, "a blocked variant must not expose account details");
+        assert.ok(result.errors.length > 0);
+        assert.equal(result.errors[0].retryable, false);
+      }
     });
   }
 }
@@ -99,6 +105,68 @@ test("ambiguous result never silently selects the highest-scoring candidate", as
   assert.equal(result.data.account, undefined);
   assert.equal(result.errors[0].retryable, false);
   assert.match(result.data.clarification_needed, /Which account is intended/);
+});
+
+test("exact normalized name and domain still resolve without warnings", async () => {
+  for (const [reference, method] of [
+    ["Northstar Logistics", "exact_name"],
+    ["NORTHSTAR LOGISTICS", "normalized_name"],
+    ["northstar-logistics.example", "domain"],
+    ["sf_clear_001", "account_id"],
+  ]) {
+    const result = await run("clear-account", reference);
+    assert.equal(result.status, "success", reference);
+    assert.equal(result.data.outcome, "resolved", reference);
+    assert.equal(result.data.account.account_id, "sf_clear_001", reference);
+    assert.equal(result.data.match.method, method, reference);
+    assert.deepEqual(result.errors, [], reference);
+    assert.deepEqual(result.warnings, [], reference);
+  }
+});
+
+test("a partial-name-only match returns blocked confirmation_required", async () => {
+  const result = await run("clear-account", "Northstar");
+  assertEnvelope(result);
+  assert.equal(result.status, "blocked");
+  assert.equal(result.data.outcome, "confirmation_required");
+  assert.equal(result.data.reason, "confirmation_required");
+  assert.equal(result.data.account, undefined);
+  assert.deepEqual(result.errors.map((e) => e.code), ["CONFIRMATION_REQUIRED"]);
+  assert.equal(result.errors[0].retryable, false);
+  assert.equal(result.errors[0].details.match_type, "fuzzy");
+  assert.ok(result.data.confirmation_needed.length > 0);
+});
+
+test("confirmation candidates carry identifiers and match evidence but no restricted details", async () => {
+  const result = await run("clear-account", "Northstar");
+  assert.equal(result.data.candidates.length, 1);
+  const [candidate] = result.data.candidates;
+  assert.equal(candidate.account_id, "sf_clear_001");
+  assert.equal(candidate.name, "Northstar Logistics");
+  assert.equal(candidate.match_type, "fuzzy");
+  assert.equal(typeof candidate.score, "number");
+  assert.ok(Array.isArray(candidate.matched_tokens));
+  for (const restricted of ["owner_name", "location", "revenue", "owner", "contacts"]) {
+    assert.equal(candidate[restricted], undefined, `candidate must not expose ${restricted}`);
+  }
+  assert.ok(!JSON.stringify(result).includes("Dana Whitfield"), "owner name must not leak");
+});
+
+test("a fuzzy match never produces success even at a high score", async () => {
+  const adapter = {
+    name: "high-score-adapter",
+    async searchAccounts() {
+      return {
+        ok: true,
+        accounts: [{ account_id: "crm_9001", name: "Northwind Traders International", domain: "northwind.example" }],
+      };
+    },
+  };
+  const result = await resolveAccount({ account_reference: "Northwind Traders" }, { adapter });
+  assertEnvelope(result);
+  assert.equal(result.status, "blocked");
+  assert.equal(result.data.outcome, "confirmation_required");
+  assert.equal(result.data.account, undefined);
 });
 
 test("malformed adapter account record produces ADAPTER_MALFORMED_RESPONSE", async () => {

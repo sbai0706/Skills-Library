@@ -1,9 +1,9 @@
 skill: account.resolve
-version: 0.1.0
+version: 0.2.0
 status: draft
 business_owner: TBD
 
-intent: Resolve a free-form account reference to exactly one credible account, or explicitly block.
+intent: Resolve a free-form account reference to exactly one exactly matching account, or explicitly block.
 
 when_to_use:
   - A workflow has a human-supplied account reference and needs a stable account ID.
@@ -24,7 +24,10 @@ inputs:
 outputs:
   schema: ../../schemas/skill-result.schema.json
   outcome_field: data.outcome
-  outcomes: [resolved, ambiguous, not_found]
+  outcomes: [resolved, confirmation_required, ambiguous, not_found]
+  resolvable_match_types: [account_id, exact_name, normalized_name, domain]
+  blocked_match_types: [fuzzy]
+  candidate_fields: [account_id, name, domain, match_type, score, matched_tokens]
   failure_status: failed
 
 dependencies:
@@ -44,33 +47,39 @@ authorization:
   permitted_fields: [account_id, name, domain, location, owner_name]
   prohibited_fields: [revenue, contract_terms, contact_pii]
   enforcement: adapter
-  notes: The adapter enforces access; this skill only forwards and maps adapter errors.
+  notes:
+    - The adapter enforces access; this skill only forwards and maps adapter errors.
+    - Unconfirmed candidates expose identifying fields only, never restricted account details.
 
 procedure:
   - Validate account_reference is a non-empty string.
   - Derive the search term and call the account adapter.
   - Map adapter failures and malformed responses to structured errors.
   - Score returned accounts with the deterministic matching rules.
-  - Return resolved only when exactly one credible candidate exists.
+  - Return blocked with account_not_found when no candidate is credible.
   - Return blocked with all candidates when more than one is credible.
-  - Return blocked with account_not_found when none is credible.
+  - Return blocked with confirmation_required when the single credible candidate is fuzzy.
+  - Return resolved only for an exact ID, canonical name, normalized name, or domain match.
 
 constraints:
   - Do not use a model for account matching.
   - Do not silently choose among credible candidates.
+  - Do not resolve a fuzzy or partial-name candidate, regardless of score.
   - Do not invent account IDs, names, or identifiers.
+  - Do not expose restricted account details for unconfirmed candidates.
   - Do not read or write account records directly; use the adapter only.
   - Matching thresholds are fixed policy and change only with a documented decision.
 
 gates:
   - schema_valid
   - authorized
-  - exactly_one_credible_candidate_for_success
+  - exact_match_required_for_success
+  - confirmation_required_blocks_fuzzy_matches
   - ambiguity_blocks_progress
   - no_invented_accounts_on_failure
 
 evals:
-  suites: [golden, negative, authorization, adapter_failure]
+  suites: [golden, negative, authorization, adapter_failure, confirmation]
   fixtures:
     - fixtures/clear-account
     - fixtures/ambiguous-account

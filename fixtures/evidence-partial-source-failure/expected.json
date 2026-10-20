@@ -1,0 +1,20 @@
+{
+  "input": {
+    "account_id": "sf_clear_001",
+    "questions": [
+      { "id": "FM-REL-001", "text": "Which prior meetings, opportunities, or support cases exist for this account?" },
+      { "id": "FM-STK-001", "text": "Which named contacts are recorded on the account, with what evidenced role?" }
+    ],
+    "requested_sources": ["crm", "public_source"]
+  },
+  "expected": {
+    "status": "partial",
+    "record_count": 2,
+    "record_ids": ["src_crm_act_2101", "src_crm_rec_2201"],
+    "source_outcomes": { "crm": "ok", "public_source": "unavailable" },
+    "error_codes": ["ADAPTER_UNAVAILABLE"],
+    "error_source": "public_source",
+    "error_retryable": true,
+    "warning_codes": ["PARTIAL_SOURCES"]
+  }
+}

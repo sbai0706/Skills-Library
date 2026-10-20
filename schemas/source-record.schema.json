@@ -1,0 +1,92 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sales-copilot.local/schemas/source-record.schema.json",
+  "title": "Raw source record",
+  "description": "A retrieved source record as returned by an evidence adapter. This is an input to evidence.normalize, not an evidence claim: it carries no claim text, confidence, or verification status.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "record_id",
+    "account_id",
+    "source_type",
+    "title",
+    "content",
+    "retrieved_at",
+    "access_classification",
+    "question_ids",
+    "metadata"
+  ],
+  "properties": {
+    "record_id": {
+      "type": "string",
+      "pattern": "^src_[A-Za-z0-9_-]+$",
+      "description": "Stable identifier of the record in its source system."
+    },
+    "account_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Resolved account this record belongs to. Must equal the requested account_id."
+    },
+    "source_type": {
+      "enum": [
+        "crm_record",
+        "crm_activity",
+        "company_site",
+        "news",
+        "third_party",
+        "internal_document"
+      ],
+      "description": "Uses the same taxonomy as evidence.schema.json so normalization is mechanical."
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500,
+      "description": "Record subject or record type label, for example 'Discovery call notes'."
+    },
+    "content": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 20000,
+      "description": "Raw or extracted textual content. Never summarized by this skill."
+    },
+    "source_uri": {
+      "type": ["string", "null"],
+      "format": "uri",
+      "description": "Address of the source when it is addressable."
+    },
+    "occurred_at": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "Publication or occurrence time when the source states one."
+    },
+    "retrieved_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "access_classification": {
+      "enum": ["public", "internal", "confidential"]
+    },
+    "question_ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+      },
+      "description": "Question IDs the adapter considered this record relevant to. Relevance is the adapter's judgement, not a claim."
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Controlled source-specific metadata: flat scalar values only. Standard keys include provider, record_type, author, channel, and object_name.",
+      "additionalProperties": {
+        "anyOf": [
+          { "type": "string" },
+          { "type": "number" },
+          { "type": "boolean" },
+          { "type": "null" }
+        ]
+      }
+    }
+  }
+}

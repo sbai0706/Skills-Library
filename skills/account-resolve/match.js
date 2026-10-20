@@ -8,7 +8,10 @@ import { looksLikeDomain, matchKey, normalizeDomain, tokenize } from "./normaliz
  *  - score >= MIN_CREDIBLE_SCORE
  *  - coverage > MIN_COVERAGE (every reference name token except at most one appears)
  *  - at least one token matched
- * Any number of credible candidates other than one produces a blocked result.
+ *
+ * Credible candidates are not automatically resolvable. Only an exact
+ * identifier match resolves; a fuzzy or partial-name match is returned as
+ * blocked with confirmation_required.
  */
 export const MATCHING_RULES = Object.freeze({
   MIN_CREDIBLE_SCORE: 0.6,
@@ -39,9 +42,14 @@ export function scoreAccount(reference, account) {
     coverage,
     precision,
     matched_tokens: matchedTokens,
+    exact_id: typeof account.account_id === "string" && account.account_id === reference,
     exact_raw: typeof account.name === "string" && account.name.trim() === reference.trim(),
     exact_key: referenceKey !== "" && matchKey(account.name) === referenceKey,
-    exact_domain: looksLikeDomain(reference) && normalizeDomain(reference) === normalizeDomain(account.domain),
+    exact_domain:
+      looksLikeDomain(reference) &&
+      typeof account.domain === "string" &&
+      normalizeDomain(account.domain) !== "" &&
+      normalizeDomain(reference) === normalizeDomain(account.domain),
   };
 }
 
@@ -54,10 +62,23 @@ export function isCredible(scored) {
   );
 }
 
-/** Human-readable match method for a resolved account. */
+/**
+ * Exactness gate. Only these may resolve without human confirmation:
+ *  - the canonical account ID itself,
+ *  - the account name exactly as stored,
+ *  - the name after deterministic normalization only,
+ *  - an authoritative domain match.
+ * A token match is never exact, regardless of its score.
+ */
+export function isExactMatch(scored) {
+  return scored.exact_id || scored.exact_raw || scored.exact_key || scored.exact_domain;
+}
+
+/** Human-readable match type, reported for every candidate. */
 export function matchMethod(scored) {
+  if (scored.exact_id) return "account_id";
   if (scored.exact_domain) return "domain";
   if (scored.exact_raw) return "exact_name";
   if (scored.exact_key) return "normalized_name";
-  return "token_match";
+  return "fuzzy";
 }

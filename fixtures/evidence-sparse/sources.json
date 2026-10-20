@@ -1,0 +1,9 @@
+{
+  "fixture": "evidence-sparse",
+  "description": "Valid account whose adapters succeed but return no records.",
+  "account_id": "sf_clear_003",
+  "sources": {
+    "crm": { "mode": "ok", "records": [] },
+    "public_source": { "mode": "ok", "records": [] }
+  }
+}

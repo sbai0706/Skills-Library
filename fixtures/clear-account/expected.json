@@ -10,23 +10,33 @@
   "variants": [
     {
       "account_reference": "NORTHSTAR LOGISTICS",
-      "why": "case difference is removed by normalization, so the match is not byte-exact",
+      "why": "case difference is removed by normalization, so the match is exact-normalized",
       "expected": { "status": "success", "outcome": "resolved", "account_id": "sf_clear_001", "match_method": "normalized_name" }
     },
     {
       "account_reference": "Northstar Logistics, Inc.",
-      "why": "text after the comma is not part of the account name, so the legal suffix never reaches matching",
+      "why": "text after the comma is not part of the account name; the name itself still matches exactly",
       "expected": { "status": "success", "outcome": "resolved", "account_id": "sf_clear_001", "match_method": "exact_name" }
     },
     {
       "account_reference": "northstar-logistics.example",
-      "why": "domain reference matches the account domain",
+      "why": "authoritative domain reference resolves exactly",
       "expected": { "status": "success", "outcome": "resolved", "account_id": "sf_clear_001", "match_method": "domain" }
     },
     {
+      "account_reference": "sf_clear_001",
+      "why": "exact canonical account ID resolves",
+      "expected": { "status": "success", "outcome": "resolved", "account_id": "sf_clear_001", "match_method": "account_id" }
+    },
+    {
       "account_reference": "Northstar",
-      "why": "a partial name still identifies exactly one credible account, reported as a token match",
-      "expected": { "status": "success", "outcome": "resolved", "account_id": "sf_clear_001", "match_method": "token_match" }
+      "why": "a partial name matches exactly one candidate but is not an exact identifier, so it must be confirmed",
+      "expected": {
+        "status": "blocked",
+        "outcome": "confirmation_required",
+        "reason": "confirmation_required",
+        "candidate_account_ids": ["sf_clear_001"]
+      }
     }
   ],
   "must_not_match": ["sf_clear_002", "sf_clear_003"]

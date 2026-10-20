@@ -137,6 +137,49 @@ test("evidence record rejects invalid enumerations", () => {
   expectInvalid("evidence", badAccess, "access classification enum");
 });
 
+test("raw source record example validates", () => {
+  const example = JSON.parse(
+    readFileSync(new URL("../schemas/source-record.example.json", import.meta.url), "utf8"),
+  );
+  const { valid, errors } = validate("sourceRecord", example);
+  assert.equal(valid, true, JSON.stringify(errors));
+});
+
+test("raw source record missing a required field fails", () => {
+  const example = JSON.parse(
+    readFileSync(new URL("../schemas/source-record.example.json", import.meta.url), "utf8"),
+  );
+  for (const field of ["record_id", "account_id", "source_type", "content", "retrieved_at", "access_classification"]) {
+    const bad = clone(example);
+    delete bad[field];
+    expectInvalid("sourceRecord", bad, `missing ${field}`);
+  }
+});
+
+test("raw source record rejects claim-level fields", () => {
+  const example = JSON.parse(
+    readFileSync(new URL("../schemas/source-record.example.json", import.meta.url), "utf8"),
+  );
+  for (const field of ["claim", "confidence", "verification_status"]) {
+    const bad = clone(example);
+    bad[field] = "x";
+    expectInvalid("sourceRecord", bad, `claim field ${field}`);
+  }
+});
+
+test("raw source record rejects an invalid source type and field-shaped metadata", () => {
+  const example = JSON.parse(
+    readFileSync(new URL("../schemas/source-record.example.json", import.meta.url), "utf8"),
+  );
+  const badType = clone(example);
+  badType.source_type = "email";
+  expectInvalid("sourceRecord", badType, "source type enum");
+
+  const nestedMetadata = clone(example);
+  nestedMetadata.metadata = { nested: { a: 1 } };
+  expectInvalid("sourceRecord", nestedMetadata, "flat metadata only");
+});
+
 test("valid structured error passes the shared schema", () => {
   const { valid, errors } = validate("error", validError);
   assert.equal(valid, true, JSON.stringify(errors));

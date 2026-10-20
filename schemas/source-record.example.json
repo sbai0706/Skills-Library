@@ -1,0 +1,17 @@
+{
+  "record_id": "src_crm_act_2041",
+  "account_id": "sf_clear_001",
+  "source_type": "crm_activity",
+  "title": "Discovery call notes",
+  "content": "Call with operations leadership. They described manual yard scheduling at two Midwest depots and said a systems review is planned for Q1.",
+  "source_uri": null,
+  "occurred_at": "2026-09-12T15:00:00Z",
+  "retrieved_at": "2026-10-20T14:30:00Z",
+  "access_classification": "internal",
+  "question_ids": ["FM-REL-001", "FM-CTX-001"],
+  "metadata": {
+    "provider": "fixture-crm",
+    "object_name": "Task",
+    "record_type": "discovery_call"
+  }
+}

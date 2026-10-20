@@ -8,14 +8,21 @@ const schemaDir = dirname(fileURLToPath(import.meta.url));
 
 const load = (filename) => JSON.parse(readFileSync(join(schemaDir, filename), "utf8"));
 
-export const schemaDocuments = {
-  skillResult: load("skill-result.schema.json"),
-  evidence: load("evidence.schema.json"),
-  error: load("error.schema.json"),
+/** Files whose validation capability is exposed through validate(). */
+const SCHEMA_FILES = {
+  skillResult: "skill-result.schema.json",
+  evidence: "evidence.schema.json",
+  error: "error.schema.json",
+  sourceRecord: "source-record.schema.json",
 };
 
 const ajv = new Ajv({ allErrors: true, strict: true });
 addFormats(ajv);
+
+export const schemaDocuments = Object.fromEntries(
+  Object.entries(SCHEMA_FILES).map(([name, filename]) => [name, load(filename)]),
+);
+
 for (const schema of Object.values(schemaDocuments)) ajv.addSchema(schema);
 
 /**
@@ -24,13 +31,9 @@ for (const schema of Object.values(schemaDocuments)) ajv.addSchema(schema);
  * Throws if `name` is not a known schema (developer error, not data error).
  */
 export function validate(name, value) {
-  const validators = {
-    skillResult: ajv.getSchema(schemaDocuments.skillResult.$id),
-    evidence: ajv.getSchema(schemaDocuments.evidence.$id),
-    error: ajv.getSchema(schemaDocuments.error.$id),
-  };
-  const validateFn = validators[name];
-  if (!validateFn) throw new Error(`Unknown schema: ${name}`);
+  const schema = schemaDocuments[name];
+  if (!schema) throw new Error(`Unknown schema: ${name}`);
+  const validateFn = ajv.getSchema(schema.$id);
   const valid = validateFn(value);
   return {
     valid: Boolean(valid),
