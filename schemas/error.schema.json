@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sales-copilot.local/schemas/error.schema.json",
+  "title": "Structured skill error",
+  "description": "Machine-readable error entry used inside skill result envelopes.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["code", "message", "retryable"],
+  "properties": {
+    "code": {
+      "type": "string",
+      "enum": [
+        "INVALID_INPUT",
+        "ACCOUNT_NOT_FOUND",
+        "AMBIGUOUS_ACCOUNT",
+        "ADAPTER_UNAVAILABLE",
+        "ADAPTER_UNAUTHORIZED",
+        "ADAPTER_MALFORMED_RESPONSE",
+        "INTERNAL_ERROR"
+      ],
+      "description": "Stable error code. Extend this enum when a new skill introduces a new failure class."
+    },
+    "message": {
+      "type": "string",
+      "minLength": 1
+    },
+    "retryable": {
+      "type": "boolean"
+    },
+    "details": {
+      "type": "object",
+      "description": "Structured context. Must not contain secrets or unauthorized record content."
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

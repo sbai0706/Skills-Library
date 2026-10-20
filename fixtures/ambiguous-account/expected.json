@@ -1,0 +1,21 @@
+{
+  "input": { "account_reference": "Meridian Health" },
+  "expected": {
+    "status": "blocked",
+    "outcome": "ambiguous",
+    "reason": "ambiguous_account",
+    "candidate_account_ids": ["sf_amb_001", "sf_amb_002"],
+    "never_auto_select": true
+  },
+  "variants": [
+    {
+      "account_reference": "Meridian",
+      "why": "single distinguishing token covers both credible accounts",
+      "expected": {
+        "status": "blocked",
+        "outcome": "ambiguous",
+        "candidate_account_ids": ["sf_amb_001", "sf_amb_002"]
+      }
+    }
+  ]
+}

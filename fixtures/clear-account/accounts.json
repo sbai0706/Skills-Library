@@ -1,0 +1,28 @@
+{
+  "fixture": "clear-account",
+  "description": "One unambiguous match plus unrelated accounts the adapter must not over-match.",
+  "accounts": [
+    {
+      "account_id": "sf_clear_001",
+      "name": "Northstar Logistics",
+      "domain": "northstar-logistics.example",
+      "location": "Columbus, OH",
+      "owner_name": "Dana Whitfield",
+      "active": true
+    },
+    {
+      "account_id": "sf_clear_002",
+      "name": "Rivermark Utilities",
+      "domain": "rivermark-utilities.example",
+      "location": "Omaha, NE",
+      "active": true
+    },
+    {
+      "account_id": "sf_clear_003",
+      "name": "Halcyon Foods",
+      "domain": "halcyon-foods.example",
+      "location": "Fresno, CA",
+      "active": true
+    }
+  ]
+}

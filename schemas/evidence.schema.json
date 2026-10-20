@@ -1,0 +1,89 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sales-copilot.local/schemas/evidence.schema.json",
+  "title": "Evidence record",
+  "description": "Common evidence record linking a claim to its source and access classification.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "claim_id",
+    "claim",
+    "source_type",
+    "account_id",
+    "retrieved_at",
+    "excerpt",
+    "confidence",
+    "verification_status",
+    "access_classification"
+  ],
+  "properties": {
+    "claim_id": {
+      "type": "string",
+      "pattern": "^clm_[A-Za-z0-9_-]+$"
+    },
+    "claim": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000,
+      "description": "The single factual claim this record supports."
+    },
+    "source_type": {
+      "enum": [
+        "crm_record",
+        "crm_activity",
+        "company_site",
+        "news",
+        "third_party",
+        "internal_document"
+      ]
+    },
+    "source_uri": {
+      "type": ["string", "null"],
+      "format": "uri",
+      "description": "Public or internal URI for the source, when one exists."
+    },
+    "source_record_id": {
+      "type": ["string", "null"],
+      "minLength": 1,
+      "description": "Opaque source record identifier when the source is not addressable by URI."
+    },
+    "account_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "published_at": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "Publication time when available; null when unknown."
+    },
+    "retrieved_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "excerpt": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4000,
+      "description": "Verbatim or normalized source passage supporting the claim."
+    },
+    "confidence": {
+      "enum": ["high", "medium", "low"]
+    },
+    "verification_status": {
+      "enum": ["direct", "corroborated", "inferred", "conflicting"]
+    },
+    "access_classification": {
+      "enum": ["public", "internal", "confidential"]
+    }
+  },
+  "anyOf": [
+    {
+      "required": ["source_uri"],
+      "properties": { "source_uri": { "type": "string" } }
+    },
+    {
+      "required": ["source_record_id"],
+      "properties": { "source_record_id": { "type": "string" } }
+    }
+  ]
+}

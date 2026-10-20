@@ -1,0 +1,27 @@
+{
+  "fixture": "ambiguous-account",
+  "description": "Two credible accounts with similar names plus one unrelated account.",
+  "accounts": [
+    {
+      "account_id": "sf_amb_001",
+      "name": "Meridian Health Group",
+      "domain": "meridianhealth.example",
+      "location": "Boston, MA",
+      "active": true
+    },
+    {
+      "account_id": "sf_amb_002",
+      "name": "Meridian Health Partners",
+      "domain": "meridian-health-partners.example",
+      "location": "Denver, CO",
+      "active": true
+    },
+    {
+      "account_id": "sf_amb_003",
+      "name": "Summit Rail Systems",
+      "domain": "summit-rail.example",
+      "location": "Kansas City, MO",
+      "active": true
+    }
+  ]
+}

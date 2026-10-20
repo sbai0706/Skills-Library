@@ -1,0 +1,18 @@
+{
+  "fixture": "missing-account",
+  "description": "Accounts that are not credible matches for the requested reference.",
+  "accounts": [
+    {
+      "account_id": "sf_miss_001",
+      "name": "Cobalt Freight Systems",
+      "domain": "cobalt-freight.example",
+      "active": true
+    },
+    {
+      "account_id": "sf_miss_002",
+      "name": "Harborline Marine",
+      "domain": "harborline.example",
+      "active": true
+    }
+  ]
+}

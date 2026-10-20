@@ -1,0 +1,78 @@
+skill: account.resolve
+version: 0.1.0
+status: draft
+business_owner: TBD
+
+intent: Resolve a free-form account reference to exactly one credible account, or explicitly block.
+
+when_to_use:
+  - A workflow has a human-supplied account reference and needs a stable account ID.
+when_not_to_use:
+  - A verified account ID is already available.
+  - The request needs account creation, editing, merging, or evidence retrieval.
+  - Account identity depends on an unapproved business rule.
+
+inputs:
+  required:
+    - account_reference
+  properties:
+    account_reference:
+      type: string
+      minLength: 1
+      description: Account name, partial name, or domain. The name portion before , ; ( is sent to the adapter.
+
+outputs:
+  schema: ../../schemas/skill-result.schema.json
+  outcome_field: data.outcome
+  outcomes: [resolved, ambiguous, not_found]
+  failure_status: failed
+
+dependencies:
+  skills: []
+  reference: []
+  adapters:
+    - account-adapter.searchAccounts
+  runtime:
+    - schemas/index.js
+    - skills/account-resolve/match.js
+    - skills/account-resolve/normalize.js
+    - skills/account-resolve/search.js
+
+authorization:
+  permitted_roles: [sales_partner, sales_owner]
+  record_scope: account_directory_read
+  permitted_fields: [account_id, name, domain, location, owner_name]
+  prohibited_fields: [revenue, contract_terms, contact_pii]
+  enforcement: adapter
+  notes: The adapter enforces access; this skill only forwards and maps adapter errors.
+
+procedure:
+  - Validate account_reference is a non-empty string.
+  - Derive the search term and call the account adapter.
+  - Map adapter failures and malformed responses to structured errors.
+  - Score returned accounts with the deterministic matching rules.
+  - Return resolved only when exactly one credible candidate exists.
+  - Return blocked with all candidates when more than one is credible.
+  - Return blocked with account_not_found when none is credible.
+
+constraints:
+  - Do not use a model for account matching.
+  - Do not silently choose among credible candidates.
+  - Do not invent account IDs, names, or identifiers.
+  - Do not read or write account records directly; use the adapter only.
+  - Matching thresholds are fixed policy and change only with a documented decision.
+
+gates:
+  - schema_valid
+  - authorized
+  - exactly_one_credible_candidate_for_success
+  - ambiguity_blocks_progress
+  - no_invented_accounts_on_failure
+
+evals:
+  suites: [golden, negative, authorization, adapter_failure]
+  fixtures:
+    - fixtures/clear-account
+    - fixtures/ambiguous-account
+    - fixtures/missing-account
+  command: npm test

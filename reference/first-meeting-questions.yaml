@@ -1,0 +1,117 @@
+# Reference questions only. They are not answers, findings, or runtime results.
+# Draft content requires business approval before it may drive customer-facing output.
+version: 0.1.0
+status: draft
+business_owner: TBD
+approver: TBD
+approval_date: null
+source_documents: []
+effective_date: null
+change_history:
+  - version: 0.1.0
+    date: 2026-10-19
+    change: Initial draft derived from the architecture reference; pending business review.
+
+categories:
+  - id: company_context
+    label: Company context
+    intent: Establish what the company does, where it operates, and how it is structured.
+    questions:
+      - id: FM-CTX-001
+        question: What does the company sell, to whom, and in which geographies?
+        required: true
+        evidence_expected: [company_site, crm_record]
+      - id: FM-CTX-002
+        question: What is the company size and ownership structure as of the last verified source?
+        required: false
+        evidence_expected: [company_site, third_party]
+      - id: FM-CTX-003
+        question: Which business units or subsidiaries are in scope for this account?
+        required: false
+        evidence_expected: [crm_record, internal_document]
+
+  - id: recent_developments
+    label: Recent developments or initiatives
+    intent: Identify credible, recent changes that could create or remove urgency.
+    questions:
+      - id: FM-DEV-001
+        question: What credible initiative, announcement, or event has the company disclosed in the last twelve months?
+        required: true
+        evidence_expected: [news, company_site, crm_activity]
+      - id: FM-DEV-002
+        question: Which executive, financial, or operational pressure is evidenced by a named source?
+        required: false
+        evidence_expected: [news, third_party, internal_document]
+      - id: FM-DEV-003
+        question: Is there any evidence the company is evaluating or changing providers?
+        required: false
+        evidence_expected: [crm_activity, news]
+
+  - id: prior_relationship
+    label: Existing relationship and prior activity
+    intent: Describe what Relevantz already knows from permitted internal records.
+    questions:
+      - id: FM-REL-001
+        question: Which prior meetings, opportunities, or support cases exist for this account?
+        required: true
+        evidence_expected: [crm_activity, crm_record]
+      - id: FM-REL-002
+        question: What was the outcome of the most recent recorded interaction?
+        required: false
+        evidence_expected: [crm_activity]
+      - id: FM-REL-003
+        question: Are there open commitments, escalations, or renewal dates on record?
+        required: false
+        evidence_expected: [crm_record, internal_document]
+
+  - id: stakeholders
+    label: Known stakeholders
+    intent: Identify people with evidenced roles without inferring titles or influence.
+    questions:
+      - id: FM-STK-001
+        question: Which named contacts are recorded on the account, with what evidenced role?
+        required: true
+        evidence_expected: [crm_record, internal_document]
+      - id: FM-STK-002
+        question: Who is the account owner internally and when was contact last made?
+        required: false
+        evidence_expected: [crm_record]
+      - id: FM-STK-003
+        question: Is there evidence of an executive sponsor or decision committee?
+        required: false
+        evidence_expected: [crm_activity, internal_document]
+
+  - id: service_alignment
+    label: Possible service alignment
+    intent: Frame plausible alignment as a hypothesis, never as a confirmed need.
+    questions:
+      - id: FM-SVC-001
+        question: Which approved offering areas could plausibly relate to the evidenced initiatives?
+        required: true
+        evidence_expected: [crm_activity, news]
+        caveat: Hypothesis only; requires offering approval and supporting evidence.
+      - id: FM-SVC-002
+        question: What customer problem would have to be true for that alignment to matter?
+        required: false
+        evidence_expected: [crm_activity, internal_document]
+      - id: FM-SVC-003
+        question: Which competitors or incumbent providers are evidenced, if any?
+        required: false
+        evidence_expected: [news, crm_activity]
+
+  - id: evidence_gaps
+    label: Unresolved evidence gaps
+    intent: Make missing information explicit instead of filling it with assumptions.
+    questions:
+      - id: FM-GAP-001
+        question: Which required questions above have no supporting evidence?
+        required: true
+        evidence_expected: []
+      - id: FM-GAP-002
+        question: Which evidence is stale, conflicting, or single-sourced?
+        required: false
+        evidence_expected: []
+      - id: FM-GAP-003
+        question: Which questions must the first meeting answer directly because no source can?
+        required: false
+        evidence_expected: []

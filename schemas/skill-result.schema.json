@@ -1,0 +1,111 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sales-copilot.local/schemas/skill-result.schema.json",
+  "title": "Skill result envelope",
+  "description": "Minimal shared result envelope returned by every Sales Copilot skill.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "skill",
+    "skill_version",
+    "status",
+    "data",
+    "evidence_ids",
+    "warnings",
+    "errors",
+    "trace_id",
+    "started_at",
+    "finished_at"
+  ],
+  "properties": {
+    "skill": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$",
+      "description": "Namespaced skill name, for example account.resolve."
+    },
+    "skill_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "status": {
+      "enum": ["success", "partial", "blocked", "failed"],
+      "description": "success: usable result; partial: usable with gaps; blocked: cannot proceed without human input; failed: execution error."
+    },
+    "data": {
+      "type": ["object", "null"],
+      "description": "Skill-specific payload. Must be null when no usable data was produced."
+    },
+    "evidence_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^clm_[A-Za-z0-9_-]+$"
+      },
+      "uniqueItems": true,
+      "description": "Claim/evidence IDs supporting this result. Empty until a skill generates evidence."
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/warning"
+      }
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "$ref": "https://sales-copilot.local/schemas/error.schema.json"
+      }
+    },
+    "trace_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^trace_",
+      "description": "Correlation ID for this execution."
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "finished_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "definitions": {
+    "warning": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "status": { "enum": ["failed"] } },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": { "errors": { "type": "array", "minItems": 1 } }
+      }
+    },
+    {
+      "if": {
+        "properties": { "status": { "enum": ["success"] } },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": { "errors": { "type": "array", "maxItems": 0 } }
+      }
+    }
+  ]
+}

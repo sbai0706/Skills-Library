@@ -1,0 +1,16 @@
+{
+  "input": { "account_reference": "Aurora Grid" },
+  "expected": {
+    "status": "blocked",
+    "outcome": "not_found",
+    "reason": "account_not_found",
+    "data_is_not_invented": true
+  },
+  "variants": [
+    {
+      "account_reference": "Cobalt Grid",
+      "why": "one shared token is below the credibility threshold, so no match is claimed",
+      "expected": { "status": "blocked", "outcome": "not_found" }
+    }
+  ]
+}
