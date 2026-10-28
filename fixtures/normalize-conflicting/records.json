@@ -1,0 +1,42 @@
+{
+  "fixture": "normalize-conflicting",
+  "description": "Two public records directly disagree on the announced target date.",
+  "account_id": "acct_northstar",
+  "records": [
+    {
+      "record_id": "src_news_4001",
+      "account_id": "acct_northstar",
+      "source_type": "news",
+      "title": "Northstar targets 2027 for automation",
+      "content": "Northstar Logistics said the warehouse automation program will begin in 2027.",
+      "source_uri": "https://news.example/northstar-2027",
+      "occurred_at": null,
+      "retrieved_at": "2026-10-20T14:00:00Z",
+      "access_classification": "public",
+      "question_ids": [
+        "FM-DEV-001"
+      ],
+      "metadata": {
+        "claim_candidates_json": "[{\"claim\":\"The warehouse automation program will begin in 2027.\",\"excerpt\":\"the warehouse automation program will begin in 2027\",\"completeness\":\"complete\",\"conflict_key\":\"automation_start_date\"}]"
+      },
+      "published_at": "2026-09-30T13:00:00Z"
+    },
+    {
+      "record_id": "src_site_4002",
+      "account_id": "acct_northstar",
+      "source_type": "company_site",
+      "title": "Automation program page",
+      "content": "Our warehouse automation program begins operations in 2028.",
+      "source_uri": "https://northstar-logistics.example/automation",
+      "occurred_at": null,
+      "retrieved_at": "2026-10-20T14:02:00Z",
+      "access_classification": "public",
+      "question_ids": [
+        "FM-DEV-001"
+      ],
+      "metadata": {
+        "claim_candidates_json": "[{\"claim\":\"The warehouse automation program begins operations in 2028.\",\"excerpt\":\"Our warehouse automation program begins operations in 2028.\",\"completeness\":\"complete\",\"conflict_key\":\"automation_start_date\"}]"
+      }
+    }
+  ]
+}

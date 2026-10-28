@@ -54,7 +54,12 @@
     "published_at": {
       "type": ["string", "null"],
       "format": "date-time",
-      "description": "Publication time when available; null when unknown."
+      "description": "Publication time when available; sourced only from the source record's published_at field."
+    },
+    "occurred_at": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "Event or activity occurrence time when available; sourced only from the source record's occurred_at field. Distinct from published_at."
     },
     "retrieved_at": {
       "type": "string",
@@ -74,6 +79,15 @@
     },
     "access_classification": {
       "enum": ["public", "internal", "confidential"]
+    },
+    "question_ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+      },
+      "description": "Optional: research question IDs the source record was associated with. Carried for provenance only; carrying a question ID does not prove the question has been answered."
     }
   },
   "anyOf": [

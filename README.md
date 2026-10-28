@@ -1,15 +1,16 @@
 # Sales Copilot — Skills Foundation
 
-Minimal, working foundation for Sales Copilot skills with two implemented capabilities:
-`account.resolve` (v0.2.0) and `evidence.retrieve` (v0.2.0).
+Minimal, working foundation for Sales Copilot skills with three implemented capabilities:
+`account.resolve` (v0.2.0), `evidence.retrieve` (v0.2.0), and `evidence.normalize` (v0.1.0).
 
-Both skills are at v0.2.0 because this revision tightened their policies: exact-match-only
-account resolution, fail-closed classification defaults, and a documented no-retry rule. It intentionally implements only what those
-capabilities need.
+The two v0.2.0 skills carry the earlier policy tightening (exact-match-only account
+resolution, fail-closed classification defaults, documented no-retry rule). `evidence.normalize`
+converts retrieved raw source records into claim-level evidence records. The repository
+intentionally implements only what these capabilities need.
 
 Architecture reference: [Sales_Skills_Library_Architecture_v2.md](Sales_Skills_Library_Architecture_v2.md).
 That document describes the eventual direction; this repository implements only the shared
-contracts and these two skills.
+contracts and these three skills. See [docs/MVP_HANDOFF.md](docs/MVP_HANDOFF.md) for frozen contracts and the parallel `gap.detect` / `artifact.render` handoff.
 
 The skills are plain JavaScript functions. There is no agent-platform integration, no prompt
 parsing, and no model provider dependency. `SKILL.md` is the agent-facing description;
@@ -28,7 +29,7 @@ npm test
 ```
 
 `npm test` runs `node --test`, which discovers every file under `tests/`. No external
-services, credentials, or network calls are required.
+services, credentials, or network calls are required. Current suite: 139 tests. See [the implementation handoff](docs/MVP_HANDOFF.md) for the exact baseline command and task boundaries.
 
 ## Layout
 
@@ -39,6 +40,10 @@ schemas/
   evidence.example.json         One valid evidence record used by the tests
   source-record.schema.json     Raw retrieved source record (input to evidence.normalize)
   source-record.example.json    One valid raw source record used by the tests
+  gap-result.schema.json        Structured answer/gap/conflict status per question
+  gap-result.example.json       Example gap result used by tests
+  first-meeting-brief-input.schema.json   Structured inputs for a future renderer
+  first-meeting-brief-input.example.json  Example renderer input used by tests
   error.schema.json             Structured error entry
   index.js                      Ajv compilation and validate(name, value)
 
@@ -47,6 +52,8 @@ adapters/
   fixture-account-adapter.js    In-memory account adapter used by tests and local demos
   evidence-adapter.js           Evidence interface, source/record-type map, envelope validation
   fixture-evidence-adapter.js   In-memory evidence adapter with per-source failure modes
+  claim-extractor.js            Claim extractor interface (proposes candidates, never decides)
+  fixture-claim-extractor.js    Deterministic extractor reading metadata.claim_candidates_json
 
 skills/account-resolve/
   SKILL.md                      Agent-facing instructions
@@ -63,6 +70,15 @@ skills/evidence-retrieve/
   validate-input.js             Request validation, including unknown-source rejection
   records.js                    Record validation, deduplication, ordering, classification filter
 
+skills/evidence-normalize/
+  SKILL.md                      Agent-facing instructions
+  skill.yaml                    Machine-readable contract
+  index.js                      Skill entry point (normalizeEvidence)
+  validate-input.js             Request-level validation (account_id, records array)
+  records.js                    Record validation and candidate claim checking
+  claims.js                     Claim IDs, classification policy, dedup, conflict detection
+  text.js                       Deterministic comparison utilities (support, excerpt matching)
+
 fixtures/
   clear-account/                Account fixtures: accounts.json + expected.json
   ambiguous-account/
@@ -71,14 +87,26 @@ fixtures/
   evidence-sparse/
   evidence-partial-source-failure/
   evidence-unauthorized/
+  normalize-single-source/      Normalization fixtures: records.json + expected.json
+  normalize-multiple-claims/
+  normalize-duplicate/
+  normalize-conflicting/
+  normalize-unsupported/
+  normalize-classification/
+  normalize-empty/
 
 reference/
   first-meeting-questions.yaml  Draft reference questions for the future first-meeting workflow
+
+docs/
+  MVP_HANDOFF.md                Frozen contracts and parallel implementation handoff
 
 tests/
   schemas.test.js               Envelope, evidence, source-record, and error schema tests
   account-resolve.test.js       account.resolve behavior, fixture cases, adapter failures
   evidence-retrieve.test.js     evidence.retrieve behavior, multi-source, authorization, ordering
+  evidence-normalize.test.js    evidence.normalize claims, support rules, conflicts, dedup, extractor failures
+  integration-contracts.test.js Gap result, brief input, and timestamp schema validation
   contracts.test.js             skill.yaml/SKILL.md contract checks for every skill
   reference.test.js             Structure and integrity of the reference questions
 ```
@@ -126,6 +154,30 @@ const result = await retrieveEvidence(
 It depends only on `{ name, supportedSources, retrieve(request) }`. Records follow
 `schemas/source-record.schema.json` and contain no claim, confidence, or verification fields.
 
+### evidence.normalize
+
+```js
+import { normalizeEvidence } from "./skills/evidence-normalize/index.js";
+import { createFixtureClaimExtractor } from "./adapters/fixture-claim-extractor.js";
+
+const extractor = createFixtureClaimExtractor();
+const result = await normalizeEvidence(
+  { account_id: "acct_northstar", records: retrievedRecords },
+  { extractor },
+);
+
+// result.status === "success"
+// result.data.claims                 evidence records, each validated against evidence.schema.json
+// result.data.rejected_records       structured rejections with reason codes
+// result.data.conflicts              contradictions, preserved without a winner
+// result.evidence_ids === claims.map((c) => c.claim_id)
+```
+
+It depends only on `{ name, extract(record) }` implementing `adapters/claim-extractor.js`. The
+fixture extractor reads explicit candidate claims from the record's flat
+`metadata.claim_candidates_json` string; it parses no prose. A model-backed extractor can
+replace it without changing the skill's input or output contract.
+
 ## Design decisions
 
 - **Node.js + `node:test`** because no stack existed when work started and the built-in runner
@@ -162,19 +214,41 @@ It depends only on `{ name, supportedSources, retrieve(request) }`. Records foll
   future live adapter may retry transient transport failures internally.
 - **Empty is not failure.** A successful retrieval with zero records is `success` with a
   `NO_RECORDS_RETRIEVED` warning, never an execution failure and never a claim of absence.
+- **The extractor proposes; the skill decides** (`evidence.normalize`). Candidate claims come
+  from a pluggable `claim-extractor` interface. The skill alone owns direct-support checking,
+  classification policy, deduplication, conflicts, rejection, and output construction, so a
+  model-backed extractor can never bypass the support rules.
+- **Direct support is machine-checked, not judged.** A claim is emitted only when its excerpt
+  appears verbatim in the record content (whitespace-run differences aside) and every
+  significant claim token occurs in the excerpt. Unsupported candidates are rejected, never
+  "cleaned up".
+- **Contradictions are preserved, never adjudicated.** Conflicting claims are both kept, both
+  marked `conflicting`, and linked through a conflict entry. No winner is selected.
+- **Cross-record agreement is not collapsed.** Identical claim text from different records
+  stays as separate claims with separate provenance; independent corroboration is never
+  discarded to shorten output.
 
 ## Shared-contract change
 
-`schemas/error.schema.json` gained three enum members, each additive:
+`schemas/error.schema.json` gained five enum members across revisions, each additive:
 
 | Code | Added for |
 | --- | --- |
 | `UNSUPPORTED_SOURCE` | Unknown or unavailable requested source |
 | `CONFIRMATION_REQUIRED` | Fuzzy/partial account match that needs human confirmation |
 | `CLASSIFICATION_RESTRICTED` | Records withheld by the access-classification policy |
+| `EXTRACTOR_UNAVAILABLE` | Claim extractor failed or threw for a record |
+| `EXTRACTOR_MALFORMED_RESPONSE` | Claim extractor returned an unusable envelope |
 
-Every previously valid error record remains valid; no field was added, removed, or renamed. The
-result envelope is unchanged.
+`schemas/evidence.schema.json` gained optional `question_ids` and `occurred_at`; source records
+gained optional `published_at` to distinguish publication time from event/occurrence time. These
+are additive, and prior records remain valid. Normalization maps the timestamp fields one-to-one.
+
+Two integration schemas are now available: `gap-result.schema.json` (safe per-question status,
+evidence IDs, reason codes, conflicts, counts) and `first-meeting-brief-input.schema.json`
+(structured identity, claims, gaps, warnings, template, audience, and classification ceiling).
+They define contracts only; neither next skill is implemented. No field was removed or renamed,
+and the shared result envelope is unchanged.
 
 ## Assumptions
 
@@ -187,14 +261,22 @@ result envelope is unchanged.
 4. Reference questions are drafts owned by `TBD`; they are not approved business rules.
 5. Timestamps are UTC ISO-8601. `trace_id` is generated per skill execution.
 6. Fixtures and example domains use the reserved `.example` TLD; nothing calls a live service.
-7. **Only fixture adapters exist.** There is no Salesforce, SharePoint, or web connector.
-11. Confidence is placed in the classification list, not in the model: the default is
-    `[public, internal]` and confidential access is always an explicit caller decision.
+7. **Only fixture adapters exist.** There is no Salesforce, SharePoint, or web connector, and
+   only the fixture claim extractor exists; no model provider is contacted.
 8. `evidence.retrieve` treats `requested_sources` as a closed set (`crm`, `public_source`,
    `internal_document`). An unknown value fails the request rather than being ignored.
 9. The adapter, not the skill, decides which records are relevant to a question; the skill rejects
    records that cite a question ID outside the request.
 10. Record ordering is `source_type`, then `occurred_at` (unknown first), then `record_id`.
+11. Confidence is placed in the classification list, not in the model: the default is
+    `[public, internal]` and confidential access is always an explicit caller decision.
+12. `evidence.normalize` preserves source `published_at` as claim `published_at` and source
+    `occurred_at` as claim `occurred_at`; it never substitutes one for the other. The
+    source-record schema supports both fields when a source has both.
+13. Candidate claims in fixtures live in `metadata.claim_candidates_json` (a JSON string)
+    because the source-record schema restricts metadata values to flat scalars.
+14. `corroborated` is never emitted: cross-record agreement yields separate claims with
+    separate provenance rather than a merged corroborated record.
 
 ## Open business questions
 
@@ -214,11 +296,21 @@ result envelope is unchanged.
    operator review? It currently returns `failed` for that source, non-retryable, with no retry.
 9. Which public-research sources are approved, and what citation metadata must their records carry
    before `evidence.normalize` accepts them?
+10. Who owns the claim-extractor policy? When a model-backed extractor is approved, its
+    candidate-output contract (`adapters/claim-extractor.js`) is the point of review: the skill's
+    support rules stay the same, but the extractor's proposal quality becomes a governance item.
+11. Should cross-record agreement ever be merged into a single `corroborated` claim? The current
+    policy keeps separate claims with separate provenance; merging would require a small
+    evidence-schema extension and a business decision about which source leads.
+12. What is the escalation path when a conflict (`conflicting` claims) must be resolved before a
+    customer-facing artifact may render? Today conflicts are surfaced for a human; no skill
+    adjudicates them.
 
 ## Deferred work
 
-Evidence normalization, gap detection, artifact rendering, workflow composition, Salesforce
-connectivity, web retrieval, meeting briefs, B-FITT, qualification, CRM writeback, approvals,
-model-driven routing, UI, and orchestration are intentionally not implemented. Only the interfaces
-needed to keep `account.resolve` and `evidence.retrieve` independent of their fixture adapters
-exist.
+Gap detection, artifact rendering, workflow composition, Salesforce connectivity, web retrieval,
+meeting briefs, B-FITT, qualification, CRM writeback, approvals, model-driven routing, UI, and
+orchestration are intentionally not implemented. Model-backed claim extraction is deferred: the
+interface exists (`adapters/claim-extractor.js`) but only the deterministic fixture extractor
+implements it. Only the interfaces needed to keep `account.resolve`, `evidence.retrieve`, and
+`evidence.normalize` independent of their fixture adapters and extractor exist.

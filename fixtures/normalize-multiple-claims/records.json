@@ -1,0 +1,25 @@
+{
+  "fixture": "normalize-multiple-claims",
+  "description": "One CRM activity record producing two directly supported claims.",
+  "account_id": "acct_northstar",
+  "records": [
+    {
+      "record_id": "src_crm_2001",
+      "account_id": "acct_northstar",
+      "source_type": "crm_activity",
+      "title": "Discovery call notes",
+      "content": "Call with operations leadership. They said a systems review is planned for Q1. There are two open escalations about route exports.",
+      "source_uri": null,
+      "occurred_at": "2026-09-12T15:00:00Z",
+      "retrieved_at": "2026-10-20T14:00:00Z",
+      "access_classification": "internal",
+      "question_ids": [
+        "FM-REL-001",
+        "FM-CTX-001"
+      ],
+      "metadata": {
+        "claim_candidates_json": "[{\"claim\":\"A systems review is planned for Q1.\",\"excerpt\":\"They said a systems review is planned for Q1.\",\"completeness\":\"complete\"},{\"claim\":\"There are two open escalations about route exports.\",\"excerpt\":\"There are two open escalations about route exports.\",\"completeness\":\"complete\"}]"
+      }
+    }
+  ]
+}

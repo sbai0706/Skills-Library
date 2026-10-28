@@ -41,9 +41,10 @@ This skill returns inputs. It does not turn them into claims.
 ## Source records are not evidence claims
 
 Records follow `schemas/source-record.schema.json`. They carry `record_id`, `account_id`,
-`source_type`, `title`, raw `content`, `source_uri`, `occurred_at`, `retrieved_at`,
-`access_classification`, the `question_ids` the adapter judged relevant, and a flat
-`metadata` object.
+`source_type`, `title`, raw `content`, `source_uri`, optional `published_at`, optional
+`occurred_at`, `retrieved_at`, `access_classification`, the `question_ids` the adapter judged
+relevant, and a flat `metadata` object. Publication and event/activity occurrence timestamps are
+distinct; a source may provide either or both, and retrieval preserves them without substitution.
 
 They deliberately have **no** `claim`, `confidence`, or `verification_status`.
 Do not describe them as evidence, findings, or facts. Do not summarize them in place of the

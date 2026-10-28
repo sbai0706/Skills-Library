@@ -1,0 +1,6 @@
+{
+  "fixture": "normalize-empty",
+  "description": "No source records; normalization succeeds with zero claims.",
+  "account_id": "acct_northstar",
+  "records": []
+}

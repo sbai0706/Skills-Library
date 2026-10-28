@@ -1,0 +1,93 @@
+{
+  "account": {
+    "account_id": "sf_clear_001",
+    "canonical_name": "Northstar Logistics",
+    "identifiers": {
+      "domain": "northstar-logistics.example"
+    }
+  },
+  "claims": [
+    {
+      "claim_id": "clm_example_001",
+      "claim": "Northstar Logistics launched a warehouse automation program on 2026-09-28.",
+      "source_type": "news",
+      "source_uri": "https://news.example/northstar-automation-announcement",
+      "source_record_id": null,
+      "account_id": "acc_fixture_northstar",
+      "published_at": "2026-09-30T13:00:00Z",
+      "occurred_at": "2026-09-28T09:00:00Z",
+      "retrieved_at": "2026-10-19T18:00:00Z",
+      "excerpt": "Northstar Logistics launched a warehouse automation program on 2026-09-28.",
+      "confidence": "high",
+      "verification_status": "direct",
+      "access_classification": "public",
+      "question_ids": [
+        "FM-DEV-001"
+      ]
+    }
+  ],
+  "gap_result": {
+    "account_id": "sf_clear_001",
+    "question_set_version": "0.1.0",
+    "questions": [
+      {
+        "question_id": "FM-CTX-001",
+        "status": "answered",
+        "supporting_evidence_ids": [
+          "clm_example_001"
+        ],
+        "reason_codes": []
+      },
+      {
+        "question_id": "FM-DEV-001",
+        "status": "partial",
+        "supporting_evidence_ids": [
+          "clm_example_001"
+        ],
+        "missing_evidence_description": "Some aspects of this question lack supporting claims.",
+        "reason_codes": [
+          "partial_support"
+        ]
+      },
+      {
+        "question_id": "FM-STK-001",
+        "status": "unanswered",
+        "supporting_evidence_ids": [],
+        "missing_evidence_description": "No supporting claims were provided.",
+        "reason_codes": [
+          "no_supporting_claims"
+        ]
+      },
+      {
+        "question_id": "FM-REL-001",
+        "status": "conflicted",
+        "supporting_evidence_ids": [
+          "clm_example_001",
+          "clm_other_002"
+        ],
+        "reason_codes": [
+          "conflicting_claims"
+        ],
+        "conflict_ids": [
+          "cfl_example_001"
+        ]
+      }
+    ],
+    "summary_counts": {
+      "total": 4,
+      "answered": 1,
+      "partial": 1,
+      "unanswered": 1,
+      "conflicted": 1
+    }
+  },
+  "warnings": [
+    {
+      "code": "conflicts_present",
+      "message": "Conflicting claims require human review."
+    }
+  ],
+  "output_template_id": "first-meeting-v1",
+  "audience": "internal_sales",
+  "classification_ceiling": "public"
+}

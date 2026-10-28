@@ -1,0 +1,167 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sales-copilot.local/schemas/first-meeting-brief-input.schema.json",
+  "title": "First-meeting brief renderer input",
+  "description": "Structured, normalized input for artifact rendering. Does not accept raw source records or arbitrary source content.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "account",
+    "claims",
+    "gap_result",
+    "output_template_id",
+    "audience",
+    "classification_ceiling"
+  ],
+  "properties": {
+    "account": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "account_id",
+        "canonical_name"
+      ],
+      "properties": {
+        "account_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "canonical_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "identifiers": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "domain": {
+              "type": "string",
+              "minLength": 1
+            },
+            "external_id": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "claims": {
+      "type": "array",
+      "items": {
+        "$ref": "https://sales-copilot.local/schemas/evidence.schema.json"
+      }
+    },
+    "gap_result": {
+      "$ref": "https://sales-copilot.local/schemas/gap-result.schema.json"
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code"
+        ],
+        "properties": {
+          "code": {
+            "enum": [
+              "gaps_present",
+              "conflicts_present",
+              "claims_withheld",
+              "partial_normalization",
+              "no_claims"
+            ]
+          },
+          "message": {
+            "enum": [
+              "Some research questions remain unresolved.",
+              "Conflicting claims require human review.",
+              "Some claims were withheld by the classification ceiling.",
+              "Some normalization candidates were rejected.",
+              "No normalized claims were provided."
+            ]
+          }
+        }
+      }
+    },
+    "output_template_id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9._-]{1,63}$"
+    },
+    "audience": {
+      "enum": [
+        "internal_sales",
+        "executive",
+        "customer"
+      ]
+    },
+    "classification_ceiling": {
+      "enum": [
+        "public",
+        "internal",
+        "confidential"
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "classification_ceiling": {
+            "const": "public"
+          }
+        },
+        "required": [
+          "classification_ceiling"
+        ]
+      },
+      "then": {
+        "properties": {
+          "claims": {
+            "items": {
+              "properties": {
+                "access_classification": {
+                  "const": "public"
+                }
+              },
+              "type": "object"
+            },
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "classification_ceiling": {
+            "const": "internal"
+          }
+        },
+        "required": [
+          "classification_ceiling"
+        ]
+      },
+      "then": {
+        "properties": {
+          "claims": {
+            "items": {
+              "properties": {
+                "access_classification": {
+                  "enum": [
+                    "public",
+                    "internal"
+                  ]
+                }
+              },
+              "type": "object"
+            },
+            "type": "array"
+          }
+        }
+      }
+    }
+  ]
+}

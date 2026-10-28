@@ -55,10 +55,15 @@
       "format": "uri",
       "description": "Address of the source when it is addressable."
     },
+    "published_at": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "Publication time when the source explicitly states one."
+    },
     "occurred_at": {
       "type": ["string", "null"],
       "format": "date-time",
-      "description": "Publication or occurrence time when the source states one."
+      "description": "Event or activity occurrence time when the source explicitly states one; distinct from publication time."
     },
     "retrieved_at": {
       "type": "string",

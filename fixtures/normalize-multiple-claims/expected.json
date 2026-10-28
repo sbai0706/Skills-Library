@@ -1,0 +1,18 @@
+{
+  "fixture": "normalize-multiple-claims",
+  "expected": {
+    "status": "success",
+    "claim_count": 2,
+    "rejected_count": 0,
+    "source_record_count": 1,
+    "claim_texts": [
+      "A systems review is planned for Q1.",
+      "There are two open escalations about route exports."
+    ],
+    "all_from_record": "src_crm_2001",
+    "confidence": [
+      "high",
+      "high"
+    ]
+  }
+}

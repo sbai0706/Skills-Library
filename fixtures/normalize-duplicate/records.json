@@ -1,0 +1,41 @@
+{
+  "fixture": "normalize-duplicate",
+  "description": "Duplicate candidate claims within one record are deduplicated; the same claim text in a second record is kept as separate provenance.",
+  "account_id": "acct_northstar",
+  "records": [
+    {
+      "record_id": "src_crm_3001",
+      "account_id": "acct_northstar",
+      "source_type": "crm_activity",
+      "title": "Renewal review call",
+      "content": "The customer confirmed the contract ends in March 2027.",
+      "source_uri": null,
+      "occurred_at": "2026-08-21T11:00:00Z",
+      "retrieved_at": "2026-10-20T14:00:00Z",
+      "access_classification": "internal",
+      "question_ids": [
+        "FM-REL-001"
+      ],
+      "metadata": {
+        "claim_candidates_json": "[{\"claim\":\"The customer confirmed the contract ends in March 2027.\",\"excerpt\":\"The customer confirmed the contract ends in March 2027.\",\"completeness\":\"complete\"},{\"claim\":\"The customer CONFIRMED the contract ends in   March 2027!\",\"excerpt\":\"The customer confirmed the contract ends in March 2027.\",\"completeness\":\"complete\"}]"
+      }
+    },
+    {
+      "record_id": "src_crm_3002",
+      "account_id": "acct_northstar",
+      "source_type": "crm_record",
+      "title": "Account record",
+      "content": "The customer confirmed the contract ends in March 2027.",
+      "source_uri": null,
+      "occurred_at": null,
+      "retrieved_at": "2026-10-20T14:05:00Z",
+      "access_classification": "internal",
+      "question_ids": [
+        "FM-REL-001"
+      ],
+      "metadata": {
+        "claim_candidates_json": "[{\"claim\":\"The customer confirmed the contract ends in March 2027.\",\"excerpt\":\"The customer confirmed the contract ends in March 2027.\",\"completeness\":\"complete\"}]"
+      }
+    }
+  ]
+}

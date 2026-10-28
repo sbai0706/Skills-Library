@@ -1,0 +1,17 @@
+{
+  "fixture": "normalize-unsupported",
+  "expected": {
+    "status": "partial",
+    "claim_count": 1,
+    "rejected_count": 1,
+    "rejection_reasons": [
+      "unsupported_claim"
+    ],
+    "claim_texts": [
+      "The pilot is proceeding."
+    ],
+    "warning_codes": [
+      "RECORDS_OR_CANDIDATES_REJECTED"
+    ]
+  }
+}

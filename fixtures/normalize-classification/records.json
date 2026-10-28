@@ -1,0 +1,24 @@
+{
+  "fixture": "normalize-classification",
+  "description": "A confidential record stays confidential; a candidate attempting a downgrade is rejected.",
+  "account_id": "acct_northstar",
+  "records": [
+    {
+      "record_id": "src_crm_6001",
+      "account_id": "acct_northstar",
+      "source_type": "crm_record",
+      "title": "Executive review notes",
+      "content": "The executive team approved a confidential reorganization plan covering 2027. The plan affects three regions.",
+      "source_uri": null,
+      "occurred_at": "2026-09-01T09:00:00Z",
+      "retrieved_at": "2026-10-20T14:00:00Z",
+      "access_classification": "confidential",
+      "question_ids": [
+        "FM-CTX-001"
+      ],
+      "metadata": {
+        "claim_candidates_json": "[{\"claim\":\"The executive team approved a confidential reorganization plan covering 2027.\",\"excerpt\":\"The executive team approved a confidential reorganization plan covering 2027.\",\"completeness\":\"complete\"},{\"claim\":\"The plan affects three regions.\",\"excerpt\":\"The plan affects three regions.\",\"completeness\":\"complete\",\"access_classification\":\"public\"}]"
+      }
+    }
+  ]
+}

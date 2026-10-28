@@ -14,6 +14,8 @@ const SCHEMA_FILES = {
   evidence: "evidence.schema.json",
   error: "error.schema.json",
   sourceRecord: "source-record.schema.json",
+  gapResult: "gap-result.schema.json",
+  firstMeetingBriefInput: "first-meeting-brief-input.schema.json",
 };
 
 const ajv = new Ajv({ allErrors: true, strict: true });

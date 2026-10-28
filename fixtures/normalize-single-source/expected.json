@@ -1,0 +1,23 @@
+{
+  "fixture": "normalize-single-source",
+  "expected": {
+    "status": "success",
+    "claim_count": 1,
+    "rejected_count": 0,
+    "conflict_count": 0,
+    "claim_texts": [
+      "Northstar Logistics announced a three-year technology modernization program starting in 2027."
+    ],
+    "classifications": [
+      "public"
+    ],
+    "verification": [
+      "direct"
+    ],
+    "confidence": [
+      "high"
+    ],
+    "published_at": "2026-08-10T00:00:00Z",
+    "occurred_at": null
+  }
+}

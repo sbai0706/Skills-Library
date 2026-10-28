@@ -1,14 +1,18 @@
 {
   "claim_id": "clm_example_001",
-  "claim": "Northstar Logistics announced a warehouse automation program for 2027.",
+  "claim": "Northstar Logistics launched a warehouse automation program on 2026-09-28.",
   "source_type": "news",
   "source_uri": "https://news.example/northstar-automation-announcement",
   "source_record_id": null,
   "account_id": "acc_fixture_northstar",
   "published_at": "2026-09-30T13:00:00Z",
+  "occurred_at": "2026-09-28T09:00:00Z",
   "retrieved_at": "2026-10-19T18:00:00Z",
-  "excerpt": "Northstar Logistics said it will begin a multi-site warehouse automation program in 2027.",
-  "confidence": "medium",
+  "excerpt": "Northstar Logistics launched a warehouse automation program on 2026-09-28.",
+  "confidence": "high",
   "verification_status": "direct",
-  "access_classification": "public"
+  "access_classification": "public",
+  "question_ids": [
+    "FM-DEV-001"
+  ]
 }

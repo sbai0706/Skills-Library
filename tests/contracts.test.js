@@ -8,6 +8,7 @@ const read = (relative) => readFileSync(new URL(relative, import.meta.url), "utf
 const skills = [
   { dir: "../skills/account-resolve", name: "account.resolve" },
   { dir: "../skills/evidence-retrieve", name: "evidence.retrieve" },
+  { dir: "../skills/evidence-normalize", name: "evidence.normalize" },
 ];
 
 for (const skill of skills) {

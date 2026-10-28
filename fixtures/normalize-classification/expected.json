@@ -1,0 +1,18 @@
+{
+  "fixture": "normalize-classification",
+  "expected": {
+    "status": "partial",
+    "claim_count": 1,
+    "rejected_count": 1,
+    "rejection_reasons": [
+      "classification_violation"
+    ],
+    "all_emitted_classifications": [
+      "confidential"
+    ],
+    "no_downgrades": true,
+    "warning_codes": [
+      "RECORDS_OR_CANDIDATES_REJECTED"
+    ]
+  }
+}

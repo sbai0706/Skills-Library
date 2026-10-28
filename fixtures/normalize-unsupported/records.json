@@ -1,0 +1,24 @@
+{
+  "fixture": "normalize-unsupported",
+  "description": "One candidate introduces a quantity and a date absent from its excerpt and is rejected; one supported claim is kept.",
+  "account_id": "acct_northstar",
+  "records": [
+    {
+      "record_id": "src_crm_5001",
+      "account_id": "acct_northstar",
+      "source_type": "crm_activity",
+      "title": "Quarterly review notes",
+      "content": "The team reviewed the current pilot at one depot. The pilot is proceeding.",
+      "source_uri": null,
+      "occurred_at": "2026-07-01T10:00:00Z",
+      "retrieved_at": "2026-10-20T14:00:00Z",
+      "access_classification": "internal",
+      "question_ids": [
+        "FM-DEV-001"
+      ],
+      "metadata": {
+        "claim_candidates_json": "[{\"claim\":\"The company will expand the pilot to five depots in 2028.\",\"excerpt\":\"The team reviewed the current pilot at one depot.\",\"completeness\":\"complete\"},{\"claim\":\"The pilot is proceeding.\",\"excerpt\":\"The pilot is proceeding.\",\"completeness\":\"complete\"}]"
+      }
+    }
+  ]
+}

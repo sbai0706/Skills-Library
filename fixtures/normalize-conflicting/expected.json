@@ -1,0 +1,19 @@
+{
+  "fixture": "normalize-conflicting",
+  "expected": {
+    "status": "success",
+    "claim_count": 2,
+    "rejected_count": 0,
+    "conflict_count": 1,
+    "conflict_keys": [
+      "automation_start_date"
+    ],
+    "both_claims_retained": true,
+    "all_marked_conflicting": true,
+    "neither_discarded": true,
+    "provenance_distinct": [
+      "src_news_4001",
+      "src_site_4002"
+    ]
+  }
+}

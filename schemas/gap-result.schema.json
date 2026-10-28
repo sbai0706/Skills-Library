@@ -1,0 +1,220 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sales-copilot.local/schemas/gap-result.schema.json",
+  "title": "Gap detection result",
+  "description": "Question results are identified by stable IDs and safe reason codes. missing_evidence_description is allowlisted generic text; it must never copy source or claim content.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "account_id",
+    "question_set_version",
+    "questions",
+    "summary_counts"
+  ],
+  "properties": {
+    "account_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "question_set_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "questions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "question_id",
+          "status",
+          "supporting_evidence_ids",
+          "reason_codes"
+        ],
+        "properties": {
+          "question_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+          },
+          "status": {
+            "enum": [
+              "answered",
+              "partial",
+              "unanswered",
+              "conflicted"
+            ]
+          },
+          "supporting_evidence_ids": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^clm_[A-Za-z0-9_-]+$"
+            }
+          },
+          "missing_evidence_description": {
+            "enum": [
+              "No supporting claims were provided.",
+              "Some aspects of this question lack supporting claims.",
+              "Conflicting claims require human review."
+            ]
+          },
+          "reason_codes": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "no_supporting_claims",
+                "partial_support",
+                "conflicting_claims",
+                "inaccessible_source",
+                "rejected_claims"
+              ]
+            }
+          },
+          "conflict_ids": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^cfl_[A-Za-z0-9_-]+$"
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "status": {
+                  "enum": [
+                    "partial",
+                    "unanswered"
+                  ]
+                }
+              },
+              "required": [
+                "status"
+              ]
+            },
+            "then": {
+              "required": [
+                "missing_evidence_description"
+              ],
+              "properties": {
+                "missing_evidence_description": {
+                  "enum": [
+                    "No supporting claims were provided.",
+                    "Some aspects of this question lack supporting claims.",
+                    "Conflicting claims require human review."
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "status": {
+                  "const": "answered"
+                }
+              },
+              "required": [
+                "status"
+              ]
+            },
+            "then": {
+              "properties": {
+                "supporting_evidence_ids": {
+                  "minItems": 1,
+                  "type": "array"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "status": {
+                  "const": "unanswered"
+                }
+              },
+              "required": [
+                "status"
+              ]
+            },
+            "then": {
+              "properties": {
+                "supporting_evidence_ids": {
+                  "maxItems": 0,
+                  "type": "array"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "status": {
+                  "const": "conflicted"
+                }
+              },
+              "required": [
+                "status"
+              ]
+            },
+            "then": {
+              "properties": {
+                "conflict_ids": {
+                  "minItems": 1,
+                  "type": "array"
+                },
+                "reason_codes": {
+                  "contains": {
+                    "const": "conflicting_claims"
+                  },
+                  "type": "array"
+                }
+              },
+              "required": [
+                "conflict_ids"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "summary_counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "total",
+        "answered",
+        "partial",
+        "unanswered",
+        "conflicted"
+      ],
+      "properties": {
+        "total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "answered": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "partial": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unanswered": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "conflicted": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

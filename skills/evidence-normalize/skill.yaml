@@ -1,0 +1,104 @@
+skill: evidence.normalize
+version: 0.1.0
+status: draft
+business_owner: TBD
+
+intent: Convert retrieved raw source records into claim-level evidence records that are machine-checked for direct support, without retrieving, answering questions, or resolving contradictions.
+
+when_to_use:
+  - Raw source records for a resolved account exist and claim-level evidence is required.
+when_not_to_use:
+  - Records must still be retrieved; use evidence.retrieve.
+  - The account is unresolved.
+  - A contradiction must be resolved or a question answered.
+
+inputs:
+  required: [account_id, records]
+  properties:
+    account_id:
+      type: string
+      description: Resolved account identifier; no whitespace, not a domain.
+    records:
+      type: array
+      maxItems: 500
+      items_schema: ../../schemas/source-record.schema.json
+      description: Raw source records, possibly empty. Each record is validated independently.
+
+outputs:
+  schema: ../../schemas/skill-result.schema.json
+  claim_schema: ../../schemas/evidence.schema.json
+  fields: [data.claims, data.rejected_records, data.conflicts, data.source_record_count, data.claim_count]
+  evidence_ids: emitted claim IDs
+  statuses: [success, partial, failed]
+
+dependencies:
+  skills: [account.resolve, evidence.retrieve]
+  reference: []
+  extractors:
+    - claim-extractor.extract   # interface only; proposes candidates, never decides
+  runtime:
+    - schemas/index.js
+    - adapters/claim-extractor.js
+    - skills/evidence-normalize/text.js
+    - skills/evidence-normalize/claims.js
+    - skills/evidence-normalize/records.js
+    - skills/evidence-normalize/validate-input.js
+
+authorization:
+  permitted_roles: [sales_partner, sales_owner]
+  record_scope: account_scoped_records
+  classification_policy:
+    default: inherit record classification
+    candidate_may: keep or raise the level
+    candidate_may_not: lower the level (rejected as classification_violation)
+  notes:
+    - Only the fixture claim extractor exists; no model provider is contacted.
+    - Rejection diagnostics never contain record content, so confidential text cannot leak.
+    - question_ids are provenance metadata only and are never authorization.
+
+procedure:
+  - Validate account_id and that records is an array.
+  - Validate each record against the source-record schema; reject malformed and foreign records.
+  - Request candidate claims from the claim extractor; normalize extractor failures to structured errors.
+  - Check each candidate: verbatim excerpt in content, significant-token support, classification policy.
+  - Preserve source published_at and occurred_at separately; never substitute either timestamp for the other.
+  - Derive deterministic claim IDs; remove within-record duplicates as warnings.
+  - Keep cross-record equivalents as separate claims with their own provenance.
+  - Detect conflict_key groups with disagreeing claims; mark every member conflicting and list the conflict.
+  - Validate every emitted claim against the evidence schema.
+  - Sort claims and rejections deterministically; set evidence_ids to the emitted claim IDs.
+
+constraints:
+  - Never retrieve records, answer questions, or decide that missing information is false.
+  - Never infer budget, intent, stakeholder authority, deadlines, or compelling events.
+  - Never resolve contradictions or select a winning source.
+  - Never downgrade an access classification.
+  - Never emit a claim whose excerpt is not verbatim in the record content.
+  - Never emit a claim whose text introduces information absent from its excerpt.
+  - Never summarize several facts into a broader unsupported conclusion.
+  - Never emit confidence "low"; weak candidates are rejected instead.
+  - Never use a model provider in this repository.
+  - Never discard independent provenance to reduce output length.
+
+gates:
+  - schema_valid
+  - every_claim_validates_against_evidence_schema
+  - excerpt_verbatim_in_content
+  - claim_tokens_supported_by_excerpt
+  - classification_never_downgraded
+  - conflicts_preserved_without_winner
+  - rejections_structured_and_content_free
+  - evidence_ids_equals_emitted_claim_ids
+  - deterministic_ordering
+
+evals:
+  suites: [golden, negative, conflict, classification, extractor_failure, determinism]
+  fixtures:
+    - fixtures/normalize-single-source
+    - fixtures/normalize-multiple-claims
+    - fixtures/normalize-duplicate
+    - fixtures/normalize-conflicting
+    - fixtures/normalize-unsupported
+    - fixtures/normalize-classification
+    - fixtures/normalize-empty
+  command: npm test

@@ -1,0 +1,25 @@
+{
+  "fixture": "normalize-single-source",
+  "description": "One public news record with one directly supported claim.",
+  "account_id": "acct_northstar",
+  "records": [
+    {
+      "record_id": "src_news_1001",
+      "account_id": "acct_northstar",
+      "source_type": "news",
+      "title": "Northstar announces modernization program",
+      "content": "Northstar Logistics announced a three-year technology modernization program starting in 2027.",
+      "source_uri": "https://news.example/northstar-modernization",
+      "occurred_at": null,
+      "retrieved_at": "2026-10-20T14:00:00Z",
+      "access_classification": "public",
+      "question_ids": [
+        "FM-DEV-001"
+      ],
+      "metadata": {
+        "claim_candidates_json": "[{\"claim\":\"Northstar Logistics announced a three-year technology modernization program starting in 2027.\",\"excerpt\":\"Northstar Logistics announced a three-year technology modernization program starting in 2027.\",\"completeness\":\"complete\"}]"
+      },
+      "published_at": "2026-08-10T00:00:00Z"
+    }
+  ]
+}

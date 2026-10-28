@@ -1,0 +1,12 @@
+{
+  "fixture": "normalize-empty",
+  "expected": {
+    "status": "success",
+    "claim_count": 0,
+    "rejected_count": 0,
+    "conflict_count": 0,
+    "source_record_count": 0,
+    "claims_empty": true,
+    "evidence_ids_empty": true
+  }
+}

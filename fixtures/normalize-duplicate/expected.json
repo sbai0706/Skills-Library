@@ -1,0 +1,15 @@
+{
+  "fixture": "normalize-duplicate",
+  "expected": {
+    "status": "partial",
+    "claim_count": 2,
+    "rejected_count": 1,
+    "duplicate_rejection_count": 1,
+    "warning_codes": [
+      "DUPLICATE_CLAIMS_REMOVED",
+      "RECORDS_OR_CANDIDATES_REJECTED"
+    ],
+    "distinct_record_provenance": true,
+    "note": "One duplicate within src_crm_3001 removed; the equivalent claim from src_crm_3002 is kept as separate provenance."
+  }
+}

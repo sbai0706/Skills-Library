@@ -19,6 +19,8 @@
         "UNSUPPORTED_SOURCE",
         "CONFIRMATION_REQUIRED",
         "CLASSIFICATION_RESTRICTED",
+        "EXTRACTOR_UNAVAILABLE",
+        "EXTRACTOR_MALFORMED_RESPONSE",
         "INTERNAL_ERROR"
       ],
       "description": "Stable error code. Extend this enum when a new skill introduces a new failure class."

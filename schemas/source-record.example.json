@@ -8,7 +8,10 @@
   "occurred_at": "2026-09-12T15:00:00Z",
   "retrieved_at": "2026-10-20T14:30:00Z",
   "access_classification": "internal",
-  "question_ids": ["FM-REL-001", "FM-CTX-001"],
+  "question_ids": [
+    "FM-REL-001",
+    "FM-CTX-001"
+  ],
   "metadata": {
     "provider": "fixture-crm",
     "object_name": "Task",

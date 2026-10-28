@@ -1,0 +1,55 @@
+{
+  "account_id": "sf_clear_001",
+  "question_set_version": "0.1.0",
+  "questions": [
+    {
+      "question_id": "FM-CTX-001",
+      "status": "answered",
+      "supporting_evidence_ids": [
+        "clm_example_001"
+      ],
+      "reason_codes": []
+    },
+    {
+      "question_id": "FM-DEV-001",
+      "status": "partial",
+      "supporting_evidence_ids": [
+        "clm_example_001"
+      ],
+      "missing_evidence_description": "Some aspects of this question lack supporting claims.",
+      "reason_codes": [
+        "partial_support"
+      ]
+    },
+    {
+      "question_id": "FM-STK-001",
+      "status": "unanswered",
+      "supporting_evidence_ids": [],
+      "missing_evidence_description": "No supporting claims were provided.",
+      "reason_codes": [
+        "no_supporting_claims"
+      ]
+    },
+    {
+      "question_id": "FM-REL-001",
+      "status": "conflicted",
+      "supporting_evidence_ids": [
+        "clm_example_001",
+        "clm_other_002"
+      ],
+      "reason_codes": [
+        "conflicting_claims"
+      ],
+      "conflict_ids": [
+        "cfl_example_001"
+      ]
+    }
+  ],
+  "summary_counts": {
+    "total": 4,
+    "answered": 1,
+    "partial": 1,
+    "unanswered": 1,
+    "conflicted": 1
+  }
+}
