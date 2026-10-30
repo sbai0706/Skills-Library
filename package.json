@@ -2,13 +2,14 @@
   "name": "sales-copilot-skills",
   "version": "0.1.0",
   "private": true,
-  "description": "Minimal Sales Copilot skill foundation: shared contracts and the account.resolve skill.",
+  "description": "Agent-agnostic sales skills, fixtures, and first-meeting workflow with portable CLI.",
   "type": "module",
   "engines": {
     "node": ">=20"
   },
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "prepare-first-meeting": "node bin/prepare-first-meeting.js"
   },
   "dependencies": {
     "ajv": "^8.17.1",

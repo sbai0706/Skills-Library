@@ -35,6 +35,92 @@ npm test
 `npm test` runs `node --test`, which discovers every file under `tests/`. No external
 services, credentials, or network calls are required.
 
+## Portable first-meeting CLI
+
+The CLI is a **development and demonstration interface**. It invokes the existing workflow with
+repository fixture adapters and the deterministic fixture claim extractor. It is agent-agnostic,
+does not contact live systems, and is not an authorization boundary for production data.
+
+Install dependencies and run the complete suite:
+
+```bash
+npm install
+npm test
+```
+
+Direct invocation:
+
+```bash
+npm run prepare-first-meeting -- \
+  --account "Northstar Logistics" \
+  --sources crm,public_source \
+  --classification internal
+```
+
+Options are `--account` (required), `--sources` (default `crm,public_source`), `--classification`
+(default `internal`), `--template` (default `first-meeting-brief-v1`), `--audience` (default
+`internal_sales`), `--fixture`, and `--output json|markdown` (default `json`). The default fixture
+is the explicitly documented safe demo `workflow-first-meeting-success`; pass `--fixture` to select
+any other supported workflow fixture. `confidential` is never the default. Unknown source IDs,
+classification values, audiences, template IDs, or fixture names fail closed. CLI arguments do not
+accept roles or permitted-classification overrides; the fixture input's authorization context is
+not taken from fixture input files. Retrieval uses the workflow's normal default context and
+permission behavior. `--classification` sets only the renderer's output ceiling; it does not grant
+retrieval permission or elevate authorization.
+
+The supported fixtures are `workflow-first-meeting-success`, `workflow-first-meeting-ambiguous`,
+`workflow-first-meeting-fuzzy-confirmation`, `workflow-first-meeting-missing-account`,
+`workflow-first-meeting-sparse`, `workflow-first-meeting-partial-source-failure`,
+`workflow-first-meeting-normalization-rejection`, `workflow-first-meeting-conflicted`,
+`workflow-first-meeting-classification-filtered`, `workflow-first-meeting-retrieval-failure`, and
+`workflow-first-meeting-renderer-failure`.
+
+### Demonstration fixtures
+
+```bash
+# 1. Complete successful brief (uses the safe demo fixture)
+npm run prepare-first-meeting -- --account "Northstar Logistics"
+
+# 2. Ambiguous account -> blocked
+npm run prepare-first-meeting -- --fixture workflow-first-meeting-ambiguous --account "Meridian Health"
+
+# 3. Fuzzy match requires confirmation -> blocked
+npm run prepare-first-meeting -- --fixture workflow-first-meeting-fuzzy-confirmation --account "Northstar"
+
+# 4. Sparse evidence -> usable brief
+npm run prepare-first-meeting -- --fixture workflow-first-meeting-sparse --account "Lumen Harbor Terminals"
+
+# 5. Partial source failure -> partial brief
+npm run prepare-first-meeting -- --fixture workflow-first-meeting-partial-source-failure --account "Cobalt Freight Systems"
+
+# 6. Conflicting evidence is retained for review
+npm run prepare-first-meeting -- --fixture workflow-first-meeting-conflicted --account "Halcyon Foods" --sources crm
+
+# 7. Public ceiling filters internal and confidential claims
+npm run prepare-first-meeting -- --fixture workflow-first-meeting-classification-filtered --account "Juniper Ridge Energy" --sources crm --classification public
+
+# 8. Total retrieval failure -> failed
+npm run prepare-first-meeting -- --fixture workflow-first-meeting-retrieval-failure --account "Rivermark Utilities"
+```
+
+`--output json` prints exactly one workflow-result JSON value to stdout; safe diagnostic summaries
+go to stderr. The repository `.npmrc` silences npm's lifecycle banner so the documented `npm run`
+command preserves that output contract. `--output markdown` prints only the rendered artifact when
+available; blocked and failed runs print a concise safe explanation to stderr and no artifact to
+stdout.
+
+| Exit code | Meaning |
+| --- | --- |
+| `0` | Success with usable artifact. |
+| `2` | Partial result with usable artifact. |
+| `3` | Blocked by an account or workflow gate. |
+| `1` | Failed workflow or invalid CLI invocation. |
+
+To move toward live use, a future host can retain `prepareFirstMeeting` as the composition boundary
+and replace the fixture adapter/extractor construction in `bin/prepare-first-meeting.js` with
+approved implementations of the existing account adapter, evidence adapter, and claim-extractor
+interfaces. The CLI itself currently has no live-adapter support.
+
 ## Layout
 
 ```text
@@ -60,6 +146,9 @@ adapters/
   fixture-evidence-adapter.js   In-memory evidence adapter with per-source failure modes
   claim-extractor.js            Claim extractor interface (proposes candidates, never decides)
   fixture-claim-extractor.js    Deterministic extractor reading metadata.claim_candidates_json
+
+bin/
+  prepare-first-meeting.js      Portable fixture CLI; invokes the existing workflow
 
 skills/account-resolve/
   SKILL.md                      Agent-facing instructions
@@ -145,6 +234,7 @@ tests/
   gap-detect.test.js            Gap statuses, conflicts, rejections, ordering, determinism
   artifact-render.test.js       Rendering, classification filtering, leakage, templates, determinism
   prepare-first-meeting.test.js Workflow fixtures, stopping rules, provenance, diagnostics, determinism
+  prepare-first-meeting-cli.test.js CLI output, argument, status, leakage, and cwd behavior
   integration-contracts.test.js Gap result, brief input, workflow, and timestamp schema validation
   contracts.test.js             skill.yaml/SKILL.md contract checks for every skill
   reference.test.js             Structure and integrity of the reference questions

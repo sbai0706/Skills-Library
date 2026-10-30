@@ -6,6 +6,10 @@
 > validation; the renderer applies the classification ceiling and the workflow verifies its
 > omissions. This semantically significant change needs contract-owner review. See the
 > [workflow documentation](../workflows/prepare-first-meeting/WORKFLOW.md) for current behavior.
+> `bin/prepare-first-meeting.js` is now the portable CLI/host boundary: it parses CLI options,
+> constructs fixture dependencies, invokes the workflow, and formats process output. Workflow
+> behavior remains in the workflow module; the CLI adds no matching, retrieval, extraction, gap,
+> rendering, or classification policy.
 
 This is the working handoff for the next parallel skill tasks. It records current contracts and decisions; it is not a replacement for the [architecture reference](../Sales_Skills_Library_Architecture_v2.md).
 
@@ -36,6 +40,15 @@ The gap and brief schemas are integration contracts, not implementations of `gap
 - Account lookup uses `adapters/account-adapter.js`; evidence retrieval uses `adapters/evidence-adapter.js`. Their fixture implementations do no network access. Adapters enforce authorization and return structured `{ok, error}` failures; the skills never perform retries.
 - Claim extraction uses `adapters/claim-extractor.js`. The fixture-only implementation reads `metadata.claim_candidates_json`, a JSON string stored in flat metadata because the source-record schema allows scalar metadata values only. It does not interpret prose.
 - A future model-backed extractor must implement the existing extractor interface. It may propose candidates, but `evidence.normalize` continues to own support validation, provenance, classification, confidence, deduplication, conflict detection, and output construction. Do not add a model SDK or bypass those checks.
+
+## Portable CLI host boundary
+
+- `npm run prepare-first-meeting -- --account "Northstar Logistics"` invokes the existing workflow. It is a fixture-only development and demonstration interface, not a production authorization boundary.
+- The CLI explicitly selects one of the checked-in `workflow-first-meeting-*` fixtures (or uses the documented safe success demo), creates the fixture account/evidence adapters and fixture extractor, then calls `prepareFirstMeeting`.
+- `--output json` writes one workflow result to stdout and diagnostic summaries to stderr. `--output markdown` writes an artifact only for success/partial results; blocked/failed results provide a safe stderr explanation.
+- Exit codes are `0` success, `2` partial with artifact, `3` blocked, and `1` failed or invalid invocation.
+- It does not accept caller-supplied roles or permitted classifications, and confidential is not a default. Unknown sources/templates fail through the existing workflow and renderer validation.
+- A future host replaces fixture dependency construction with approved implementations of the existing adapter and extractor interfaces; the workflow stays the composition boundary.
 
 ## Policies to preserve
 
