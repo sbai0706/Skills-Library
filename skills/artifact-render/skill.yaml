@@ -1,0 +1,135 @@
+skill: artifact.render
+version: 0.1.0
+status: draft
+business_owner: TBD
+
+intent: Render validated structured claims and gap results into a deterministic, cited Markdown first-meeting brief without retrieving, inferring, resolving conflicts, or altering account identity.
+
+when_to_use:
+  - A resolved account, normalized claims, and a schema-valid gap result already exist.
+  - A cited Markdown first-meeting brief is required.
+  - The output classification ceiling must be enforced fail-closed at render time.
+when_not_to_use:
+  - Evidence must be retrieved, normalized, extracted, or turned into a gap result.
+  - The account identity is unresolved or the input contains raw source records.
+  - A conflict must be resolved or an unanswered question must be answered.
+  - A DOCX, PPTX, PDF, HTML application, presentation, or workflow is required.
+
+inputs:
+  schema: ../../schemas/first-meeting-brief-input.schema.json
+  required: [account, claims, gap_result, output_template_id, audience, classification_ceiling]
+  optional: [warnings]
+  claim_schema: ../../schemas/evidence.schema.json
+  gap_schema: ../../schemas/gap-result.schema.json
+  notes:
+    - Raw source records, adapter output, and extractor candidates are not accepted.
+    - The input schema validates structure only; claims above the ceiling are omitted after structural validation.
+
+outputs:
+  schema: ../../schemas/skill-result.schema.json
+  artifact_format: markdown
+  fields:
+    - data.account_id
+    - data.template_id
+    - data.audience
+    - data.classification
+    - data.artifact_format
+    - data.rendered_artifact
+    - data.cited_evidence_ids
+    - data.omitted_evidence_ids
+    - data.warnings
+  evidence_ids: rendered citation IDs
+  statuses: [success, partial, failed]
+
+template:
+  id: first-meeting-brief-v1
+  interface: render(templateId, structuredInput)
+  unknown_template: structured failed result with INVALID_INPUT; never a default template
+
+dependencies:
+  skills: []
+  contracts:
+    - ../../schemas/first-meeting-brief-input.schema.json
+    - ../../schemas/gap-result.schema.json
+    - ../../schemas/evidence.schema.json
+    - ../../schemas/skill-result.schema.json
+  reference:
+    - ../../reference/first-meeting-questions.yaml
+  adapters: []
+  runtime:
+    - schemas/index.js
+    - skills/artifact-render/index.js
+    - skills/artifact-render/validate-input.js
+    - skills/artifact-render/templates.js
+    - skills/artifact-render/first-meeting-brief.js
+    - skills/artifact-render/reference.js
+
+authorization:
+  permitted_roles: [sales_partner, sales_owner]
+  record_scope: pre_authorized_structured_input
+  classification_policy:
+    ceiling: input.classification_ceiling
+    public: [public]
+    internal: [public, internal]
+    confidential: [public, internal, confidential]
+    fail_closed: true
+  notes:
+    - Authorization and retrieval happen before this skill; the renderer does not call adapters.
+    - The ceiling must come from an authorized calling context; the renderer does not grant confidential access itself.
+    - Schema acceptance is structural only and does not authorize rendering any claim.
+    - Withheld claims expose only aggregate warnings and IDs in omitted_evidence_ids.
+    - Omitted claim text, excerpts, titles, URIs, record IDs, and metadata never enter the artifact.
+
+procedure:
+  - Validate the full input against first-meeting-brief-input.schema.json; the schema validates structure only.
+  - Apply the output classification ceiling to the structurally valid claims fail-closed and record omitted claim IDs.
+  - Select output_template_id through the template registry; fail structurally if unknown.
+  - Map each gap question to its stable reference category and deterministic reference order.
+  - Recalculate displayed question status when support is unavailable or removed by classification filtering.
+  - Render fixed sections, claim bullets with evidence IDs, gap language, conflicts, warnings, and evidence references.
+  - Sort questions, claims, citations, references, and warnings deterministically.
+  - Set cited_evidence_ids and evidence_ids to exactly the rendered citations and return the shared envelope.
+
+constraints:
+  - Never retrieve, extract, normalize, answer a research question, or infer customer intent.
+  - Never invent stakeholders, initiatives, needs, budgets, dates, or account details.
+  - Never emit a factual bullet without a cited evidence ID.
+  - Never resolve, rank, or blend conflicting evidence.
+  - Never render a claim above the classification ceiling.
+  - Never leak omitted content through warnings, errors, gaps, or references.
+  - Never turn an unanswered question into a negative factual claim.
+  - Never alter the canonical account identity.
+  - Never fall back to a default template when the template ID is unknown.
+  - Never include the current wall-clock time in the rendered artifact.
+  - Never generate DOCX, PPTX, PDF, HTML applications, or presentation files.
+  - Never add workflow composition or live connector access.
+
+gates:
+  - schema_valid
+  - input_validates_against_first_meeting_brief_input_schema
+  - result_validates_against_skill_result_schema
+  - every_factual_bullet_has_evidence_id
+  - cited_evidence_ids_equal_rendered_citations
+  - omitted_evidence_ids_equal_classification_filtered_claims
+  - classification_ceiling_enforced
+  - omitted_content_not_leaked
+  - gaps_rendered_without_negative_claims
+  - conflicts_preserved_without_winner
+  - unknown_template_fails_structurally
+  - deterministic_ordering
+
+evals:
+  suites: [golden, sparse, partial, conflict, classification, empty, template_failure, determinism]
+  fixtures:
+    - fixtures/brief-complete
+    - fixtures/brief-sparse
+    - fixtures/brief-partial-answer
+    - fixtures/brief-conflicted
+    - fixtures/brief-public-ceiling-with-internal-evidence
+    - fixtures/brief-public-ceiling-with-confidential-evidence
+    - fixtures/brief-internal-ceiling-with-confidential
+    - fixtures/brief-internal-ceiling-with-public-and-internal
+    - fixtures/brief-confidential-input-and-confidential-ceiling
+    - fixtures/brief-empty-evidence
+    - fixtures/brief-unknown-template
+  command: npm test

@@ -1,0 +1,19 @@
+{
+  "fixture": "brief-partial-answer",
+  "description": "A partially supported development question is labeled partial rather than answered or denied.",
+  "schema_valid_input": true,
+  "expected": {
+    "status": "partial",
+    "cited_evidence_ids": ["clm_partial_dev_0001"],
+    "omitted_evidence_ids": [],
+    "contains": [
+      "**FM-DEV-001**",
+      "Available evidence addresses part of this question.",
+      "clm_partial_dev_0001"
+    ],
+    "not_contains": [
+      "The customer has no initiative.",
+      "There are no stakeholders."
+    ]
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "fixture": "workflow-first-meeting-sparse",
+  "account_id": "sf_wf_sparse",
+  "sources": {
+    "crm": {
+      "mode": "ok",
+      "records": []
+    },
+    "public_source": {
+      "mode": "ok",
+      "records": []
+    }
+  }
+}

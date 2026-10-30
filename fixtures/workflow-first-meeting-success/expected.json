@@ -1,0 +1,43 @@
+{
+  "expected": {
+    "status": "success",
+    "account_id": "sf_wf_northstar",
+    "account_name": "Northstar Logistics",
+    "executed_steps": [
+      "account.resolve",
+      "evidence.retrieve",
+      "evidence.normalize",
+      "gap.detect",
+      "artifact.render"
+    ],
+    "step_statuses": {
+      "account.resolve": "success",
+      "evidence.retrieve": "success",
+      "evidence.normalize": "success",
+      "gap.detect": "success",
+      "artifact.render": "partial"
+    },
+    "evidence_ids": [
+      "clm_5e66a71c957aaada",
+      "clm_8137979b84b23294",
+      "clm_e5754f979c134d33",
+      "clm_fd803734df7d6b56"
+    ],
+    "omitted_evidence_ids": [],
+    "warning_codes_include": [
+      "GAPS_PRESENT"
+    ],
+    "error_codes": [],
+    "artifact_contains": [
+      "# First-meeting brief — Northstar Logistics",
+      "Northstar Logistics provides freight brokerage and dedicated fleet services.",
+      "Northstar Logistics announced a depot automation initiative in 2027.",
+      "Priya Raman is Director of Operations.",
+      "Northstar Logistics discussed a 2027 warehouse automation program."
+    ],
+    "artifact_not_contains": [
+      "does not exist",
+      "There are no stakeholders"
+    ]
+  }
+}

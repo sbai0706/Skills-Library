@@ -1,0 +1,36 @@
+{
+  "account_id": "sf_gap_001",
+  "questions": [
+    { "id": "FM-CTX-001", "question": "What does the company sell, to whom, and in which geographies?" },
+    { "id": "FM-DEV-001", "question": "What credible initiative or event has the company disclosed in the last twelve months?" }
+  ],
+  "claims": [
+    {
+      "claim_id": "clm_gap_a1",
+      "claim": "Fictional Northstar sells logistics software in Europe.",
+      "source_type": "company_site",
+      "source_record_id": "src_gap_a1",
+      "account_id": "sf_gap_001",
+      "retrieved_at": "2026-10-20T14:00:00Z",
+      "excerpt": "We sell logistics software across Europe.",
+      "confidence": "high",
+      "verification_status": "direct",
+      "access_classification": "public",
+      "question_ids": ["FM-CTX-001"]
+    },
+    {
+      "claim_id": "clm_gap_a2",
+      "claim": "Fictional Northstar announced a 2027 modernization initiative.",
+      "source_type": "news",
+      "source_record_id": "src_gap_a2",
+      "account_id": "sf_gap_001",
+      "retrieved_at": "2026-10-20T14:05:00Z",
+      "excerpt": "Northstar announced a 2027 modernization initiative.",
+      "confidence": "high",
+      "verification_status": "direct",
+      "access_classification": "public",
+      "question_ids": ["FM-DEV-001"]
+    }
+  ],
+  "conflicts": []
+}

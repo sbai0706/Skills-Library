@@ -1,0 +1,18 @@
+{
+  "fixture": "workflow-first-meeting-fuzzy-confirmation",
+  "description": "A single partial-name match must still be confirmed.",
+  "accounts": [
+    {
+      "account_id": "sf_wf_fuzzy_001",
+      "name": "Northstar Logistics",
+      "domain": "northstar-logistics.example",
+      "active": true
+    },
+    {
+      "account_id": "sf_wf_fuzzy_002",
+      "name": "Rivermark Utilities",
+      "domain": "rivermark-utilities.example",
+      "active": true
+    }
+  ]
+}

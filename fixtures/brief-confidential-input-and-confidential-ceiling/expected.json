@@ -1,0 +1,23 @@
+{
+  "fixture": "brief-confidential-input-and-confidential-ceiling",
+  "description": "A confidential ceiling permits public, internal, and confidential claims supplied by the caller.",
+  "schema_valid_input": true,
+  "expected": {
+    "status": "success",
+    "cited_evidence_ids": [
+      "clm_confconf_stk_0003",
+      "clm_confint_rel_0002",
+      "clm_confpub_ctx_0001"
+    ],
+    "omitted_evidence_ids": [],
+    "contains": [
+      "Priya Raman is recorded as Director of Operations at Northstar Logistics.",
+      "src_conf_stk_9203",
+      "clm_confconf_stk_0003"
+    ],
+    "not_contains": [
+      "No permitted evidence was retrieved for this question.",
+      "Some claims were withheld by the classification ceiling."
+    ]
+  }
+}

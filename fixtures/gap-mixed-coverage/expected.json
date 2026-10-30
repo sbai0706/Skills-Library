@@ -1,0 +1,47 @@
+{
+  "fixture": "gap-mixed-coverage",
+  "provisional_scaffolding": "required_aspects is fixture-only implementation scaffolding, not approved business policy.",
+  "expected": {
+    "status": "success",
+    "question_set_version": "0.1.0",
+    "questions": [
+      {
+        "question_id": "FM-CTX-001",
+        "status": "answered",
+        "supporting_evidence_ids": ["clm_gap_m1"],
+        "reason_codes": []
+      },
+      {
+        "question_id": "FM-DEV-001",
+        "status": "unanswered",
+        "supporting_evidence_ids": [],
+        "missing_evidence_description": "No supporting claims were provided.",
+        "reason_codes": ["no_supporting_claims"]
+      },
+      {
+        "question_id": "FM-REL-001",
+        "status": "partial",
+        "supporting_evidence_ids": ["clm_gap_m2"],
+        "missing_evidence_description": "Some aspects of this question lack supporting claims.",
+        "reason_codes": ["partial_support"]
+      },
+      {
+        "question_id": "FM-STK-001",
+        "status": "conflicted",
+        "supporting_evidence_ids": ["clm_gap_m3", "clm_gap_m4"],
+        "reason_codes": ["conflicting_claims"],
+        "conflict_ids": ["cfl_gap_mixed"]
+      }
+    ],
+    "summary_counts": {
+      "total": 4,
+      "answered": 1,
+      "partial": 1,
+      "unanswered": 1,
+      "conflicted": 1
+    },
+    "evidence_ids": ["clm_gap_m1", "clm_gap_m2", "clm_gap_m3", "clm_gap_m4"],
+    "error_reasons": [],
+    "warning_codes": ["GAPS_PRESENT", "CONFLICTS_PRESENT"]
+  }
+}

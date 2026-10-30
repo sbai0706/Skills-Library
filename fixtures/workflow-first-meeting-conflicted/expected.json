@@ -1,0 +1,41 @@
+{
+  "expected": {
+    "status": "success",
+    "account_id": "sf_wf_conflict",
+    "account_name": "Halcyon Foods",
+    "executed_steps": [
+      "account.resolve",
+      "evidence.retrieve",
+      "evidence.normalize",
+      "gap.detect",
+      "artifact.render"
+    ],
+    "step_statuses": {
+      "account.resolve": "success",
+      "evidence.retrieve": "success",
+      "evidence.normalize": "success",
+      "gap.detect": "success",
+      "artifact.render": "partial"
+    },
+    "evidence_ids": [
+      "clm_b624d52eb876d07a",
+      "clm_cdfd80edccff2c34"
+    ],
+    "omitted_evidence_ids": [],
+    "warning_codes_include": [
+      "CONFLICTS_PRESENT"
+    ],
+    "error_codes": [],
+    "artifact_contains": [
+      "Halcyon Foods plans to start its automation program in 2027.",
+      "Halcyon Foods plans to start its automation program in 2028.",
+      "Conflicting evidence requires human review."
+    ],
+    "artifact_not_contains": [
+      "winner",
+      "more likely",
+      "was resolved",
+      "The correct date is"
+    ]
+  }
+}

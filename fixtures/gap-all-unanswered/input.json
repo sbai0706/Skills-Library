@@ -1,0 +1,23 @@
+{
+  "account_id": "sf_gap_002",
+  "questions": [
+    { "id": "FM-CTX-001", "question": "What does the company sell, to whom, and in which geographies?" },
+    { "id": "FM-STK-001", "question": "Which named contacts are recorded on the account, with what evidenced role?" }
+  ],
+  "claims": [
+    {
+      "claim_id": "clm_gap_n1",
+      "claim": "Fictional Meridian operates a regional office.",
+      "source_type": "internal_document",
+      "source_record_id": "src_gap_n1",
+      "account_id": "sf_gap_002",
+      "retrieved_at": "2026-10-20T15:00:00Z",
+      "excerpt": "Meridian operates a regional office.",
+      "confidence": "medium",
+      "verification_status": "direct",
+      "access_classification": "internal",
+      "question_ids": []
+    }
+  ],
+  "conflicts": []
+}

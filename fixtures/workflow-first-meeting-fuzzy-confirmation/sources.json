@@ -1,0 +1,14 @@
+{
+  "fixture": "workflow-first-meeting-fuzzy-confirmation",
+  "account_id": "sf_wf_fuzzy_001",
+  "sources": {
+    "crm": {
+      "mode": "ok",
+      "records": []
+    },
+    "public_source": {
+      "mode": "ok",
+      "records": []
+    }
+  }
+}

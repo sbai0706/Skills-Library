@@ -1,0 +1,11 @@
+{
+  "fixture": "brief-unknown-template",
+  "description": "An unknown template ID fails structurally and never falls back to the known template.",
+  "schema_valid_input": true,
+  "expected": {
+    "status": "failed",
+    "error_code": "INVALID_INPUT",
+    "template_id": "first-meeting-brief-v2",
+    "data": null
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "fixture": "workflow-first-meeting-classification-filtered",
+  "account_id": "sf_wf_classification",
+  "sources": {
+    "crm": {
+      "mode": "ok",
+      "records": [
+        {
+          "record_id": "src_wf_class_public",
+          "account_id": "sf_wf_classification",
+          "source_type": "crm_record",
+          "title": "Public account profile",
+          "content": "Juniper Ridge Energy operates regional power grids.",
+          "source_uri": null,
+          "occurred_at": null,
+          "retrieved_at": "2026-10-20T14:30:00Z",
+          "access_classification": "public",
+          "question_ids": [
+            "FM-CTX-001"
+          ],
+          "metadata": {
+            "provider": "fixture-workflow",
+            "record_type": "account_profile",
+            "claim_candidates_json": "[{\"claim\":\"Juniper Ridge Energy operates regional power grids.\",\"excerpt\":\"Juniper Ridge Energy operates regional power grids.\",\"completeness\":\"complete\"}]"
+          }
+        },
+        {
+          "record_id": "src_wf_class_internal",
+          "account_id": "sf_wf_classification",
+          "source_type": "crm_activity",
+          "title": "Support review",
+          "content": "Juniper Ridge Energy requested a root-cause review of grid outages.",
+          "source_uri": null,
+          "occurred_at": "2026-09-01T10:00:00Z",
+          "retrieved_at": "2026-10-20T14:30:00Z",
+          "access_classification": "internal",
+          "question_ids": [
+            "FM-REL-001"
+          ],
+          "metadata": {
+            "provider": "fixture-workflow",
+            "record_type": "support_review",
+            "claim_candidates_json": "[{\"claim\":\"Juniper Ridge Energy requested a root-cause review of grid outages.\",\"excerpt\":\"Juniper Ridge Energy requested a root-cause review of grid outages.\",\"completeness\":\"complete\"}]"
+          }
+        },
+        {
+          "record_id": "src_wf_class_confidential",
+          "account_id": "sf_wf_classification",
+          "source_type": "crm_record",
+          "title": "Restricted planning note",
+          "content": "Juniper Ridge Energy is evaluating a confidential acquisition of Harborline Marine.",
+          "source_uri": null,
+          "occurred_at": null,
+          "retrieved_at": "2026-10-20T14:30:00Z",
+          "access_classification": "confidential",
+          "question_ids": [
+            "FM-STK-001"
+          ],
+          "metadata": {
+            "provider": "fixture-workflow",
+            "record_type": "restricted_note",
+            "claim_candidates_json": "[{\"claim\":\"Juniper Ridge Energy is evaluating a confidential acquisition of Harborline Marine.\",\"excerpt\":\"Juniper Ridge Energy is evaluating a confidential acquisition of Harborline Marine.\",\"completeness\":\"complete\"}]"
+          }
+        }
+      ]
+    },
+    "public_source": {
+      "mode": "ok",
+      "records": []
+    }
+  }
+}

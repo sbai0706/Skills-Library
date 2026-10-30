@@ -1,0 +1,50 @@
+{
+  "account": {
+    "account_id": "sf_template_001",
+    "canonical_name": "Rivermark Utilities",
+    "identifiers": {
+      "domain": "rivermark-utilities.example"
+    }
+  },
+  "claims": [
+    {
+      "claim_id": "clm_template_ctx_0001",
+      "claim": "Rivermark Utilities supplies water and wastewater services.",
+      "source_type": "company_site",
+      "source_uri": "https://rivermark-utilities.example/about",
+      "source_record_id": null,
+      "account_id": "sf_template_001",
+      "published_at": null,
+      "occurred_at": null,
+      "retrieved_at": "2026-10-20T16:00:00Z",
+      "excerpt": "Rivermark Utilities supplies water and wastewater services.",
+      "confidence": "high",
+      "verification_status": "direct",
+      "access_classification": "public",
+      "question_ids": ["FM-CTX-001"]
+    }
+  ],
+  "gap_result": {
+    "account_id": "sf_template_001",
+    "question_set_version": "0.1.0",
+    "questions": [
+      {
+        "question_id": "FM-CTX-001",
+        "status": "answered",
+        "supporting_evidence_ids": ["clm_template_ctx_0001"],
+        "reason_codes": []
+      }
+    ],
+    "summary_counts": {
+      "total": 1,
+      "answered": 1,
+      "partial": 0,
+      "unanswered": 0,
+      "conflicted": 0
+    }
+  },
+  "warnings": [],
+  "output_template_id": "first-meeting-brief-v2",
+  "audience": "internal_sales",
+  "classification_ceiling": "public"
+}

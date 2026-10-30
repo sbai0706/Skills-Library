@@ -1,0 +1,14 @@
+{
+  "fixture": "workflow-first-meeting-ambiguous",
+  "account_id": "sf_wf_amb_001",
+  "sources": {
+    "crm": {
+      "mode": "ok",
+      "records": []
+    },
+    "public_source": {
+      "mode": "ok",
+      "records": []
+    }
+  }
+}

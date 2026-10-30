@@ -1,0 +1,71 @@
+{
+  "account": {
+    "account_id": "sf_ceiling_internal_mix_001",
+    "canonical_name": "Lumen Harbor",
+    "identifiers": {
+      "domain": "lumen-harbor.example"
+    }
+  },
+  "claims": [
+    {
+      "claim_id": "clm_intmix_pub_0001",
+      "claim": "Lumen Harbor operates container terminals on the western coast.",
+      "source_type": "company_site",
+      "source_uri": "https://lumen-harbor.example/about",
+      "source_record_id": null,
+      "account_id": "sf_ceiling_internal_mix_001",
+      "published_at": null,
+      "occurred_at": null,
+      "retrieved_at": "2026-10-20T15:45:00Z",
+      "excerpt": "Lumen Harbor operates container terminals on the western coast.",
+      "confidence": "high",
+      "verification_status": "direct",
+      "access_classification": "public",
+      "question_ids": ["FM-CTX-001"]
+    },
+    {
+      "claim_id": "clm_intmix_rel_0002",
+      "claim": "Lumen Harbor requested a terminal throughput review for the next quarter.",
+      "source_type": "crm_activity",
+      "source_uri": null,
+      "source_record_id": "src_internal_rel_9402",
+      "account_id": "sf_ceiling_internal_mix_001",
+      "occurred_at": "2026-07-14T11:00:00Z",
+      "retrieved_at": "2026-10-20T15:45:00Z",
+      "excerpt": "Lumen Harbor requested a terminal throughput review for the next quarter.",
+      "confidence": "high",
+      "verification_status": "direct",
+      "access_classification": "internal",
+      "question_ids": ["FM-REL-001"]
+    }
+  ],
+  "gap_result": {
+    "account_id": "sf_ceiling_internal_mix_001",
+    "question_set_version": "0.1.0",
+    "questions": [
+      {
+        "question_id": "FM-CTX-001",
+        "status": "answered",
+        "supporting_evidence_ids": ["clm_intmix_pub_0001"],
+        "reason_codes": []
+      },
+      {
+        "question_id": "FM-REL-001",
+        "status": "answered",
+        "supporting_evidence_ids": ["clm_intmix_rel_0002"],
+        "reason_codes": []
+      }
+    ],
+    "summary_counts": {
+      "total": 2,
+      "answered": 2,
+      "partial": 0,
+      "unanswered": 0,
+      "conflicted": 0
+    }
+  },
+  "warnings": [],
+  "output_template_id": "first-meeting-brief-v1",
+  "audience": "executive",
+  "classification_ceiling": "internal"
+}

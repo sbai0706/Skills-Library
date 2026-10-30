@@ -1,0 +1,35 @@
+{
+  "fixture": "workflow-first-meeting-normalization-rejection",
+  "account_id": "sf_wf_normalize",
+  "sources": {
+    "crm": {
+      "mode": "ok",
+      "records": [
+        {
+          "record_id": "src_wf_norm_1",
+          "account_id": "sf_wf_normalize",
+          "source_type": "crm_record",
+          "title": "Account update",
+          "content": "Aurora Grid Systems opened a new operations center in Denver.",
+          "source_uri": null,
+          "occurred_at": null,
+          "retrieved_at": "2026-10-20T14:30:00Z",
+          "access_classification": "internal",
+          "question_ids": [
+            "FM-CTX-001",
+            "FM-DEV-001"
+          ],
+          "metadata": {
+            "provider": "fixture-workflow",
+            "record_type": "account_update",
+            "claim_candidates_json": "[{\"claim\":\"Aurora Grid Systems opened a new operations center in Denver.\",\"excerpt\":\"Aurora Grid Systems opened a new operations center in Denver.\",\"completeness\":\"complete\"},{\"claim\":\"Aurora Grid Systems employs 500 people.\",\"excerpt\":\"Aurora Grid Systems opened a new operations center in Denver.\",\"completeness\":\"complete\"}]"
+          }
+        }
+      ]
+    },
+    "public_source": {
+      "mode": "ok",
+      "records": []
+    }
+  }
+}

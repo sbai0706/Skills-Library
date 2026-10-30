@@ -1,0 +1,40 @@
+{
+  "expected": {
+    "status": "partial",
+    "account_id": "sf_wf_partial",
+    "account_name": "Cobalt Freight Systems",
+    "executed_steps": [
+      "account.resolve",
+      "evidence.retrieve",
+      "evidence.normalize",
+      "gap.detect",
+      "artifact.render"
+    ],
+    "step_statuses": {
+      "account.resolve": "success",
+      "evidence.retrieve": "partial",
+      "evidence.normalize": "success",
+      "gap.detect": "success",
+      "artifact.render": "partial"
+    },
+    "evidence_ids": [
+      "clm_d48c87a1b225649f",
+      "clm_e06a26a04ad4a0c9"
+    ],
+    "omitted_evidence_ids": [],
+    "warning_codes_include": [
+      "PARTIAL_SOURCES",
+      "GAPS_PRESENT"
+    ],
+    "error_codes": [
+      "ADAPTER_UNAVAILABLE"
+    ],
+    "artifact_contains": [
+      "Cobalt Freight Systems confirmed the current contract end date.",
+      "Priya Raman is Director of Operations."
+    ],
+    "artifact_not_contains": [
+      "does not exist"
+    ]
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "account": {
+    "account_id": "sf_empty_001",
+    "canonical_name": "Meridian Health",
+    "identifiers": {
+      "domain": "meridian-health.example"
+    }
+  },
+  "claims": [],
+  "gap_result": {
+    "account_id": "sf_empty_001",
+    "question_set_version": "0.1.0",
+    "questions": [
+      {
+        "question_id": "FM-CTX-001",
+        "status": "unanswered",
+        "supporting_evidence_ids": [],
+        "missing_evidence_description": "No supporting claims were provided.",
+        "reason_codes": ["no_supporting_claims"]
+      },
+      {
+        "question_id": "FM-DEV-001",
+        "status": "unanswered",
+        "supporting_evidence_ids": [],
+        "missing_evidence_description": "No supporting claims were provided.",
+        "reason_codes": ["no_supporting_claims"]
+      },
+      {
+        "question_id": "FM-REL-001",
+        "status": "unanswered",
+        "supporting_evidence_ids": [],
+        "missing_evidence_description": "No supporting claims were provided.",
+        "reason_codes": ["no_supporting_claims"]
+      },
+      {
+        "question_id": "FM-STK-001",
+        "status": "unanswered",
+        "supporting_evidence_ids": [],
+        "missing_evidence_description": "No supporting claims were provided.",
+        "reason_codes": ["no_supporting_claims"]
+      },
+      {
+        "question_id": "FM-SVC-001",
+        "status": "unanswered",
+        "supporting_evidence_ids": [],
+        "missing_evidence_description": "No supporting claims were provided.",
+        "reason_codes": ["no_supporting_claims"]
+      }
+    ],
+    "summary_counts": {
+      "total": 5,
+      "answered": 0,
+      "partial": 0,
+      "unanswered": 5,
+      "conflicted": 0
+    }
+  },
+  "warnings": [
+    {
+      "code": "no_claims",
+      "message": "No normalized claims were provided."
+    },
+    {
+      "code": "gaps_present",
+      "message": "Some research questions remain unresolved."
+    }
+  ],
+  "output_template_id": "first-meeting-brief-v1",
+  "audience": "internal_sales",
+  "classification_ceiling": "internal"
+}

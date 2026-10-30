@@ -1,0 +1,23 @@
+{
+  "fixture": "brief-internal-ceiling-with-public-and-internal",
+  "description": "An internal ceiling permits both public and internal claims supplied by the caller.",
+  "schema_valid_input": true,
+  "expected": {
+    "status": "success",
+    "cited_evidence_ids": [
+      "clm_intmix_pub_0001",
+      "clm_intmix_rel_0002"
+    ],
+    "omitted_evidence_ids": [],
+    "contains": [
+      "Lumen Harbor operates container terminals on the western coast.",
+      "Lumen Harbor requested a terminal throughput review for the next quarter.",
+      "src_internal_rel_9402",
+      "clm_intmix_rel_0002"
+    ],
+    "not_contains": [
+      "Evidence is unavailable at the current classification level.",
+      "Some claims were withheld by the classification ceiling."
+    ]
+  }
+}

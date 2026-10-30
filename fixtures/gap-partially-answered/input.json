@@ -1,0 +1,29 @@
+{
+  "account_id": "sf_gap_003",
+  "questions": [
+    {
+      "id": "FM-SVC-001",
+      "question": "Which approved offering areas could plausibly relate to the evidenced initiatives?",
+      "required_aspects": [
+        { "id": "initiative", "source_types": ["news"] },
+        { "id": "alignment", "source_types": ["crm_activity"] }
+      ]
+    }
+  ],
+  "claims": [
+    {
+      "claim_id": "clm_gap_p1",
+      "claim": "Fictional Meridian announced a warehouse automation initiative.",
+      "source_type": "news",
+      "source_record_id": "src_gap_p1",
+      "account_id": "sf_gap_003",
+      "retrieved_at": "2026-10-20T16:00:00Z",
+      "excerpt": "Meridian announced a warehouse automation initiative.",
+      "confidence": "high",
+      "verification_status": "direct",
+      "access_classification": "public",
+      "question_ids": ["FM-SVC-001"]
+    }
+  ],
+  "conflicts": []
+}

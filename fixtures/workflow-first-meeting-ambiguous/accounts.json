@@ -1,0 +1,24 @@
+{
+  "fixture": "workflow-first-meeting-ambiguous",
+  "description": "Two credible accounts share the requested reference.",
+  "accounts": [
+    {
+      "account_id": "sf_wf_amb_001",
+      "name": "Meridian Health Group",
+      "domain": "meridianhealth.example",
+      "active": true
+    },
+    {
+      "account_id": "sf_wf_amb_002",
+      "name": "Meridian Health Partners",
+      "domain": "meridian-health-partners.example",
+      "active": true
+    },
+    {
+      "account_id": "sf_wf_amb_003",
+      "name": "Summit Rail Systems",
+      "domain": "summit-rail.example",
+      "active": true
+    }
+  ]
+}

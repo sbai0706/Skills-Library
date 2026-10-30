@@ -1,0 +1,12 @@
+{
+  "fixture": "workflow-first-meeting-partial-source-failure",
+  "description": "CRM succeeds while the public source is unavailable.",
+  "accounts": [
+    {
+      "account_id": "sf_wf_partial",
+      "name": "Cobalt Freight Systems",
+      "domain": "cobalt-freight.example",
+      "active": true
+    }
+  ]
+}

@@ -16,6 +16,8 @@ const SCHEMA_FILES = {
   sourceRecord: "source-record.schema.json",
   gapResult: "gap-result.schema.json",
   firstMeetingBriefInput: "first-meeting-brief-input.schema.json",
+  workflowInput: "workflow-input.schema.json",
+  workflowResult: "workflow-result.schema.json",
 };
 
 const ajv = new Ajv({ allErrors: true, strict: true });

@@ -1,0 +1,12 @@
+{
+  "fixture": "workflow-first-meeting-normalization-rejection",
+  "description": "One explicitly unsupported candidate is rejected during normalization.",
+  "accounts": [
+    {
+      "account_id": "sf_wf_normalize",
+      "name": "Aurora Grid Systems",
+      "domain": "aurora-grid.example",
+      "active": true
+    }
+  ]
+}

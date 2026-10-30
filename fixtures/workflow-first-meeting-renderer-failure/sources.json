@@ -1,0 +1,34 @@
+{
+  "fixture": "workflow-first-meeting-renderer-failure",
+  "account_id": "sf_wf_render_failure",
+  "sources": {
+    "crm": {
+      "mode": "ok",
+      "records": [
+        {
+          "record_id": "src_wf_render_1",
+          "account_id": "sf_wf_render_failure",
+          "source_type": "crm_record",
+          "title": "Account profile",
+          "content": "Summit Rail Systems operates regional freight rail services.",
+          "source_uri": null,
+          "occurred_at": null,
+          "retrieved_at": "2026-10-20T14:30:00Z",
+          "access_classification": "internal",
+          "question_ids": [
+            "FM-CTX-001"
+          ],
+          "metadata": {
+            "provider": "fixture-workflow",
+            "record_type": "account_profile",
+            "claim_candidates_json": "[{\"claim\":\"Summit Rail Systems operates regional freight rail services.\",\"excerpt\":\"Summit Rail Systems operates regional freight rail services.\",\"completeness\":\"complete\"}]"
+          }
+        }
+      ]
+    },
+    "public_source": {
+      "mode": "ok",
+      "records": []
+    }
+  }
+}

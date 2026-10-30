@@ -1,0 +1,18 @@
+{
+  "fixture": "workflow-first-meeting-missing-account",
+  "description": "No credible match exists for the requested reference.",
+  "accounts": [
+    {
+      "account_id": "sf_wf_missing_001",
+      "name": "Cobalt Freight Systems",
+      "domain": "cobalt-freight.example",
+      "active": true
+    },
+    {
+      "account_id": "sf_wf_missing_002",
+      "name": "Harborline Marine",
+      "domain": "harborline.example",
+      "active": true
+    }
+  ]
+}

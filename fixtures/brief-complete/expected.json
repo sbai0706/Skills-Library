@@ -1,0 +1,32 @@
+{
+  "fixture": "brief-complete",
+  "description": "Every supplied question is answered by a permitted claim, so all claims render with citations.",
+  "schema_valid_input": true,
+  "expected": {
+    "status": "success",
+    "cited_evidence_ids": [
+      "clm_comp_ctx_0001",
+      "clm_comp_dev_0002",
+      "clm_comp_rel_0003",
+      "clm_comp_stk_0004",
+      "clm_comp_svc_0005"
+    ],
+    "omitted_evidence_ids": [],
+    "contains": [
+      "## Account",
+      "## Known company context",
+      "## Recent developments or initiatives",
+      "## Existing relationship or prior activity",
+      "## Known stakeholders",
+      "## Possible service alignment",
+      "## Open questions and evidence gaps",
+      "## Conflicts and cautions",
+      "## Evidence references"
+    ],
+    "not_contains": [
+      "No permitted evidence was retrieved for this question.",
+      "Evidence is unavailable at the current classification level.",
+      "Conflicting evidence requires human review."
+    ]
+  }
+}

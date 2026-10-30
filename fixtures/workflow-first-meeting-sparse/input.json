@@ -1,0 +1,21 @@
+{
+  "account_reference": "Lumen Harbor Terminals",
+  "questions": null,
+  "requested_sources": [
+    "crm",
+    "public_source"
+  ],
+  "audience": "internal_sales",
+  "template_id": "first-meeting-brief-v1",
+  "classification_ceiling": "internal",
+  "context": {
+    "requested_by": "fixture-user",
+    "roles": [
+      "sales_partner"
+    ],
+    "permitted_classifications": [
+      "public",
+      "internal"
+    ]
+  }
+}

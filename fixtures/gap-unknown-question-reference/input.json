@@ -1,0 +1,35 @@
+{
+  "account_id": "sf_gap_007",
+  "questions": [
+    { "id": "FM-CTX-001", "question": "What does the company sell, to whom, and in which geographies?" }
+  ],
+  "claims": [
+    {
+      "claim_id": "clm_gap_u1",
+      "claim": "Fictional Cobalt announced a new program.",
+      "source_type": "news",
+      "source_record_id": "src_gap_u1",
+      "account_id": "sf_gap_007",
+      "retrieved_at": "2026-10-20T20:00:00Z",
+      "excerpt": "Cobalt announced a new program.",
+      "confidence": "high",
+      "verification_status": "direct",
+      "access_classification": "public",
+      "question_ids": ["FM-NOPE-999"]
+    },
+    {
+      "claim_id": "clm_gap_u2",
+      "claim": "Fictional Cobalt sells grid services.",
+      "source_type": "company_site",
+      "source_record_id": "src_gap_u2",
+      "account_id": "sf_gap_007",
+      "retrieved_at": "2026-10-20T20:05:00Z",
+      "excerpt": "Cobalt sells grid services.",
+      "confidence": "high",
+      "verification_status": "direct",
+      "access_classification": "public",
+      "question_ids": ["FM-CTX-001"]
+    }
+  ],
+  "conflicts": []
+}

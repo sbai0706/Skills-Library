@@ -1,0 +1,122 @@
+skill: gap.detect
+version: 0.1.0
+status: draft
+business_owner: TBD
+
+intent: Compare normalized evidence claims with first-meeting reference questions and report answered, partial, unanswered, and conflicted coverage without generating facts or resolving conflicts.
+
+when_to_use:
+  - Normalized claims for a resolved account exist and question coverage must be made explicit.
+  - A downstream step needs stable question IDs, evidence IDs, safe gap reasons, and conflict references.
+when_not_to_use:
+  - Evidence must still be retrieved or normalized.
+  - A question must be answered in prose, a missing fact inferred, or a conflict resolved.
+  - Qualification, opportunity stage, or a discovery recommendation must be decided.
+  - The account is unresolved.
+
+inputs:
+  required: [account_id, claims]
+  optional: [questions, conflicts, question_set_version]
+  properties:
+    account_id:
+      type: string
+      description: Resolved account identifier; no whitespace, not a domain.
+    questions:
+      type: array
+      description: Optional question set; defaults to the reference question set.
+      item_required: [id]
+      item_optional: [question, text, required, required_aspects]
+      notes: Question IDs must be stable and unique. required_aspects is provisional fixture scaffolding, not approved business policy.
+    claims:
+      type: array
+      items_schema: ../../schemas/evidence.schema.json
+      notes: May be empty. Claims are validated individually; invalid, foreign-account, duplicate-ID, and unknown-question-reference claims are rejected.
+    conflicts:
+      type: array
+      item_required: [claim_ids]
+      item_optional: [conflict_id, id, conflict_key]
+      notes: Each claim ID must reference an accepted claim. A missing conflict ID is derived deterministically from sorted claim IDs.
+    question_set_version:
+      type: string
+      pattern: "^\\d+\\.\\d+\\.\\d+$"
+      default: reference question set version
+
+outputs:
+  schema: ../../schemas/skill-result.schema.json
+  data_schema: ../../schemas/gap-result.schema.json
+  fields: [data.account_id, data.question_set_version, data.questions, data.summary_counts]
+  evidence_ids: sorted union of supporting evidence IDs referenced by question results
+  statuses: [success, partial, failed]
+
+dependencies:
+  skills: [evidence.normalize]
+  reference:
+    - ../../reference/first-meeting-questions.yaml
+  evidence:
+    - ../../schemas/evidence.schema.json
+  adapters: []
+  runtime:
+    - ../../schemas/index.js
+    - skills/gap-detect/reference.js
+    - skills/gap-detect/validate-input.js
+    - skills/gap-detect/claims.js
+    - skills/gap-detect/conflicts.js
+    - skills/gap-detect/questions.js
+
+authorization:
+  permitted_roles: [sales_partner, sales_owner]
+  record_scope: account_scoped_claims
+  permitted_fields: [claim_id, question_ids, source_type, verification_status, account_id, access_classification]
+  prohibited_fields: [claim, excerpt, source_uri, source_record_id]
+  enforcement: caller_supplied_account_scope
+  notes:
+    - Foreign-account claims are rejected before classification.
+    - Diagnostic details never include claim text, excerpts, or source content.
+    - Only fixture-style normalized claims are consumed; no live connector is contacted.
+
+procedure:
+  - Validate account_id, the question set, claims array, conflicts array, and question-set version.
+  - Reject malformed, foreign-account, duplicate-ID, and unknown-question-reference claims with safe diagnostics.
+  - Validate conflicts against accepted evidence IDs and derive a stable conflict ID when one is missing.
+  - Treat a claim as relevant only when its question_ids explicitly contains the question ID.
+  - Classify each question as answered, partial, unanswered, or conflicted using deterministic rules.
+  - Preserve sorted supporting evidence IDs and conflict IDs; include all applicable conflict claim IDs.
+  - Compute summary counts that agree with question statuses.
+  - Validate the data payload against gap-result.schema.json and the envelope against skill-result.schema.json.
+
+constraints:
+  - Never retrieve evidence, normalize raw records, or create factual claims.
+  - Never treat missing evidence as proof that a fact is false.
+  - Never use semantic similarity or a model to link claims to questions.
+  - Never accept an unknown question ID, foreign-account claim, duplicate evidence ID, or unknown conflict reference silently.
+  - Never resolve a conflict, select a winner, or discard a conflicting claim.
+  - Never convert a conflicted question to answered, partial, or unanswered.
+  - Never copy claim text, excerpts, or confidential source content into diagnostics.
+  - Never decide qualification, opportunity stage, or recommended answers.
+  - Never add workflow composition, rendering, live connectors, or platform integrations.
+  - required_aspects is provisional implementation scaffolding and must not be presented as approved business policy.
+
+gates:
+  - schema_valid
+  - gap_result_schema_valid
+  - account_scoped_claims_only
+  - every_output_evidence_id_exists_in_input
+  - explicit_question_linkage_only
+  - conflicts_preserved_without_winner
+  - unanswered_is_not_falsehood
+  - diagnostics_content_free
+  - summary_counts_match_question_statuses
+  - deterministic_ordering
+
+evals:
+  suites: [golden, negative, conflict, coverage, determinism, classification]
+  fixtures:
+    - fixtures/gap-all-answered
+    - fixtures/gap-all-unanswered
+    - fixtures/gap-partially-answered
+    - fixtures/gap-conflicted-question
+    - fixtures/gap-mixed-coverage
+    - fixtures/gap-foreign-account-claim
+    - fixtures/gap-unknown-question-reference
+    - fixtures/gap-empty-claims
+  command: npm test

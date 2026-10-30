@@ -1,0 +1,19 @@
+{
+  "fixture": "workflow-first-meeting-success",
+  "description": "Exact Northstar account used by the successful workflow fixture.",
+  "accounts": [
+    {
+      "account_id": "sf_wf_northstar",
+      "name": "Northstar Logistics",
+      "domain": "northstar-logistics.example",
+      "location": "Columbus, OH",
+      "active": true
+    },
+    {
+      "account_id": "sf_wf_unrelated",
+      "name": "Rivermark Utilities",
+      "domain": "rivermark-utilities.example",
+      "active": true
+    }
+  ]
+}

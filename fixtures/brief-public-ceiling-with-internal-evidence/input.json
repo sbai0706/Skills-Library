@@ -1,0 +1,71 @@
+{
+  "account": {
+    "account_id": "sf_ceiling_public_001",
+    "canonical_name": "Aurora Grid",
+    "identifiers": {
+      "domain": "aurora-grid.example"
+    }
+  },
+  "claims": [
+    {
+      "claim_id": "clm_pub_ctx_0001",
+      "claim": "Aurora Grid supplies electricity to industrial customers in the northern region.",
+      "source_type": "company_site",
+      "source_uri": "https://aurora-grid.example/about",
+      "source_record_id": null,
+      "account_id": "sf_ceiling_public_001",
+      "published_at": null,
+      "occurred_at": null,
+      "retrieved_at": "2026-10-20T15:30:00Z",
+      "excerpt": "Aurora Grid supplies electricity to industrial customers in the northern region.",
+      "confidence": "high",
+      "verification_status": "direct",
+      "access_classification": "public",
+      "question_ids": ["FM-CTX-001"]
+    },
+    {
+      "claim_id": "clm_int_rel_0002",
+      "claim": "Aurora Grid requested a root-cause review of a billing export failure.",
+      "source_type": "crm_activity",
+      "source_uri": null,
+      "source_record_id": "src_internal_rel_9002",
+      "account_id": "sf_ceiling_public_001",
+      "occurred_at": "2026-06-03T09:30:00Z",
+      "retrieved_at": "2026-10-20T15:30:00Z",
+      "excerpt": "Aurora Grid requested a root-cause review of a billing export failure.",
+      "confidence": "high",
+      "verification_status": "direct",
+      "access_classification": "internal",
+      "question_ids": ["FM-REL-001"]
+    }
+  ],
+  "gap_result": {
+    "account_id": "sf_ceiling_public_001",
+    "question_set_version": "0.1.0",
+    "questions": [
+      {
+        "question_id": "FM-CTX-001",
+        "status": "answered",
+        "supporting_evidence_ids": ["clm_pub_ctx_0001"],
+        "reason_codes": []
+      },
+      {
+        "question_id": "FM-REL-001",
+        "status": "answered",
+        "supporting_evidence_ids": ["clm_int_rel_0002"],
+        "reason_codes": []
+      }
+    ],
+    "summary_counts": {
+      "total": 2,
+      "answered": 2,
+      "partial": 0,
+      "unanswered": 0,
+      "conflicted": 0
+    }
+  },
+  "warnings": [],
+  "output_template_id": "first-meeting-brief-v1",
+  "audience": "customer",
+  "classification_ceiling": "public"
+}

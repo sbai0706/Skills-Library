@@ -1,0 +1,77 @@
+{
+  "account_id": "sf_gap_005",
+  "questions": [
+    { "id": "FM-CTX-001", "question": "What does the company sell, to whom, and in which geographies?" },
+    { "id": "FM-DEV-001", "question": "What credible initiative or event has the company disclosed in the last twelve months?" },
+    {
+      "id": "FM-REL-001",
+      "question": "Which prior meetings, opportunities, or support cases exist for this account?",
+      "required_aspects": [
+        { "id": "activity", "source_types": ["crm_activity"] },
+        { "id": "document", "source_types": ["internal_document"] }
+      ]
+    },
+    { "id": "FM-STK-001", "question": "Which named contacts are recorded on the account, with what evidenced role?" }
+  ],
+  "claims": [
+    {
+      "claim_id": "clm_gap_m1",
+      "claim": "Fictional Aurora sells grid services in North America.",
+      "source_type": "company_site",
+      "source_record_id": "src_gap_m1",
+      "account_id": "sf_gap_005",
+      "retrieved_at": "2026-10-20T18:00:00Z",
+      "excerpt": "Aurora sells grid services in North America.",
+      "confidence": "high",
+      "verification_status": "direct",
+      "access_classification": "public",
+      "question_ids": ["FM-CTX-001"]
+    },
+    {
+      "claim_id": "clm_gap_m2",
+      "claim": "Fictional Aurora held a discovery meeting in September.",
+      "source_type": "crm_activity",
+      "source_record_id": "src_gap_m2",
+      "account_id": "sf_gap_005",
+      "retrieved_at": "2026-10-20T18:05:00Z",
+      "excerpt": "Discovery meeting held in September.",
+      "confidence": "high",
+      "verification_status": "direct",
+      "access_classification": "internal",
+      "question_ids": ["FM-REL-001"]
+    },
+    {
+      "claim_id": "clm_gap_m3",
+      "claim": "Fictional Aurora records Dana as the executive sponsor.",
+      "source_type": "crm_record",
+      "source_record_id": "src_gap_m3",
+      "account_id": "sf_gap_005",
+      "retrieved_at": "2026-10-20T18:10:00Z",
+      "excerpt": "Dana is recorded as executive sponsor.",
+      "confidence": "high",
+      "verification_status": "conflicting",
+      "access_classification": "internal",
+      "question_ids": ["FM-STK-001"]
+    },
+    {
+      "claim_id": "clm_gap_m4",
+      "claim": "Fictional Aurora records Alex as the executive sponsor.",
+      "source_type": "crm_record",
+      "source_record_id": "src_gap_m4",
+      "account_id": "sf_gap_005",
+      "retrieved_at": "2026-10-20T18:15:00Z",
+      "excerpt": "Alex is recorded as executive sponsor.",
+      "confidence": "high",
+      "verification_status": "conflicting",
+      "access_classification": "internal",
+      "question_ids": ["FM-STK-001"]
+    }
+  ],
+  "conflicts": [
+    {
+      "conflict_id": "cfl_gap_mixed",
+      "conflict_key": "executive_sponsor",
+      "claim_ids": ["clm_gap_m3", "clm_gap_m4"]
+    }
+  ]
+}

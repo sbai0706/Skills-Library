@@ -1,0 +1,20 @@
+{
+  "account_reference": "Summit Rail Systems",
+  "questions": null,
+  "requested_sources": [
+    "crm"
+  ],
+  "audience": "internal_sales",
+  "template_id": "first-meeting-brief-v9",
+  "classification_ceiling": "internal",
+  "context": {
+    "requested_by": "fixture-user",
+    "roles": [
+      "sales_partner"
+    ],
+    "permitted_classifications": [
+      "public",
+      "internal"
+    ]
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "fixture": "brief-public-ceiling-with-confidential-evidence",
+  "description": "The input is structurally valid, but a public ceiling omits the confidential claim at render time.",
+  "schema_valid_input": true,
+  "expected": {
+    "status": "partial",
+    "cited_evidence_ids": ["clm_pubconf_ctx_0001"],
+    "omitted_evidence_ids": ["clm_pubconf_stk_0002"],
+    "contains": [
+      "**FM-STK-001**",
+      "Evidence is unavailable at the current classification level.",
+      "Some claims were withheld by the classification ceiling."
+    ],
+    "not_contains": [
+      "Morgan Lee is recorded as Chief Operating Officer at Aurora Grid.",
+      "src_conf_stk_9302",
+      "clm_pubconf_stk_0002"
+    ]
+  }
+}

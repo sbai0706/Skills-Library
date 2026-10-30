@@ -1,0 +1,16 @@
+{
+  "expected": {
+    "status": "blocked",
+    "account": null,
+    "candidate_account_ids": [],
+    "executed_steps": [
+      "account.resolve"
+    ],
+    "error_codes": [
+      "ACCOUNT_NOT_FOUND"
+    ],
+    "artifact": null,
+    "evidence_ids": [],
+    "omitted_evidence_ids": []
+  }
+}

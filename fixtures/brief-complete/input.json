@@ -1,0 +1,137 @@
+{
+  "account": {
+    "account_id": "sf_clear_001",
+    "canonical_name": "Northstar Logistics",
+    "identifiers": {
+      "domain": "northstar-logistics.example",
+      "external_id": "erp_northstar_001"
+    }
+  },
+  "claims": [
+    {
+      "claim_id": "clm_comp_ctx_0001",
+      "claim": "Northstar Logistics provides freight brokerage and dedicated fleet services to food and industrial shippers across the central United States.",
+      "source_type": "company_site",
+      "source_uri": "https://northstar-logistics.example/about",
+      "source_record_id": null,
+      "account_id": "sf_clear_001",
+      "published_at": null,
+      "occurred_at": null,
+      "retrieved_at": "2026-10-20T14:30:05Z",
+      "excerpt": "Northstar Logistics provides freight brokerage and dedicated fleet services to food and industrial shippers across the central United States.",
+      "confidence": "high",
+      "verification_status": "direct",
+      "access_classification": "public",
+      "question_ids": ["FM-CTX-001"]
+    },
+    {
+      "claim_id": "clm_comp_dev_0002",
+      "claim": "Northstar Logistics announced a warehouse automation program starting with two Midwest depots.",
+      "source_type": "news",
+      "source_uri": "https://news.example/northstar-automation-announcement",
+      "source_record_id": null,
+      "account_id": "sf_clear_001",
+      "published_at": "2026-09-30T13:00:00Z",
+      "occurred_at": "2026-09-28T09:00:00Z",
+      "retrieved_at": "2026-10-20T14:30:05Z",
+      "excerpt": "Northstar Logistics announced a warehouse automation program starting with two Midwest depots.",
+      "confidence": "high",
+      "verification_status": "direct",
+      "access_classification": "public",
+      "question_ids": ["FM-DEV-001"]
+    },
+    {
+      "claim_id": "clm_comp_rel_0003",
+      "claim": "Northstar Logistics requested a root-cause review of an intermittent route export failure.",
+      "source_type": "crm_activity",
+      "source_uri": null,
+      "source_record_id": "src_crm_act_1102",
+      "account_id": "sf_clear_001",
+      "occurred_at": "2026-06-03T09:30:00Z",
+      "retrieved_at": "2026-10-20T14:30:00Z",
+      "excerpt": "Northstar Logistics requested a root-cause review of an intermittent route export failure.",
+      "confidence": "high",
+      "verification_status": "direct",
+      "access_classification": "internal",
+      "question_ids": ["FM-REL-001"]
+    },
+    {
+      "claim_id": "clm_comp_stk_0004",
+      "claim": "Priya Raman is recorded as Director of Operations at Northstar Logistics.",
+      "source_type": "crm_record",
+      "source_uri": null,
+      "source_record_id": "src_crm_rec_1201",
+      "account_id": "sf_clear_001",
+      "occurred_at": null,
+      "retrieved_at": "2026-10-20T14:30:00Z",
+      "excerpt": "Priya Raman is recorded as Director of Operations at Northstar Logistics.",
+      "confidence": "high",
+      "verification_status": "direct",
+      "access_classification": "internal",
+      "question_ids": ["FM-STK-001"]
+    },
+    {
+      "claim_id": "clm_comp_svc_0005",
+      "claim": "Northstar Logistics said the automation program will begin in 2027.",
+      "source_type": "news",
+      "source_uri": "https://news.example/northstar-2027",
+      "source_record_id": null,
+      "account_id": "sf_clear_001",
+      "published_at": "2026-09-30T13:00:00Z",
+      "occurred_at": null,
+      "retrieved_at": "2026-10-20T14:30:05Z",
+      "excerpt": "Northstar Logistics said the automation program will begin in 2027.",
+      "confidence": "high",
+      "verification_status": "direct",
+      "access_classification": "public",
+      "question_ids": ["FM-SVC-001"]
+    }
+  ],
+  "gap_result": {
+    "account_id": "sf_clear_001",
+    "question_set_version": "0.1.0",
+    "questions": [
+      {
+        "question_id": "FM-CTX-001",
+        "status": "answered",
+        "supporting_evidence_ids": ["clm_comp_ctx_0001"],
+        "reason_codes": []
+      },
+      {
+        "question_id": "FM-DEV-001",
+        "status": "answered",
+        "supporting_evidence_ids": ["clm_comp_dev_0002"],
+        "reason_codes": []
+      },
+      {
+        "question_id": "FM-REL-001",
+        "status": "answered",
+        "supporting_evidence_ids": ["clm_comp_rel_0003"],
+        "reason_codes": []
+      },
+      {
+        "question_id": "FM-STK-001",
+        "status": "answered",
+        "supporting_evidence_ids": ["clm_comp_stk_0004"],
+        "reason_codes": []
+      },
+      {
+        "question_id": "FM-SVC-001",
+        "status": "answered",
+        "supporting_evidence_ids": ["clm_comp_svc_0005"],
+        "reason_codes": []
+      }
+    ],
+    "summary_counts": {
+      "total": 5,
+      "answered": 5,
+      "partial": 0,
+      "unanswered": 0,
+      "conflicted": 0
+    }
+  },
+  "warnings": [],
+  "output_template_id": "first-meeting-brief-v1",
+  "audience": "internal_sales",
+  "classification_ceiling": "internal"
+}

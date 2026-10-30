@@ -1,5 +1,12 @@
 # Sales Copilot MVP implementation handoff
 
+> **Historical handoff:** `gap.detect`, `artifact.render`, and the `prepare-first-meeting`
+> workflow have since been implemented. The original task boundaries and baseline below are
+> retained for context. Integration changed the frozen renderer input schema to structural-only
+> validation; the renderer applies the classification ceiling and the workflow verifies its
+> omissions. This semantically significant change needs contract-owner review. See the
+> [workflow documentation](../workflows/prepare-first-meeting/WORKFLOW.md) for current behavior.
+
 This is the working handoff for the next parallel skill tasks. It records current contracts and decisions; it is not a replacement for the [architecture reference](../Sales_Skills_Library_Architecture_v2.md).
 
 ## Objective and implementation boundary

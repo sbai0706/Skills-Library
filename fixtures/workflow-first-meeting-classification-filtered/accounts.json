@@ -1,0 +1,12 @@
+{
+  "fixture": "workflow-first-meeting-classification-filtered",
+  "description": "Public ceiling filters internal and confidential claims at render time.",
+  "accounts": [
+    {
+      "account_id": "sf_wf_classification",
+      "name": "Juniper Ridge Energy",
+      "domain": "juniper-ridge.example",
+      "active": true
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "fixture": "workflow-first-meeting-conflicted",
+  "account_id": "sf_wf_conflict",
+  "sources": {
+    "crm": {
+      "mode": "ok",
+      "records": [
+        {
+          "record_id": "src_wf_conflict_1",
+          "account_id": "sf_wf_conflict",
+          "source_type": "crm_activity",
+          "title": "Planning call A",
+          "content": "Halcyon Foods plans to start its automation program in 2027.",
+          "source_uri": null,
+          "occurred_at": "2026-08-01T10:00:00Z",
+          "retrieved_at": "2026-10-20T14:30:00Z",
+          "access_classification": "internal",
+          "question_ids": [
+            "FM-DEV-001"
+          ],
+          "metadata": {
+            "provider": "fixture-workflow",
+            "record_type": "planning_call",
+            "claim_candidates_json": "[{\"claim\":\"Halcyon Foods plans to start its automation program in 2027.\",\"excerpt\":\"Halcyon Foods plans to start its automation program in 2027.\",\"completeness\":\"complete\",\"conflict_key\":\"automation_start\"}]"
+          }
+        },
+        {
+          "record_id": "src_wf_conflict_2",
+          "account_id": "sf_wf_conflict",
+          "source_type": "crm_activity",
+          "title": "Planning call B",
+          "content": "Halcyon Foods plans to start its automation program in 2028.",
+          "source_uri": null,
+          "occurred_at": "2026-08-15T10:00:00Z",
+          "retrieved_at": "2026-10-20T14:30:00Z",
+          "access_classification": "internal",
+          "question_ids": [
+            "FM-DEV-001"
+          ],
+          "metadata": {
+            "provider": "fixture-workflow",
+            "record_type": "planning_call",
+            "claim_candidates_json": "[{\"claim\":\"Halcyon Foods plans to start its automation program in 2028.\",\"excerpt\":\"Halcyon Foods plans to start its automation program in 2028.\",\"completeness\":\"complete\",\"conflict_key\":\"automation_start\"}]"
+          }
+        }
+      ]
+    },
+    "public_source": {
+      "mode": "ok",
+      "records": []
+    }
+  }
+}

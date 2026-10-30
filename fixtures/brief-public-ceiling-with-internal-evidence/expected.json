@@ -1,0 +1,20 @@
+{
+  "fixture": "brief-public-ceiling-with-internal-evidence",
+  "description": "The input is structurally valid, but a public ceiling omits the internal claim at render time.",
+  "schema_valid_input": true,
+  "expected": {
+    "status": "partial",
+    "cited_evidence_ids": ["clm_pub_ctx_0001"],
+    "omitted_evidence_ids": ["clm_int_rel_0002"],
+    "contains": [
+      "**FM-REL-001**",
+      "Evidence is unavailable at the current classification level.",
+      "Some claims were withheld by the classification ceiling."
+    ],
+    "not_contains": [
+      "Aurora Grid requested a root-cause review of a billing export failure.",
+      "src_internal_rel_9002",
+      "clm_int_rel_0002"
+    ]
+  }
+}

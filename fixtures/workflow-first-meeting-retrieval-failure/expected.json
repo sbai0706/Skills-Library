@@ -1,0 +1,21 @@
+{
+  "expected": {
+    "status": "failed",
+    "account_id": "sf_wf_retrieval_failure",
+    "account_name": "Rivermark Utilities",
+    "executed_steps": [
+      "account.resolve",
+      "evidence.retrieve"
+    ],
+    "step_statuses": {
+      "account.resolve": "success",
+      "evidence.retrieve": "failed"
+    },
+    "evidence_ids": [],
+    "omitted_evidence_ids": [],
+    "error_codes": [
+      "ADAPTER_UNAVAILABLE"
+    ],
+    "artifact": null
+  }
+}

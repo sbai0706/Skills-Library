@@ -1,0 +1,36 @@
+{
+  "expected": {
+    "status": "success",
+    "account_id": "sf_wf_sparse",
+    "account_name": "Lumen Harbor Terminals",
+    "executed_steps": [
+      "account.resolve",
+      "evidence.retrieve",
+      "evidence.normalize",
+      "gap.detect",
+      "artifact.render"
+    ],
+    "step_statuses": {
+      "account.resolve": "success",
+      "evidence.retrieve": "success",
+      "evidence.normalize": "success",
+      "gap.detect": "success",
+      "artifact.render": "partial"
+    },
+    "evidence_ids": [],
+    "omitted_evidence_ids": [],
+    "warning_codes_include": [
+      "NO_RECORDS_RETRIEVED",
+      "GAPS_PRESENT"
+    ],
+    "error_codes": [],
+    "artifact_contains": [
+      "No permitted evidence was retrieved for this question."
+    ],
+    "artifact_not_contains": [
+      "does not exist",
+      "There are no stakeholders",
+      "No budget exists"
+    ]
+  }
+}

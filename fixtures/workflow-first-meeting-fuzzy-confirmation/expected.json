@@ -1,0 +1,18 @@
+{
+  "expected": {
+    "status": "blocked",
+    "account": null,
+    "candidate_account_ids": [
+      "sf_wf_fuzzy_001"
+    ],
+    "executed_steps": [
+      "account.resolve"
+    ],
+    "error_codes": [
+      "CONFIRMATION_REQUIRED"
+    ],
+    "artifact": null,
+    "evidence_ids": [],
+    "omitted_evidence_ids": []
+  }
+}

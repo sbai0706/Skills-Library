@@ -1,0 +1,23 @@
+{
+  "fixture": "brief-sparse",
+  "description": "Only company context has evidence; four questions remain openly unanswered.",
+  "schema_valid_input": true,
+  "expected": {
+    "status": "partial",
+    "cited_evidence_ids": ["clm_sparse_ctx_0001"],
+    "omitted_evidence_ids": [],
+    "contains": [
+      "**FM-DEV-001**",
+      "**FM-REL-001**",
+      "**FM-STK-001**",
+      "**FM-SVC-001**",
+      "No permitted evidence was retrieved for this question.",
+      "Some research questions remain unresolved."
+    ],
+    "not_contains": [
+      "The customer has no initiative.",
+      "There are no stakeholders.",
+      "No budget exists."
+    ]
+  }
+}

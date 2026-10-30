@@ -1,0 +1,22 @@
+{
+  "account_id": "sf_gap_006",
+  "questions": [
+    { "id": "FM-CTX-001", "question": "What does the company sell, to whom, and in which geographies?" }
+  ],
+  "claims": [
+    {
+      "claim_id": "clm_gap_f1",
+      "claim": "Fictional Northstar sells logistics software.",
+      "source_type": "company_site",
+      "source_record_id": "src_gap_f1",
+      "account_id": "sf_gap_other",
+      "retrieved_at": "2026-10-20T19:00:00Z",
+      "excerpt": "Northstar sells logistics software.",
+      "confidence": "high",
+      "verification_status": "direct",
+      "access_classification": "public",
+      "question_ids": ["FM-CTX-001"]
+    }
+  ],
+  "conflicts": []
+}

@@ -9,6 +9,8 @@ const skills = [
   { dir: "../skills/account-resolve", name: "account.resolve" },
   { dir: "../skills/evidence-retrieve", name: "evidence.retrieve" },
   { dir: "../skills/evidence-normalize", name: "evidence.normalize" },
+  { dir: "../skills/gap-detect", name: "gap.detect" },
+  { dir: "../skills/artifact-render", name: "artifact.render" },
 ];
 
 for (const skill of skills) {

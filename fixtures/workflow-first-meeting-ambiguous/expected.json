@@ -1,0 +1,19 @@
+{
+  "expected": {
+    "status": "blocked",
+    "account": null,
+    "candidate_account_ids": [
+      "sf_wf_amb_001",
+      "sf_wf_amb_002"
+    ],
+    "executed_steps": [
+      "account.resolve"
+    ],
+    "error_codes": [
+      "AMBIGUOUS_ACCOUNT"
+    ],
+    "artifact": null,
+    "evidence_ids": [],
+    "omitted_evidence_ids": []
+  }
+}

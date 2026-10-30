@@ -1,0 +1,98 @@
+{
+  "fixture": "workflow-first-meeting-success",
+  "account_id": "sf_wf_northstar",
+  "sources": {
+    "crm": {
+      "mode": "ok",
+      "records": [
+        {
+          "record_id": "src_wf_crm_1",
+          "account_id": "sf_wf_northstar",
+          "source_type": "crm_activity",
+          "title": "Discovery call notes",
+          "content": "Northstar Logistics discussed a 2027 warehouse automation program during a discovery call with operations leadership.",
+          "source_uri": null,
+          "occurred_at": "2026-09-12T15:00:00Z",
+          "retrieved_at": "2026-10-20T14:30:00Z",
+          "access_classification": "internal",
+          "question_ids": [
+            "FM-CTX-001",
+            "FM-DEV-001",
+            "FM-REL-001",
+            "FM-SVC-001"
+          ],
+          "metadata": {
+            "provider": "fixture-workflow",
+            "record_type": "discovery_call",
+            "claim_candidates_json": "[{\"claim\":\"Northstar Logistics discussed a 2027 warehouse automation program.\",\"excerpt\":\"Northstar Logistics discussed a 2027 warehouse automation program\",\"completeness\":\"complete\"}]"
+          }
+        },
+        {
+          "record_id": "src_wf_crm_2",
+          "account_id": "sf_wf_northstar",
+          "source_type": "crm_record",
+          "title": "Account record",
+          "content": "Account owner: Dana Whitfield. Recorded contact: Priya Raman, Director of Operations.",
+          "source_uri": null,
+          "occurred_at": null,
+          "retrieved_at": "2026-10-20T14:30:00Z",
+          "access_classification": "internal",
+          "question_ids": [
+            "FM-CTX-001",
+            "FM-STK-001"
+          ],
+          "metadata": {
+            "provider": "fixture-workflow",
+            "record_type": "account_profile",
+            "claim_candidates_json": "[{\"claim\":\"Priya Raman is Director of Operations.\",\"excerpt\":\"Priya Raman, Director of Operations\",\"completeness\":\"complete\"}]"
+          }
+        }
+      ]
+    },
+    "public_source": {
+      "mode": "ok",
+      "records": [
+        {
+          "record_id": "src_wf_pub_1",
+          "account_id": "sf_wf_northstar",
+          "source_type": "company_site",
+          "title": "Company overview",
+          "content": "Northstar Logistics provides freight brokerage and dedicated fleet services across the central United States.",
+          "source_uri": "https://northstar-logistics.example/about",
+          "occurred_at": null,
+          "retrieved_at": "2026-10-20T14:30:00Z",
+          "access_classification": "public",
+          "question_ids": [
+            "FM-CTX-001"
+          ],
+          "metadata": {
+            "provider": "fixture-workflow",
+            "record_type": "company_page",
+            "claim_candidates_json": "[{\"claim\":\"Northstar Logistics provides freight brokerage and dedicated fleet services.\",\"excerpt\":\"Northstar Logistics provides freight brokerage and dedicated fleet services\",\"completeness\":\"complete\"}]"
+          }
+        },
+        {
+          "record_id": "src_wf_pub_2",
+          "account_id": "sf_wf_northstar",
+          "source_type": "news",
+          "title": "Northstar Logistics announces depot automation initiative",
+          "content": "Northstar Logistics announced a depot automation initiative in 2027.",
+          "source_uri": "https://news.example/northstar-depot-automation",
+          "published_at": "2026-09-30T13:00:00Z",
+          "occurred_at": null,
+          "retrieved_at": "2026-10-20T14:30:00Z",
+          "access_classification": "public",
+          "question_ids": [
+            "FM-DEV-001",
+            "FM-SVC-001"
+          ],
+          "metadata": {
+            "provider": "fixture-workflow",
+            "record_type": "news_article",
+            "claim_candidates_json": "[{\"claim\":\"Northstar Logistics announced a depot automation initiative in 2027.\",\"excerpt\":\"Northstar Logistics announced a depot automation initiative in 2027.\",\"completeness\":\"complete\"}]"
+          }
+        }
+      ]
+    }
+  }
+}

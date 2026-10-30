@@ -1,0 +1,12 @@
+{
+  "fixture": "workflow-first-meeting-sparse",
+  "description": "Resolved account whose healthy sources return no records.",
+  "accounts": [
+    {
+      "account_id": "sf_wf_sparse",
+      "name": "Lumen Harbor Terminals",
+      "domain": "lumen-harbor.example",
+      "active": true
+    }
+  ]
+}

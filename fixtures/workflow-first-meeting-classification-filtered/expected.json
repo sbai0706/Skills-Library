@@ -1,0 +1,44 @@
+{
+  "expected": {
+    "status": "partial",
+    "account_id": "sf_wf_classification",
+    "account_name": "Juniper Ridge Energy",
+    "executed_steps": [
+      "account.resolve",
+      "evidence.retrieve",
+      "evidence.normalize",
+      "gap.detect",
+      "artifact.render"
+    ],
+    "step_statuses": {
+      "account.resolve": "success",
+      "evidence.retrieve": "success",
+      "evidence.normalize": "success",
+      "gap.detect": "success",
+      "artifact.render": "partial"
+    },
+    "evidence_ids": [
+      "clm_5216ffadf4215a67"
+    ],
+    "omitted_evidence_ids": [
+      "clm_123b8454b84c7284",
+      "clm_a365954ce1ae1cdb"
+    ],
+    "warning_codes_include": [
+      "CLAIMS_WITHHELD"
+    ],
+    "error_codes": [],
+    "artifact_contains": [
+      "Juniper Ridge Energy operates regional power grids.",
+      "Evidence is unavailable at the current classification level."
+    ],
+    "artifact_not_contains": [
+      "Juniper Ridge Energy requested a root-cause review of grid outages.",
+      "Juniper Ridge Energy is evaluating a confidential acquisition of Harborline Marine.",
+      "clm_123b8454b84c7284",
+      "clm_a365954ce1ae1cdb",
+      "src_wf_class_internal",
+      "src_wf_class_confidential"
+    ]
+  }
+}

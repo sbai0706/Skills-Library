@@ -1,0 +1,28 @@
+{
+  "fixture": "brief-conflicted",
+  "description": "Two directly conflicting statements are both retained and cited without selecting a winner.",
+  "schema_valid_input": true,
+  "expected": {
+    "status": "partial",
+    "cited_evidence_ids": [
+      "clm_conf_a_0001",
+      "clm_conf_b_0002",
+      "clm_conf_ctx_0003"
+    ],
+    "omitted_evidence_ids": [],
+    "contains": [
+      "Conflicting evidence requires human review.",
+      "clm_conf_a_0001",
+      "clm_conf_b_0002",
+      "cfl_test_conflict_001",
+      "2027",
+      "2028"
+    ],
+    "not_contains": [
+      "winner",
+      "more likely",
+      "was resolved",
+      "The correct date is"
+    ]
+  }
+}

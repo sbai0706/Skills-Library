@@ -1,0 +1,12 @@
+{
+  "fixture": "workflow-first-meeting-retrieval-failure",
+  "description": "Every requested source fails before normalization.",
+  "accounts": [
+    {
+      "account_id": "sf_wf_retrieval_failure",
+      "name": "Rivermark Utilities",
+      "domain": "rivermark-utilities.example",
+      "active": true
+    }
+  ]
+}

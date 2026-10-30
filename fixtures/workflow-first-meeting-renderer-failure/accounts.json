@@ -1,0 +1,12 @@
+{
+  "fixture": "workflow-first-meeting-renderer-failure",
+  "description": "All evidence steps succeed but the requested template is unknown.",
+  "accounts": [
+    {
+      "account_id": "sf_wf_render_failure",
+      "name": "Summit Rail Systems",
+      "domain": "summit-rail.example",
+      "active": true
+    }
+  ]
+}

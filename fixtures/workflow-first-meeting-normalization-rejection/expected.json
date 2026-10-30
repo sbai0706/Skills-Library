@@ -1,0 +1,36 @@
+{
+  "expected": {
+    "status": "partial",
+    "account_id": "sf_wf_normalize",
+    "account_name": "Aurora Grid Systems",
+    "executed_steps": [
+      "account.resolve",
+      "evidence.retrieve",
+      "evidence.normalize",
+      "gap.detect",
+      "artifact.render"
+    ],
+    "step_statuses": {
+      "account.resolve": "success",
+      "evidence.retrieve": "success",
+      "evidence.normalize": "partial",
+      "gap.detect": "success",
+      "artifact.render": "partial"
+    },
+    "evidence_ids": [
+      "clm_a253590f7fdecf36"
+    ],
+    "omitted_evidence_ids": [],
+    "warning_codes_include": [
+      "RECORDS_OR_CANDIDATES_REJECTED",
+      "PARTIAL_NORMALIZATION"
+    ],
+    "error_codes": [],
+    "artifact_contains": [
+      "Aurora Grid Systems opened a new operations center in Denver."
+    ],
+    "artifact_not_contains": [
+      "Aurora Grid Systems employs 500 people."
+    ]
+  }
+}

@@ -1,0 +1,233 @@
+workflow: prepare-first-meeting
+version: 0.1.0
+status: draft
+business_owner: TBD
+
+intent: Compose the existing portable skills in a fixed order to produce a cited, classification-filtered Markdown first-meeting brief, or stop safely with a structured reason.
+
+when_to_use:
+  - A human supplies an account reference and needs a first-meeting brief from permitted fixture-backed evidence.
+  - A caller needs deterministic step summaries, safe diagnostics, and an artifact that can be trusted only after provenance verification.
+when_not_to_use:
+  - The caller needs live connector access, model-generated prose, conflict resolution, or qualification decisions.
+  - The caller needs DOCX, PPTX, PDF, HTML application, or presentation output.
+  - The caller already has a trusted rendered artifact or wants to reorder or skip pipeline steps.
+
+inputs:
+  schema: ../../schemas/workflow-input.schema.json
+  required: [account_reference]
+  optional: [questions, requested_sources, audience, template_id, classification_ceiling, context]
+  defaults:
+    questions: draft reference question set from reference/first-meeting-questions.yaml
+    requested_sources: [crm, public_source]
+    audience: internal_sales
+    template_id: first-meeting-brief-v1
+    classification_ceiling: internal
+    context: {}
+  context_fields: [requested_by, roles, permitted_classifications]
+  notes:
+    - Unknown fields, sources, audiences, classifications, malformed template IDs, and malformed question sets fail before any skill runs; unknown well-formed templates fail at rendering.
+    - A provided question needs a stable unique id and non-empty text or question text.
+    - No input is repaired silently.
+
+outputs:
+  schema: ../../schemas/workflow-result.schema.json
+  statuses: [success, partial, blocked, failed]
+  fields:
+    - status
+    - account
+    - account_candidates
+    - artifact
+    - evidence_ids
+    - omitted_evidence_ids
+    - warnings
+    - errors
+    - steps
+    - trace_id
+    - started_at
+    - finished_at
+  artifact:
+    format: markdown
+    fields: [format, template_id, classification, markdown]
+    only_when: status is success or partial and provenance verification passes
+  notes:
+    - evidence_ids are exactly the citations present in the returned artifact.
+    - omitted_evidence_ids are exactly the normalized claims withheld by the classification ceiling.
+    - Both lists are empty when no trustworthy artifact is returned.
+
+steps:
+  - id: workflow.input
+    kind: validation
+    required: true
+    produces: normalized input or structured input errors
+  - id: account.resolve
+    skill: account.resolve
+    required: true
+    produces: canonical account identity
+  - id: evidence.retrieve
+    skill: evidence.retrieve
+    required: true
+    produces: raw source records
+  - id: evidence.normalize
+    skill: evidence.normalize
+    required: true
+    produces: normalized claims and conflicts
+  - id: gap.detect
+    skill: gap.detect
+    required: true
+    produces: schema-valid gap result
+  - id: artifact.render
+    skill: artifact.render
+    required: true
+    produces: rendered Markdown and citation lists
+
+execution:
+  mode: fixed_sequential
+  order_matters: true
+  forward_only: true
+  no_retries: true
+  no_step_skipping: true
+  stop_rules:
+    - stop failed when workflow input validation fails; do not call any skill.
+    - stop blocked when account resolution is ambiguous, confirmation_required, or not_found.
+    - stop failed when account resolution fails or returns an unusable identity.
+    - stop failed or blocked when evidence retrieval returns that status; do not normalize.
+    - stop failed when retrieval succeeds or partially succeeds without a usable record list.
+    - stop failed or blocked when normalization returns that status; do not detect gaps.
+    - stop failed when normalization succeeds or partially succeeds without a usable claim list.
+    - stop failed or blocked when gap detection returns that status; do not render.
+    - stop failed when the gap result does not validate against gap-result.schema.json; do not render.
+    - stop failed or blocked when rendering returns that status; never return a fallback artifact.
+    - stop failed when workflow provenance verification fails; never return the unverified artifact.
+  filtering:
+    - Only retrieved records whose account_id equals the resolved account_id are passed to normalization.
+    - The resolved canonical account identity is passed unchanged to the renderer.
+
+status_policy:
+  success:
+    - An artifact was rendered and provenance verification passed.
+    - No earlier step was partial and no claim was omitted by classification filtering.
+    - Gaps, conflicts, and renderer gap/conflict warnings alone do not prevent success.
+  partial:
+    - An artifact was rendered and provenance verification passed.
+    - At least one step before artifact.render was partial, or at least one claim was omitted by classification filtering.
+  blocked:
+    - A policy gate stopped execution: ambiguous account, confirmation_required account, account_not_found, or a skill returning blocked.
+    - No artifact is returned.
+  failed:
+    - Input validation failed, a required step failed, a skill returned an unusable result, a gap result was schema-invalid, or provenance verification failed.
+    - No artifact is returned.
+  notes:
+    - Gaps and unresolved conflicts are valid business results, not workflow failures.
+    - Step statuses are retained in steps in execution order.
+
+diagnostics:
+  fields: [step, skill, code, message, retryable]
+  aggregation:
+    - Preserve code and retryable and use a fixed safe message derived from step and code; never copy free-form messages.
+    - Never copy details, claim text, excerpts, source URIs, source record IDs, or withheld content.
+    - Deduplicate identical diagnostics by step, skill, code, message, and retryable.
+    - Sort by step order, then code, message, and retryable.
+  guarantee:
+    - A failed or blocked result without a structured cause receives a safe workflow.input WORKFLOW_INTERNAL_ERROR.
+    - No workflow diagnostic includes confidential or above-ceiling claim content.
+
+provenance:
+  verification_point: after artifact.render, before exposing the artifact
+  invariants:
+    - The rendered artifact is a non-empty Markdown string.
+    - Markdown citations parse to unique sorted clm_ IDs.
+    - Rendered citations equal data.cited_evidence_ids and the renderer envelope evidence_ids.
+    - Every citation maps to a normalized claim.
+    - Every citation is at or below the classification ceiling.
+    - Renderer omitted IDs equal exactly the normalized claims above the ceiling.
+    - Every normalized claim is either cited or omitted.
+    - Every gap supporting evidence ID exists in the normalized claims.
+  failure:
+    - Return failed with PROVENANCE_INVARIANT_FAILED.
+    - Return no artifact and empty evidence_ids and omitted_evidence_ids.
+
+classification:
+  ceiling: input.classification_ceiling
+  ranks: {public: 0, internal: 1, confidential: 2}
+  behavior:
+    - The renderer applies the ceiling structurally after input validation and records omitted claim IDs.
+    - Claims above the ceiling never appear in the artifact, citations, or diagnostics.
+    - The workflow verifies the renderer omitted exactly the above-ceiling claims.
+    - Any classification omission makes the workflow partial, even when the renderer succeeded.
+  fail_closed: true
+  notes:
+    - The workflow forwards the ceiling; it does not widen authorization or grant confidential access.
+
+dependencies:
+  skills: [account.resolve, evidence.retrieve, evidence.normalize, gap.detect, artifact.render]
+  contracts:
+    - ../../schemas/workflow-input.schema.json
+    - ../../schemas/workflow-result.schema.json
+    - ../../schemas/skill-result.schema.json
+    - ../../schemas/source-record.schema.json
+    - ../../schemas/evidence.schema.json
+    - ../../schemas/gap-result.schema.json
+    - ../../schemas/first-meeting-brief-input.schema.json
+  reference:
+    - ../../reference/first-meeting-questions.yaml
+  adapters:
+    - account-adapter.searchAccounts
+    - evidence-adapter.retrieve
+  extractor: claim-extractor
+  runtime:
+    - workflows/prepare-first-meeting/index.js
+    - workflows/prepare-first-meeting/validate-input.js
+    - workflows/prepare-first-meeting/provenance.js
+    - workflows/prepare-first-meeting/reference.js
+  injection_points: [accountAdapter, evidenceAdapter, claimExtractor, now, traceId]
+
+authorization:
+  permitted_roles: [sales_partner, sales_owner]
+  record_scope: account_scoped_fixture_evidence
+  classification_ceiling_required: true
+  enforcement: caller_supplied_ceiling_and_adapter_authorization
+  notes:
+    - Adapters and the extractor are supplied by the caller; the workflow contacts no live service.
+    - The workflow does not elevate permissions, retry adapters, or invent fallback evidence.
+
+constraints:
+  - Use plain JavaScript and existing portable skills; do not add an agent platform, prompt parser, or model provider.
+  - Use only fixture adapters and the fixture claim extractor in the MVP.
+  - Do not reorder, skip, parallelize, or repeat pipeline steps.
+  - Do not continue to a later skill after a block or a step failure.
+  - Do not convert gaps or conflicts into workflow failures.
+  - Do not return an unverified artifact or a fallback template.
+  - Do not leak claim text, excerpts, source content, URIs, record IDs, or withheld claim IDs through diagnostics or step summaries.
+  - Do not include wall-clock timestamps in the artifact.
+  - Do not decide qualification, opportunity stage, conflict winners, or recommended answers.
+
+gates:
+  - workflow_input_schema_valid
+  - workflow_result_schema_valid
+  - fixed_step_order
+  - no_downstream_calls_after_block_or_failure
+  - safe_diagnostic_aggregation
+  - deterministic_diagnostic_order
+  - gap_result_schema_valid
+  - provenance_invariants_hold
+  - citations_equal_final_evidence_ids
+  - omissions_equal_final_omitted_ids
+  - classification_ceiling_enforced
+  - no_artifact_on_block_or_failure
+
+evals:
+  suites: [golden, blocked, partial, failed, classification, provenance, determinism, contracts]
+  fixtures:
+    - fixtures/workflow-first-meeting-success
+    - fixtures/workflow-first-meeting-ambiguous
+    - fixtures/workflow-first-meeting-fuzzy-confirmation
+    - fixtures/workflow-first-meeting-missing-account
+    - fixtures/workflow-first-meeting-sparse
+    - fixtures/workflow-first-meeting-partial-source-failure
+    - fixtures/workflow-first-meeting-normalization-rejection
+    - fixtures/workflow-first-meeting-conflicted
+    - fixtures/workflow-first-meeting-classification-filtered
+    - fixtures/workflow-first-meeting-retrieval-failure
+    - fixtures/workflow-first-meeting-renderer-failure
+  command: npm test

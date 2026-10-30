@@ -1,0 +1,26 @@
+{
+  "fixture": "gap-empty-claims",
+  "expected": {
+    "status": "success",
+    "question_set_version": "0.1.0",
+    "questions": [
+      {
+        "question_id": "FM-CTX-001",
+        "status": "unanswered",
+        "supporting_evidence_ids": [],
+        "missing_evidence_description": "No supporting claims were provided.",
+        "reason_codes": ["no_supporting_claims"]
+      }
+    ],
+    "summary_counts": {
+      "total": 1,
+      "answered": 0,
+      "partial": 0,
+      "unanswered": 1,
+      "conflicted": 0
+    },
+    "evidence_ids": [],
+    "error_reasons": [],
+    "warning_codes": ["GAPS_PRESENT"]
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "fixture": "brief-internal-ceiling-with-confidential",
+  "description": "The input is structurally valid, but an internal ceiling omits the confidential claim at render time.",
+  "schema_valid_input": true,
+  "expected": {
+    "status": "partial",
+    "cited_evidence_ids": ["clm_intceil_pub_0001"],
+    "omitted_evidence_ids": ["clm_intceil_conf_0002"],
+    "contains": [
+      "**FM-STK-001**",
+      "Evidence is unavailable at the current classification level.",
+      "Some claims were withheld by the classification ceiling."
+    ],
+    "not_contains": [
+      "Jordan Ellis is recorded as Vice President of Terminal Operations at Lumen Harbor.",
+      "src_conf_stk_9102",
+      "clm_intceil_conf_0002"
+    ]
+  }
+}

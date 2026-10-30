@@ -1,0 +1,31 @@
+{
+  "fixture": "gap-all-answered",
+  "expected": {
+    "status": "success",
+    "question_set_version": "0.1.0",
+    "questions": [
+      {
+        "question_id": "FM-CTX-001",
+        "status": "answered",
+        "supporting_evidence_ids": ["clm_gap_a1"],
+        "reason_codes": []
+      },
+      {
+        "question_id": "FM-DEV-001",
+        "status": "answered",
+        "supporting_evidence_ids": ["clm_gap_a2"],
+        "reason_codes": []
+      }
+    ],
+    "summary_counts": {
+      "total": 2,
+      "answered": 2,
+      "partial": 0,
+      "unanswered": 0,
+      "conflicted": 0
+    },
+    "evidence_ids": ["clm_gap_a1", "clm_gap_a2"],
+    "error_reasons": [],
+    "warning_codes": []
+  }
+}

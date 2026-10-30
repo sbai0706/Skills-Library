@@ -1,16 +1,20 @@
 # Sales Copilot — Skills Foundation
 
-Minimal, working foundation for Sales Copilot skills with three implemented capabilities:
-`account.resolve` (v0.2.0), `evidence.retrieve` (v0.2.0), and `evidence.normalize` (v0.1.0).
+Working foundation for Sales Copilot skills with five implemented capabilities and one composed
+workflow: `account.resolve` (v0.2.0), `evidence.retrieve` (v0.2.0), `evidence.normalize` (v0.1.0),
+`gap.detect` (v0.1.0), `artifact.render` (v0.1.0), and `prepare-first-meeting` (v0.1.0).
 
 The two v0.2.0 skills carry the earlier policy tightening (exact-match-only account
 resolution, fail-closed classification defaults, documented no-retry rule). `evidence.normalize`
-converts retrieved raw source records into claim-level evidence records. The repository
-intentionally implements only what these capabilities need.
+converts retrieved raw source records into claim-level evidence records. `gap.detect` reports
+question coverage without filling gaps, `artifact.render` produces a cited Markdown brief under a
+classification ceiling, and `prepare-first-meeting` composes them in a fixed order with
+provenance verification.
 
 Architecture reference: [Sales_Skills_Library_Architecture_v2.md](Sales_Skills_Library_Architecture_v2.md).
-That document describes the eventual direction; this repository implements only the shared
-contracts and these three skills. See [docs/MVP_HANDOFF.md](docs/MVP_HANDOFF.md) for frozen contracts and the parallel `gap.detect` / `artifact.render` handoff.
+That document describes the eventual direction; this repository implements the shared contracts,
+these five skills, and the fixed workflow. See [docs/MVP_HANDOFF.md](docs/MVP_HANDOFF.md) for the
+original frozen contracts and parallel branch handoff.
 
 The skills are plain JavaScript functions. There is no agent-platform integration, no prompt
 parsing, and no model provider dependency. `SKILL.md` is the agent-facing description;
@@ -29,7 +33,7 @@ npm test
 ```
 
 `npm test` runs `node --test`, which discovers every file under `tests/`. No external
-services, credentials, or network calls are required. Current suite: 139 tests. See [the implementation handoff](docs/MVP_HANDOFF.md) for the exact baseline command and task boundaries.
+services, credentials, or network calls are required.
 
 ## Layout
 
@@ -42,8 +46,10 @@ schemas/
   source-record.example.json    One valid raw source record used by the tests
   gap-result.schema.json        Structured answer/gap/conflict status per question
   gap-result.example.json       Example gap result used by tests
-  first-meeting-brief-input.schema.json   Structured inputs for a future renderer
+  first-meeting-brief-input.schema.json   Structured renderer input (structural validation only)
   first-meeting-brief-input.example.json  Example renderer input used by tests
+  workflow-input.schema.json    prepare-first-meeting input contract
+  workflow-result.schema.json   prepare-first-meeting result contract
   error.schema.json             Structured error entry
   index.js                      Ajv compilation and validate(name, value)
 
@@ -79,6 +85,33 @@ skills/evidence-normalize/
   claims.js                     Claim IDs, classification policy, dedup, conflict detection
   text.js                       Deterministic comparison utilities (support, excerpt matching)
 
+skills/gap-detect/
+  SKILL.md                      Agent-facing instructions
+  skill.yaml                    Machine-readable contract
+  index.js                      Skill entry point (detectGaps)
+  validate-input.js             Question, claim, conflict, and version validation
+  claims.js                     Claim acceptance and evidence/question linkage
+  conflicts.js                  Conflict validation and deterministic conflict IDs
+  questions.js                  Deterministic question coverage and status policy
+  reference.js                  Reference question-set loader
+
+skills/artifact-render/
+  SKILL.md                      Agent-facing instructions
+  skill.yaml                    Machine-readable contract
+  index.js                      Skill entry point (renderArtifact)
+  validate-input.js             Structural input validation
+  templates.js                  Template registry; unknown IDs fail structurally
+  first-meeting-brief.js        Deterministic Markdown brief renderer
+  reference.js                  Reference question-set loader
+
+workflows/prepare-first-meeting/
+  WORKFLOW.md                   Agent-facing workflow instructions
+  workflow.yaml                 Machine-readable workflow contract
+  index.js                      Fixed sequential composition and status aggregation
+  validate-input.js             Input defaults and validation
+  provenance.js                 Citation/omission provenance invariants
+  reference.js                  Reference question-set loader
+
 fixtures/
   clear-account/                Account fixtures: accounts.json + expected.json
   ambiguous-account/
@@ -94,19 +127,25 @@ fixtures/
   normalize-unsupported/
   normalize-classification/
   normalize-empty/
+  gap-*/                        Gap coverage, conflict, rejection, and empty-claim fixtures
+  brief-*/                      Renderer golden, sparse, partial, conflict, classification, template fixtures
+  workflow-first-meeting-*/     End-to-end workflow scenarios: input.json, expected.json, accounts.json, sources.json
 
 reference/
-  first-meeting-questions.yaml  Draft reference questions for the future first-meeting workflow
+  first-meeting-questions.yaml  Draft reference questions used by gap detection and rendering
 
 docs/
-  MVP_HANDOFF.md                Frozen contracts and parallel implementation handoff
+  MVP_HANDOFF.md                Frozen contracts and original parallel implementation handoff
 
 tests/
   schemas.test.js               Envelope, evidence, source-record, and error schema tests
   account-resolve.test.js       account.resolve behavior, fixture cases, adapter failures
   evidence-retrieve.test.js     evidence.retrieve behavior, multi-source, authorization, ordering
   evidence-normalize.test.js    evidence.normalize claims, support rules, conflicts, dedup, extractor failures
-  integration-contracts.test.js Gap result, brief input, and timestamp schema validation
+  gap-detect.test.js            Gap statuses, conflicts, rejections, ordering, determinism
+  artifact-render.test.js       Rendering, classification filtering, leakage, templates, determinism
+  prepare-first-meeting.test.js Workflow fixtures, stopping rules, provenance, diagnostics, determinism
+  integration-contracts.test.js Gap result, brief input, workflow, and timestamp schema validation
   contracts.test.js             skill.yaml/SKILL.md contract checks for every skill
   reference.test.js             Structure and integrity of the reference questions
 ```
@@ -178,6 +217,55 @@ fixture extractor reads explicit candidate claims from the record's flat
 `metadata.claim_candidates_json` string; it parses no prose. A model-backed extractor can
 replace it without changing the skill's input or output contract.
 
+### gap.detect and artifact.render
+
+```js
+import { detectGaps } from "./skills/gap-detect/index.js";
+import { renderArtifact } from "./skills/artifact-render/index.js";
+
+const gaps = await detectGaps({ account_id, claims, conflicts });
+const brief = await renderArtifact({
+  account,
+  claims,
+  gap_result: gaps.data,
+  warnings: [],
+  output_template_id: "first-meeting-brief-v1",
+  audience: "internal_sales",
+  classification_ceiling: "internal",
+});
+
+// gaps.data.questions            answered/partial/unanswered/conflicted per question
+// gaps.evidence_ids              sorted supporting claim IDs
+// brief.data.rendered_artifact   deterministic cited Markdown
+// brief.data.omitted_evidence_ids claims withheld by the classification ceiling
+```
+
+### prepare-first-meeting
+
+```js
+import { prepareFirstMeeting } from "./workflows/prepare-first-meeting/index.js";
+import { createFixtureAccountAdapter } from "./adapters/fixture-account-adapter.js";
+import { createFixtureEvidenceAdapter } from "./adapters/fixture-evidence-adapter.js";
+import { createFixtureClaimExtractor } from "./adapters/fixture-claim-extractor.js";
+
+const result = await prepareFirstMeeting(
+  { account_reference: "Northstar Logistics", classification_ceiling: "internal" },
+  {
+    accountAdapter: createFixtureAccountAdapter({ fixture: "workflow-first-meeting-success" }),
+    evidenceAdapter: createFixtureEvidenceAdapter({ fixture: "workflow-first-meeting-success" }),
+    claimExtractor: createFixtureClaimExtractor(),
+  },
+);
+
+// result.status                  success | partial | blocked | failed
+// result.artifact                cited Markdown, or null on blocked/failed
+// result.evidence_ids            exactly the citations in the artifact
+// result.omitted_evidence_ids    exactly the claims withheld by classification
+```
+
+See [the workflow contract](workflows/prepare-first-meeting/WORKFLOW.md) for stopping rules,
+status aggregation, diagnostic handling, and provenance invariants.
+
 ## Design decisions
 
 - **Node.js + `node:test`** because no stack existed when work started and the built-in runner
@@ -227,6 +315,8 @@ replace it without changing the skill's input or output contract.
 - **Cross-record agreement is not collapsed.** Identical claim text from different records
   stays as separate claims with separate provenance; independent corroboration is never
   discarded to shorten output.
+- **The workflow verifies its artifact.** It composes the skills in fixed order, stops on a
+  block or failure, and checks citations and classification omissions before returning a brief.
 
 ## Shared-contract change
 
@@ -244,11 +334,11 @@ replace it without changing the skill's input or output contract.
 gained optional `published_at` to distinguish publication time from event/occurrence time. These
 are additive, and prior records remain valid. Normalization maps the timestamp fields one-to-one.
 
-Two integration schemas are now available: `gap-result.schema.json` (safe per-question status,
-evidence IDs, reason codes, conflicts, counts) and `first-meeting-brief-input.schema.json`
-(structured identity, claims, gaps, warnings, template, audience, and classification ceiling).
-They define contracts only; neither next skill is implemented. No field was removed or renamed,
-and the shared result envelope is unchanged.
+The gap and renderer use `gap-result.schema.json` and `first-meeting-brief-input.schema.json`.
+The latter was changed from enforcing classification ceilings in the schema to structural
+validation: `artifact.render` filters claims and the workflow verifies its omissions. This is a
+semantically significant change to the originally frozen contract and requires owner review.
+The workflow has separate input and result schemas; the shared skill envelope is unchanged.
 
 ## Assumptions
 
@@ -308,9 +398,7 @@ and the shared result envelope is unchanged.
 
 ## Deferred work
 
-Gap detection, artifact rendering, workflow composition, Salesforce connectivity, web retrieval,
-meeting briefs, B-FITT, qualification, CRM writeback, approvals, model-driven routing, UI, and
-orchestration are intentionally not implemented. Model-backed claim extraction is deferred: the
-interface exists (`adapters/claim-extractor.js`) but only the deterministic fixture extractor
-implements it. Only the interfaces needed to keep `account.resolve`, `evidence.retrieve`, and
-`evidence.normalize` independent of their fixture adapters and extractor exist.
+Live Salesforce, web and document connectivity, additional artifact formats, B-FITT,
+qualification, CRM writeback, approvals, model-driven routing, UI, and broader orchestration
+remain deferred. Model-backed claim extraction is deferred: the interface exists
+(`adapters/claim-extractor.js`) but only the deterministic fixture extractor implements it.

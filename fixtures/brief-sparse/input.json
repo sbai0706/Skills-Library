@@ -1,0 +1,83 @@
+{
+  "account": {
+    "account_id": "sf_sparse_001",
+    "canonical_name": "Halcyon Foods",
+    "identifiers": {
+      "domain": "halcyon-foods.example"
+    }
+  },
+  "claims": [
+    {
+      "claim_id": "clm_sparse_ctx_0001",
+      "claim": "Halcyon Foods produces packaged foods for grocery and foodservice customers.",
+      "source_type": "company_site",
+      "source_uri": "https://halcyon-foods.example/about",
+      "source_record_id": null,
+      "account_id": "sf_sparse_001",
+      "published_at": null,
+      "occurred_at": null,
+      "retrieved_at": "2026-10-20T15:00:00Z",
+      "excerpt": "Halcyon Foods produces packaged foods for grocery and foodservice customers.",
+      "confidence": "high",
+      "verification_status": "direct",
+      "access_classification": "public",
+      "question_ids": ["FM-CTX-001"]
+    }
+  ],
+  "gap_result": {
+    "account_id": "sf_sparse_001",
+    "question_set_version": "0.1.0",
+    "questions": [
+      {
+        "question_id": "FM-CTX-001",
+        "status": "answered",
+        "supporting_evidence_ids": ["clm_sparse_ctx_0001"],
+        "reason_codes": []
+      },
+      {
+        "question_id": "FM-DEV-001",
+        "status": "unanswered",
+        "supporting_evidence_ids": [],
+        "missing_evidence_description": "No supporting claims were provided.",
+        "reason_codes": ["no_supporting_claims"]
+      },
+      {
+        "question_id": "FM-REL-001",
+        "status": "unanswered",
+        "supporting_evidence_ids": [],
+        "missing_evidence_description": "No supporting claims were provided.",
+        "reason_codes": ["no_supporting_claims"]
+      },
+      {
+        "question_id": "FM-STK-001",
+        "status": "unanswered",
+        "supporting_evidence_ids": [],
+        "missing_evidence_description": "No supporting claims were provided.",
+        "reason_codes": ["no_supporting_claims"]
+      },
+      {
+        "question_id": "FM-SVC-001",
+        "status": "unanswered",
+        "supporting_evidence_ids": [],
+        "missing_evidence_description": "No supporting claims were provided.",
+        "reason_codes": ["no_supporting_claims"]
+      }
+    ],
+    "summary_counts": {
+      "total": 5,
+      "answered": 1,
+      "partial": 0,
+      "unanswered": 4,
+      "conflicted": 0
+    }
+  },
+  "warnings": [
+    {
+      "code": "gaps_present",
+      "message": "Some research questions remain unresolved."
+    }
+  ],
+  "output_template_id": "first-meeting-brief-v1",
+  "audience": "internal_sales",
+  "classification_ceiling": "internal"
+}

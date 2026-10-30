@@ -1,0 +1,14 @@
+{
+  "fixture": "workflow-first-meeting-retrieval-failure",
+  "account_id": "sf_wf_retrieval_failure",
+  "sources": {
+    "crm": {
+      "mode": "unavailable",
+      "records": []
+    },
+    "public_source": {
+      "mode": "unavailable",
+      "records": []
+    }
+  }
+}

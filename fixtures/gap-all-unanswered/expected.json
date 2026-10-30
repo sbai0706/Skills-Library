@@ -1,0 +1,33 @@
+{
+  "fixture": "gap-all-unanswered",
+  "expected": {
+    "status": "success",
+    "question_set_version": "0.1.0",
+    "questions": [
+      {
+        "question_id": "FM-CTX-001",
+        "status": "unanswered",
+        "supporting_evidence_ids": [],
+        "missing_evidence_description": "No supporting claims were provided.",
+        "reason_codes": ["no_supporting_claims"]
+      },
+      {
+        "question_id": "FM-STK-001",
+        "status": "unanswered",
+        "supporting_evidence_ids": [],
+        "missing_evidence_description": "No supporting claims were provided.",
+        "reason_codes": ["no_supporting_claims"]
+      }
+    ],
+    "summary_counts": {
+      "total": 2,
+      "answered": 0,
+      "partial": 0,
+      "unanswered": 2,
+      "conflicted": 0
+    },
+    "evidence_ids": [],
+    "error_reasons": [],
+    "warning_codes": ["GAPS_PRESENT"]
+  }
+}

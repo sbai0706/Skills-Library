@@ -1,0 +1,63 @@
+{
+  "account": {
+    "account_id": "sf_partial_001",
+    "canonical_name": "Rivermark Utilities",
+    "identifiers": {
+      "domain": "rivermark-utilities.example"
+    }
+  },
+  "claims": [
+    {
+      "claim_id": "clm_partial_dev_0001",
+      "claim": "Rivermark Utilities announced a field-service modernization program in its 2026 annual report.",
+      "source_type": "company_site",
+      "source_uri": "https://rivermark-utilities.example/annual-report-2026",
+      "source_record_id": null,
+      "account_id": "sf_partial_001",
+      "published_at": "2026-08-15T12:00:00Z",
+      "occurred_at": null,
+      "retrieved_at": "2026-10-20T15:10:00Z",
+      "excerpt": "Rivermark Utilities announced a field-service modernization program in its 2026 annual report.",
+      "confidence": "medium",
+      "verification_status": "direct",
+      "access_classification": "public",
+      "question_ids": ["FM-DEV-001"]
+    }
+  ],
+  "gap_result": {
+    "account_id": "sf_partial_001",
+    "question_set_version": "0.1.0",
+    "questions": [
+      {
+        "question_id": "FM-CTX-001",
+        "status": "unanswered",
+        "supporting_evidence_ids": [],
+        "missing_evidence_description": "No supporting claims were provided.",
+        "reason_codes": ["no_supporting_claims"]
+      },
+      {
+        "question_id": "FM-DEV-001",
+        "status": "partial",
+        "supporting_evidence_ids": ["clm_partial_dev_0001"],
+        "missing_evidence_description": "Some aspects of this question lack supporting claims.",
+        "reason_codes": ["partial_support"]
+      }
+    ],
+    "summary_counts": {
+      "total": 2,
+      "answered": 0,
+      "partial": 1,
+      "unanswered": 1,
+      "conflicted": 0
+    }
+  },
+  "warnings": [
+    {
+      "code": "gaps_present",
+      "message": "Some research questions remain unresolved."
+    }
+  ],
+  "output_template_id": "first-meeting-brief-v1",
+  "audience": "executive",
+  "classification_ceiling": "internal"
+}

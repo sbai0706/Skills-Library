@@ -1,0 +1,26 @@
+{
+  "fixture": "gap-unknown-question-reference",
+  "expected": {
+    "status": "partial",
+    "question_set_version": "0.1.0",
+    "questions": [
+      {
+        "question_id": "FM-CTX-001",
+        "status": "answered",
+        "supporting_evidence_ids": ["clm_gap_u2"],
+        "reason_codes": []
+      }
+    ],
+    "summary_counts": {
+      "total": 1,
+      "answered": 1,
+      "partial": 0,
+      "unanswered": 0,
+      "conflicted": 0
+    },
+    "evidence_ids": ["clm_gap_u2"],
+    "error_reasons": ["unknown_question_reference"],
+    "warning_codes": ["CLAIMS_OR_CONFLICTS_REJECTED"],
+    "forbidden_output_ids": ["clm_gap_u1"]
+  }
+}

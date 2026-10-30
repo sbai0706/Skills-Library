@@ -1,0 +1,12 @@
+{
+  "fixture": "workflow-first-meeting-conflicted",
+  "description": "Two directly supported claims disagree and remain unresolved.",
+  "accounts": [
+    {
+      "account_id": "sf_wf_conflict",
+      "name": "Halcyon Foods",
+      "domain": "halcyon-foods.example",
+      "active": true
+    }
+  ]
+}

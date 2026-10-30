@@ -1,0 +1,326 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sales-copilot.local/schemas/workflow-result.schema.json",
+  "title": "Workflow result",
+  "description": "Result contract for a fixed workflow composition. It is deliberately separate from skill-result.schema.json because a workflow has ordered step summaries, workflow identity, safe blocked-candidate data, and an optional rendered artifact.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "workflow",
+    "workflow_version",
+    "status",
+    "account",
+    "account_candidates",
+    "artifact",
+    "evidence_ids",
+    "omitted_evidence_ids",
+    "warnings",
+    "errors",
+    "steps",
+    "trace_id",
+    "started_at",
+    "finished_at"
+  ],
+  "properties": {
+    "workflow": {
+      "const": "prepare-first-meeting"
+    },
+    "workflow_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "status": {
+      "enum": ["success", "partial", "blocked", "failed"],
+      "description": "success: brief rendered with no trustworthy-result degradation; partial: brief rendered but a step or classification filter degraded it; blocked: a policy gate stopped execution; failed: a required step could not produce a trustworthy result."
+    },
+    "account": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["account_id", "canonical_name"],
+      "properties": {
+        "account_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "canonical_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "identifiers": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "domain": {
+              "type": "string",
+              "minLength": 1
+            },
+            "external_id": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "account_candidates": {
+      "type": "array",
+      "description": "Safe unconfirmed candidates preserved for ambiguous or confirmation-required blocks. No restricted account details.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["account_id", "name"],
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "domain": {
+            "type": "string",
+            "minLength": 1
+          },
+          "match_type": {
+            "type": "string",
+            "minLength": 1
+          },
+          "score": {
+            "type": "number"
+          },
+          "matched_tokens": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    },
+    "artifact": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["format", "template_id", "classification", "markdown"],
+      "properties": {
+        "format": {
+          "const": "markdown"
+        },
+        "template_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "classification": {
+          "enum": ["public", "internal", "confidential"]
+        },
+        "markdown": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "evidence_ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^clm_[A-Za-z0-9_-]+$"
+      },
+      "description": "Exactly the citations present in the rendered artifact. Empty when no trustworthy artifact was produced."
+    },
+    "omitted_evidence_ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^clm_[A-Za-z0-9_-]+$"
+      },
+      "description": "Normalized claim IDs withheld by the renderer's classification ceiling. Empty when no trustworthy artifact was produced."
+    },
+    "warnings": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/diagnostic" }
+    },
+    "errors": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/diagnostic" }
+    },
+    "steps": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/stepSummary" }
+    },
+    "trace_id": {
+      "type": "string",
+      "pattern": "^trace_"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "finished_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "definitions": {
+    "diagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["step", "skill", "code", "message"],
+      "properties": {
+        "step": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9.-]*$"
+        },
+        "skill": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9.-]*$"
+        },
+        "code": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "retryable": {
+          "type": "boolean"
+        }
+      }
+    },
+    "stepSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["step", "skill", "status"],
+      "properties": {
+        "step": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9.-]*$"
+        },
+        "skill": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9.-]*$"
+        },
+        "status": {
+          "enum": ["success", "partial", "blocked", "failed"]
+        },
+        "outcome": {
+          "type": "string",
+          "minLength": 1
+        },
+        "match_method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "candidate_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "record_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "source_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "source_record_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "claim_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "rejected_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "conflict_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total_questions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "answered_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "partial_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unanswered_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "conflicted_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cited_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "omitted_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "template_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "warning_codes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string" }
+        },
+        "error_codes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string" }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "status": { "const": "success" } },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "errors": { "type": "array", "maxItems": 0 },
+          "artifact": { "type": "object" },
+          "account": { "type": "object" }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "status": { "const": "partial" } },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "artifact": { "type": "object" },
+          "account": { "type": "object" }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "status": { "enum": ["failed", "blocked"] } },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "errors": { "type": "array", "minItems": 1 },
+          "artifact": { "type": "null" }
+        }
+      }
+    }
+  ]
+}

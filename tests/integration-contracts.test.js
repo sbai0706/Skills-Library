@@ -65,14 +65,36 @@ test("brief input rejects arbitrary raw source records", () => {
   expectInvalid("firstMeetingBriefInput", raw, "renderer input must be structured claims and gaps");
 });
 
-test("brief input enforces classification ceiling for claims", () => {
+test("brief input validates claims regardless of classification ceiling", () => {
   const internal = clone(briefExample);
   internal.claims[0].access_classification = "internal";
-  expectInvalid("firstMeetingBriefInput", internal, "public ceiling rejects internal claim");
+  assert.equal(
+    validate("firstMeetingBriefInput", internal).valid,
+    true,
+    "schema acceptance is structural; renderer enforces public visibility",
+  );
   const confidential = clone(briefExample);
   confidential.classification_ceiling = "internal";
   confidential.claims[0].access_classification = "confidential";
-  expectInvalid("firstMeetingBriefInput", confidential, "internal ceiling rejects confidential claim");
+  assert.equal(
+    validate("firstMeetingBriefInput", confidential).valid,
+    true,
+    "schema acceptance is structural; renderer enforces internal visibility",
+  );
+  const invalidCeiling = clone(briefExample);
+  invalidCeiling.classification_ceiling = "secret";
+  expectInvalid("firstMeetingBriefInput", invalidCeiling, "classification ceiling remains an enum");
+});
+
+test("brief input rejects malformed evidence claims even above the ceiling", () => {
+  const unknownProperty = clone(briefExample);
+  unknownProperty.claims[0].access_classification = "internal";
+  unknownProperty.claims[0].unexpected_field = "not allowed";
+  expectInvalid("firstMeetingBriefInput", unknownProperty, "claim structure is still strict");
+  const missingRequired = clone(briefExample);
+  missingRequired.claims[0].access_classification = "internal";
+  delete missingRequired.claims[0].claim_id;
+  expectInvalid("firstMeetingBriefInput", missingRequired, "claim structure is still required");
 });
 
 test("evidence schema accepts occurrence-only, publication-only, and both timestamps", () => {

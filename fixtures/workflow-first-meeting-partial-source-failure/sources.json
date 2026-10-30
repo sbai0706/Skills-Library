@@ -1,0 +1,53 @@
+{
+  "fixture": "workflow-first-meeting-partial-source-failure",
+  "account_id": "sf_wf_partial",
+  "sources": {
+    "crm": {
+      "mode": "ok",
+      "records": [
+        {
+          "record_id": "src_wf_partial_crm_1",
+          "account_id": "sf_wf_partial",
+          "source_type": "crm_activity",
+          "title": "Renewal review call",
+          "content": "Cobalt Freight Systems confirmed the current contract end date during an annual renewal review.",
+          "source_uri": null,
+          "occurred_at": "2026-08-21T11:00:00Z",
+          "retrieved_at": "2026-10-20T14:30:00Z",
+          "access_classification": "internal",
+          "question_ids": [
+            "FM-REL-001"
+          ],
+          "metadata": {
+            "provider": "fixture-workflow",
+            "record_type": "renewal_review",
+            "claim_candidates_json": "[{\"claim\":\"Cobalt Freight Systems confirmed the current contract end date.\",\"excerpt\":\"Cobalt Freight Systems confirmed the current contract end date\",\"completeness\":\"complete\"}]"
+          }
+        },
+        {
+          "record_id": "src_wf_partial_crm_2",
+          "account_id": "sf_wf_partial",
+          "source_type": "crm_record",
+          "title": "Account record",
+          "content": "Recorded contact: Priya Raman, Director of Operations.",
+          "source_uri": null,
+          "occurred_at": null,
+          "retrieved_at": "2026-10-20T14:30:00Z",
+          "access_classification": "internal",
+          "question_ids": [
+            "FM-STK-001"
+          ],
+          "metadata": {
+            "provider": "fixture-workflow",
+            "record_type": "account_profile",
+            "claim_candidates_json": "[{\"claim\":\"Priya Raman is Director of Operations.\",\"excerpt\":\"Priya Raman, Director of Operations\",\"completeness\":\"complete\"}]"
+          }
+        }
+      ]
+    },
+    "public_source": {
+      "mode": "unavailable",
+      "records": []
+    }
+  }
+}

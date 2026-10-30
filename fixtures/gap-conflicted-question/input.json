@@ -1,0 +1,42 @@
+{
+  "account_id": "sf_gap_004",
+  "questions": [
+    { "id": "FM-DEV-001", "question": "What credible initiative or event has the company disclosed in the last twelve months?" },
+    { "id": "FM-CTX-001", "question": "What does the company sell, to whom, and in which geographies?" }
+  ],
+  "claims": [
+    {
+      "claim_id": "clm_gap_c1",
+      "claim": "Fictional Cobalt announced that its automation program starts in 2027.",
+      "source_type": "news",
+      "source_record_id": "src_gap_c1",
+      "account_id": "sf_gap_004",
+      "retrieved_at": "2026-10-20T17:00:00Z",
+      "excerpt": "The automation program starts in 2027.",
+      "confidence": "high",
+      "verification_status": "conflicting",
+      "access_classification": "public",
+      "question_ids": ["FM-DEV-001"]
+    },
+    {
+      "claim_id": "clm_gap_c2",
+      "claim": "Fictional Cobalt announced that its automation program starts in 2028.",
+      "source_type": "company_site",
+      "source_record_id": "src_gap_c2",
+      "account_id": "sf_gap_004",
+      "retrieved_at": "2026-10-20T17:05:00Z",
+      "excerpt": "The automation program starts in 2028.",
+      "confidence": "high",
+      "verification_status": "conflicting",
+      "access_classification": "public",
+      "question_ids": ["FM-DEV-001"]
+    }
+  ],
+  "conflicts": [
+    {
+      "conflict_id": "cfl_gap_conflict1",
+      "conflict_key": "automation_start_year",
+      "claim_ids": ["clm_gap_c1", "clm_gap_c2"]
+    }
+  ]
+}

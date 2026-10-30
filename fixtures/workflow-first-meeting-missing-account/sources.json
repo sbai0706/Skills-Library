@@ -1,0 +1,14 @@
+{
+  "fixture": "workflow-first-meeting-missing-account",
+  "account_id": "sf_wf_missing_001",
+  "sources": {
+    "crm": {
+      "mode": "ok",
+      "records": []
+    },
+    "public_source": {
+      "mode": "ok",
+      "records": []
+    }
+  }
+}
