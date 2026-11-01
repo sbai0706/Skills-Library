@@ -97,6 +97,12 @@ Frozen means: **stop and report a blocker before any breaking or semantically si
 
 Do not implement workflow composition, live connectors, platform integrations, or another skill as part of these tasks.
 
+## Input replaceability audit (2026-10-30)
+
+The input boundaries were statically and end-to-end checked with an in-memory MCP-like replay client. Account lookup, evidence retrieval, and claim extraction remain replaceable through the existing injected interfaces; no skill logic, workflow order, or shared contract changes were needed. Fixture JSON remains demo/test storage, and `metadata.claim_candidates_json` is specific to the fixture extractor. See [INPUT_REPLACEABILITY_AUDIT.md](INPUT_REPLACEABILITY_AUDIT.md) for the mapping, coverage, limitations, and verdict (**PASS WITH MINOR FIXES**).
+
+The replay suite passed (11/11). The complete suite reports 257 passed and 3 failed out of 260; the same three CLI `spawnSync("npm", ...)` exit-status failures were present at the audit baseline (246/249), on this Windows environment. No live connector was added.
+
 ## Commands a new agent must run before editing
 
 Run from the repository root:

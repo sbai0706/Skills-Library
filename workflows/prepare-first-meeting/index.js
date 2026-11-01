@@ -202,8 +202,9 @@ function rendererWarnings(normalizeResult, gapResult, claims) {
 /**
  * Execute the fixed prepare-first-meeting workflow.
  *
- * Dependencies are explicit and small. Fixture adapters and the fixture claim
- * extractor are supplied by the caller. Optional skill-function overrides exist
+ * Dependencies are explicit and small. Adapters and the claim extractor are
+ * supplied by the caller; this workflow does not select their implementations.
+ * Optional skill-function overrides exist
  * only so tests can observe that later skills are not invoked after a block or
  * failure; production callers normally omit them.
  *

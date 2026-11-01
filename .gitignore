@@ -1,2 +1,6 @@
 node_modules/
 coverage/
+
+# Local Codex MCP credentials and Salesforce OAuth configuration
+.codex/config.toml
+.codex/*.log

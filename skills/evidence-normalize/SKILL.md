@@ -53,10 +53,10 @@ and this repository contains no model. The boundary is therefore explicit:
 
 - The skill accepts a **claim extractor** dependency implementing `extract(record)` from
   `adapters/claim-extractor.js`. The extractor PROPOSES candidates; it never decides.
-- The only implementation today is the deterministic fixture extractor, which reads explicit
-  candidate claims from the record's flat `metadata.claim_candidates_json` string. It parses
-  no prose. A future model-backed extractor can replace it without changing this skill's
-  input or output contract.
+- The fixture extractor is one implementation: it reads explicit candidate claims from the
+  record's flat `metadata.claim_candidates_json` string and parses no prose. That metadata key
+  is fixture-specific and is not required by this skill or the extractor interface. A different
+  extractor can obtain candidates from another source without changing this skill's contract.
 - The skill itself owns validation, direct-support checking, provenance, classification
   policy, confidence, deduplication, conflicts, rejection, and output construction.
 
