@@ -170,6 +170,70 @@ test("partial evidence preserves visible conflicts and marks inferred evidence u
   assert.match(JSON.stringify(result.data.discovery_questions), /conflicting event evidence/);
 });
 
+test("duplicate normalized claim IDs fail safely across visibility classes and array order", () => {
+  const visible = claim({
+    claim_id: SECRET_ID,
+    claim: "Visible duplicate claim text.",
+    excerpt: "Visible duplicate claim text.",
+    access_classification: "public",
+  });
+  const hidden = claim({
+    claim_id: SECRET_ID,
+    claim: SECRET_TEXT,
+    excerpt: SECRET_TEXT,
+    account_id: "hidden_foreign_account",
+    source_type: "not-a-source-type",
+    access_classification: "confidential",
+  });
+  const visibleDuplicate = claim({
+    claim_id: SECRET_ID,
+    claim: "Second visible duplicate claim text.",
+    excerpt: "Second visible duplicate claim text.",
+    access_classification: "public",
+  });
+
+  for (const claims of [
+    [visible, hidden],
+    [hidden, visible],
+    [visible, visibleDuplicate],
+  ]) {
+    const result = assessQualification(directInput({
+      claims,
+      classification_ceiling: "public",
+    }), { now: NOW });
+    assert.equal(result.status, "failed");
+    assert.equal(result.data, null);
+    assert.equal(result.errors[0].code, "INVALID_INPUT");
+    assert.equal(result.errors[0].message, "Normalized claim identifiers must be unique.");
+    assert.doesNotMatch(JSON.stringify(result), new RegExp(SECRET_ID));
+    assert.doesNotMatch(JSON.stringify(result), /CONFIDENTIAL QUALIFICATION EVENT MUST NOT LEAK|hidden_foreign_account/);
+  }
+});
+
+test("distinct visible and above-ceiling claim IDs retain classification-safe evidence", () => {
+  const result = assessQualification(directInput({
+    claims: [
+      claim({ access_classification: "public" }),
+      claim({
+        claim_id: SECRET_ID,
+        claim: SECRET_TEXT,
+        excerpt: SECRET_TEXT,
+        account_id: "hidden_foreign_account",
+        source_type: "not-a-source-type",
+        access_classification: "confidential",
+      }),
+    ],
+    classification_ceiling: "public",
+    event_evidence: { event: [CLAIM_ID] },
+  }), { now: NOW });
+
+  assert.equal(result.status, "partial");
+  assert.equal(result.data.event_assessment.fields.event.evidence_state, "evidence_linked");
+  assert.deepEqual(result.evidence_ids, [CLAIM_ID]);
+  assert.doesNotMatch(JSON.stringify(result), new RegExp(SECRET_ID));
+  assert.doesNotMatch(JSON.stringify(result), /CONFIDENTIAL QUALIFICATION EVENT MUST NOT LEAK|hidden_foreign_account/);
+});
+
 test("unknown evidence references fail safely without echoing supplied IDs", () => {
   const unknownId = "clm_unknown_user_input_7";
   const result = assessQualification(directInput({
@@ -295,6 +359,43 @@ test("hidden mixed-visibility conflict cannot affect visible states, citations, 
   assert.doesNotMatch(output, new RegExp(SECRET_ID));
   assert.doesNotMatch(output, new RegExp(SECRET_TEXT));
   assert.doesNotMatch(output, /restricted_event|cfl_hidden_mixed/);
+});
+
+test("workflow rejects cross-classification duplicate claim IDs without an artifact or hidden details", async () => {
+  const injectDuplicateClaim = async (input, deps) => {
+    const result = await normalizeEvidence(input, deps);
+    const visible = result.data.claims[0];
+    visible.claim_id = SECRET_ID;
+    visible.access_classification = "public";
+    result.data.claims.push({
+      ...visible,
+      claim: SECRET_TEXT,
+      excerpt: SECRET_TEXT,
+      account_id: "hidden_foreign_account",
+      source_type: "not-a-source-type",
+      access_classification: "confidential",
+    });
+    return result;
+  };
+  const result = await runQualification(workflowInput({
+    workflow_input: {
+      account_reference: "Northstar Logistics",
+      requested_sources: ["crm", "public_source"],
+      classification_ceiling: "public",
+    },
+  }), makeDeps("workflow-first-meeting-success", {
+    normalizeEvidence: injectDuplicateClaim,
+    now: NOW,
+  }));
+  const output = JSON.stringify(result);
+
+  assert.equal(result.status, "failed");
+  assert.equal(result.assessment, null);
+  assert.equal(result.artifact, null);
+  assert.equal(result.errors[0].code, "INVALID_INPUT");
+  assert.doesNotMatch(output, new RegExp(SECRET_ID));
+  assert.doesNotMatch(output, /CONFIDENTIAL QUALIFICATION EVENT MUST NOT LEAK|hidden_foreign_account/);
+  assert.doesNotMatch(output, /not-a-source-type/);
 });
 
 test("fixture workflow makes no outbound fetch calls", async () => {

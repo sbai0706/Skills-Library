@@ -39,6 +39,18 @@ function resolveReferences(ids, visibility) {
   return resolveClaimIds(ids, visibility.byId, visibility.withheldIds);
 }
 
+function hasDuplicateNormalizedClaimIds(claims) {
+  const seen = new Set();
+  for (const claim of claims) {
+    if (typeof claim !== "object" || claim === null || Array.isArray(claim)) continue;
+    const claimId = claim.claim_id;
+    if (typeof claimId !== "string" || !CLAIM_ID_PATTERN.test(claimId)) continue;
+    if (seen.has(claimId)) return true;
+    seen.add(claimId);
+  }
+  return false;
+}
+
 function classifyVisibleClaims(accountId, claims, ceiling) {
   const ceilingRank = CLASSIFICATION_RANK[ceiling];
   if (!Array.isArray(claims) || ceilingRank === undefined) {
@@ -46,6 +58,13 @@ function classifyVisibleClaims(accountId, claims, ceiling) {
       ok: false,
       code: "INVALID_INPUT",
       message: "Normalized claims and a valid classification ceiling are required.",
+    };
+  }
+  if (hasDuplicateNormalizedClaimIds(claims)) {
+    return {
+      ok: false,
+      code: "INVALID_INPUT",
+      message: "Normalized claim identifiers must be unique.",
     };
   }
 
