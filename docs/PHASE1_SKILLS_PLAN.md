@@ -23,7 +23,7 @@ library deliverables.
 |---|---|---|
 | B-FITT | The presentation requires an advisory, evidence-based B-FITT assessment but does not expand or define its criteria. The demo labels four items “Business fit,” “Financial context,” “Influence,” and “Timing.” | The full acronym/dimensions, required evidence, thresholds, unknown handling, scoring, and stage gates. Do not infer a missing dimension or invent a scoring model. |
 | Compelling events | The presentation asks for event, deadline, consequence, accountable owner, service need, and next customer decision. The demo illustrates questions and examples such as acquisition, cost reduction, renewal risk, and launch. | Approved event taxonomy, minimum evidence, freshness, and what qualifies as verified. Demo examples are not policy. |
-| Lifecycle | The presentation names Contact, SAL, Qualified Lead (QL), Opportunity, and Win, with conceptual advancement gates. The demo also uses Lead and varies stage labels/order across screens. | Canonical CRM stages, mappings, eligibility, and advancement rules. Confirm against the BRD/Salesforce configuration before recommending or changing a stage. |
+| Lifecycle | The presentation names Contact, SAL, Qualified Lead (QL), Opportunity, and Win, but its objective also names QL-to-SAL conversion. The demo uses Lead and varies stage labels/order across screens. | Canonical CRM stages, mappings, QL/SAL order, eligibility, and advancement rules. Resolve the source's sequence mismatch against the BRD/Salesforce configuration before recommending or changing a stage. |
 | Offerings and personas | The demo shows sample service-fit hypotheses and stakeholder roles; repository vocabularies are provisional. | Approved service catalogue, role/persona definitions, account ownership, and approval responsibilities. Do not state a hypothesis as a verified capability or customer need. |
 | Actions and integrations | The proposal describes Salesforce, approval gates, Cowork, and other data sources; the demo offers simulated CRM/share/deck actions. | Host/runtime, identity, authorization, connectors, data access, approval UX, and actual execution are external dependencies, not library behavior. |
 
@@ -91,6 +91,7 @@ This sequence is a library delivery recommendation, not a claim that the source 
 
 - Cowork/orchestrator runtime, authenticated identity, role/record/field authorization, and audit/telemetry.
 - Salesforce read/write connectors, object/field mappings, production data access, approval UI, and control of mutations.
+- Reconcile the proposal's allowance for approved routine-field synchronization with the library architecture's human-approval requirement for Salesforce changes; this plan assumes neither host policy.
 - Any Teams/calendar/meeting-note, OneDrive/collateral, Draup, Sales Navigator, or public-source connectors, including licenses, access policy, freshness, and source approval.
 - Human approval and delivery channels for external communications and customer-facing artifacts.
 

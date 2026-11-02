@@ -202,3 +202,25 @@ test("v2 enrichment classification errors do not disclose withheld claim IDs or 
   assert.doesNotMatch(diagnostics, new RegExp(secretId));
   assert.doesNotMatch(diagnostics, new RegExp(secretText));
 });
+
+test("v2 semantic validation preserves conflicting claims without choosing a winner", () => {
+  const brief = makeSemanticBrief();
+  brief.claims[0].verification_status = "conflicting";
+  const conflictingClaim = {
+    ...brief.claims[0],
+    claim_id: "clm_conflicting_002",
+    claim: "The initiative has a different reported start date.",
+    excerpt: "The initiative has a different reported start date.",
+  };
+  brief.claims.push(conflictingClaim);
+  brief.signals.signals[0].claim_ids = [brief.claims[0].claim_id, conflictingClaim.claim_id];
+  brief.signals.signals[0].evidence_ids = [brief.claims[0].claim_id, conflictingClaim.claim_id];
+  const claimsBeforeValidation = structuredClone(brief.claims);
+
+  const result = validateFirstMeetingBriefInputV2(brief, {
+    referenceRegistry: makeReferenceRegistry(),
+  });
+  assert.equal(result.valid, true);
+  assert.deepEqual(brief.claims, claimsBeforeValidation);
+  assert.ok(brief.claims.every((claim) => claim.verification_status === "conflicting"));
+});
