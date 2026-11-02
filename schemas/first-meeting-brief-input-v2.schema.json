@@ -10,7 +10,7 @@
     "account": {
       "type": "object", "additionalProperties": false, "required": ["account_id", "canonical_name"],
       "properties": {
-        "account_id": { "type": "string", "pattern": "^(acct|sf)_[A-Za-z0-9_-]+$" },
+        "account_id": { "type": "string", "minLength": 1 },
         "canonical_name": { "type": "string", "minLength": 1, "maxLength": 300 },
         "identifiers": { "type": "object", "additionalProperties": false, "properties": { "domain": { "type": "string", "minLength": 1 }, "external_id": { "type": "string", "minLength": 1 } } }
       }

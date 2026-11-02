@@ -1,58 +1,97 @@
 # Phase 1 Skills Plan
 
-## Client Phase 1 agents and expected outputs
+## Scope and evidence sources
 
-The client deck sets Phase 1 scope as four agents. This plan records their expected outputs at the skills-library boundary:
+The supplied presentation, `Relevantz_Sales_Agent_01_agent_readable.md`, identifies four Phase 1
+specialist outcomes: **Account Intelligence, Engagement, Qualification, and Opportunity Strategy**.
+The source is marked as a conceptual proposal, not an approved business requirements document.
+Its sections 1–10 describe the proposed business vision and agent responsibilities. Sections 11–14
+are explicitly suggested technical contracts, acceptance criteria, unresolved questions, and
+implementation priorities; treat these as implementation recommendations, not approved policy.
 
-| Client agent | Expected output |
-|---|---|
-| Account Intelligence | Account context, evidence-linked signals, known stakeholder roles, and provisional offering-alignment hypotheses; gaps and provenance remain visible. |
-| Engagement | A supported engagement preparation artifact using approved channels, audience, and messaging rules. |
-| Qualification | Evidence-backed qualification inputs and explicit unknowns, subject to confirmed qualification criteria. |
-| Opportunity Strategy | Evidence-backed opportunity strategy inputs and options, subject to confirmed business rules. |
+`Relevantz_Claude_Cowork_Sales_Command_Agent_Mockup.html` is an interactive concept, not a source
+of customer facts or business rules. It labels connectors as simulated, calls its records and
+rankings illustrative/fabricated, and says no live systems are queried. Its screens are useful
+examples of task prioritization, first-meeting preparation, outreach drafts, qualification
+evidence, opportunity hypotheses, meeting-week views, and human review actions. The demo also
+contains Deal Intelligence and broader command-center behaviors; those are not default Phase 1
+library deliverables.
 
-The skills library supplies portable contracts and deterministic capabilities. It does not provide a client agent runtime or production authorization boundary.
+### Examples versus unresolved rules
 
-## Mapping from Phase 1 to skills-library capabilities
-
-| Phase 1 area | Skills-library mapping | Current state |
+| Topic | What the supplied materials show | What remains unapproved or unknown |
 |---|---|---|
-| Account Intelligence | `account.resolve`, `evidence.retrieve`, `evidence.normalize`, `gap.detect`, and `artifact.render`; this contract layer adds signal, stakeholder-map, offering-match, and additive first-meeting-brief-v2 contracts. | Foundation complete; contract layer in progress. No new extractor or workflow is part of this work. |
-| Qualification | Future evidence-grounded qualification contracts and capability, with confirmed criteria. | Not started. |
-| Opportunity Strategy | Future opportunity strategy contracts and capability, with confirmed business rules. | Not started. |
-| Engagement | Future engagement preparation and communication capabilities under approved messaging and channel constraints. | Not started. |
+| B-FITT | The presentation requires an advisory, evidence-based B-FITT assessment but does not expand or define its criteria. The demo labels four items “Business fit,” “Financial context,” “Influence,” and “Timing.” | The full acronym/dimensions, required evidence, thresholds, unknown handling, scoring, and stage gates. Do not infer a missing dimension or invent a scoring model. |
+| Compelling events | The presentation asks for event, deadline, consequence, accountable owner, service need, and next customer decision. The demo illustrates questions and examples such as acquisition, cost reduction, renewal risk, and launch. | Approved event taxonomy, minimum evidence, freshness, and what qualifies as verified. Demo examples are not policy. |
+| Lifecycle | The presentation names Contact, SAL, Qualified Lead (QL), Opportunity, and Win, with conceptual advancement gates. The demo also uses Lead and varies stage labels/order across screens. | Canonical CRM stages, mappings, eligibility, and advancement rules. Confirm against the BRD/Salesforce configuration before recommending or changing a stage. |
+| Offerings and personas | The demo shows sample service-fit hypotheses and stakeholder roles; repository vocabularies are provisional. | Approved service catalogue, role/persona definitions, account ownership, and approval responsibilities. Do not state a hypothesis as a verified capability or customer need. |
+| Actions and integrations | The proposal describes Salesforce, approval gates, Cowork, and other data sources; the demo offers simulated CRM/share/deck actions. | Host/runtime, identity, authorization, connectors, data access, approval UX, and actual execution are external dependencies, not library behavior. |
 
-## Status
+## Skills-library boundary
 
-- **Complete:** `account.resolve`, `evidence.retrieve`, `evidence.normalize`, `gap.detect`, `artifact.render`, `prepare-first-meeting`, portable CLI, and replay tests.
-- **In progress:** Account Intelligence contract definitions and provisional reference vocabularies. All new reference data is marked provisional and needs business review.
-- **Not started:** `signal.extract`, `stakeholder.map`, `offering.match`, `prepare-first-meeting-v2`, Qualification, Opportunity Strategy, and Engagement implementations.
-- **Deferred:** Deal Intelligence is unresolved and deferred pending client scope clarification.
+Deliver portable contracts, deterministic functions, fixtures, and tests. Do not implement the host
+agent runtime, Cowork UI, production identity or authorization, live CRM/source connectors, actual
+CRM mutations, or message sending in this repository. Outputs that could later drive an external
+action remain proposals/drafts. Reference data without business sign-off stays explicitly
+provisional; missing rules are represented as unknowns or caller-supplied definitions, not
+fabricated defaults.
 
-## Sequencing
+## Current foundation and status
 
-Proceed in this order:
+| Area | Current state |
+|---|---|
+| Shared evidence foundation | `account.resolve`, `evidence.retrieve`, `evidence.normalize`, `gap.detect`, `artifact.render`, and the fixture-backed `prepare-first-meeting` workflow exist. They provide a reusable, evidence-linked base; they do not supply a live integration or four finished Phase 1 agents. |
+| Account Intelligence contracts | Signal, stakeholder, offering-hypothesis, and additive brief-v2 schemas/reference files exist. The v1 schema and renderer behavior remain unchanged. The v2 semantic entry point `validateFirstMeetingBriefInputV2(value, { referenceRegistry })` checks account scope, same-claim provenance references, versioned reference IDs, signal links, and enrichment classification ceiling. It accepts provisional registries and does not authorize access. It is not wired into the v1 renderer; a v2 consumer must call it before consuming enrichment. |
+| Four Phase 1 outcomes | Account Intelligence has a first-meeting foundation and contract work; Engagement, Qualification, and Opportunity Strategy still need practical skill/workflow implementations. No complete implementation of all four outcomes is claimed. |
+| Reference vocabularies | `reference/signal-taxonomy.yaml`, `reference/personas.yaml`, and `reference/offerings.yaml` are versioned provisional fixtures with TBD ownership/approval. They are not approved business policy. |
+| Out of default scope | Deal Intelligence, nurture/collateral selection, production integrations, and host-side execution are not mandatory library work in this plan. Add them only after explicit scope and dependency decisions. |
 
-1. Account Intelligence
-2. Qualification
-3. Opportunity Strategy
-4. Engagement
+## Practical Phase 1 deliverables
 
-This sequencing reflects the client's Phase 1 framing. Earlier repository documents that label any of these areas as Phase 2 or Phase 3 are superseded by that framing.
+1. **Account Intelligence:** Complete an evidence-grounded account/first-meeting preparation workflow. Include normalized account context, evidence-linked signals, only evidenced stakeholder roles, offering-fit hypotheses, explicit gaps/conflicts, source/provenance IDs, and questions for discovery. Do not invent account facts.
+2. **Engagement:** Produce reviewable outreach, meeting-preparation, and follow-up drafts grounded in supplied evidence and approved messaging inputs. Do not send communications.
+3. **Qualification:** Produce advisory criterion-by-criterion evidence and unknowns, plus discovery questions. Use an approved B-FITT definition when supplied; otherwise require an explicitly provisional/caller-supplied definition or return the criteria as unresolved. Do not invent weights or a pass threshold.
+4. **Opportunity Strategy:** Produce an evidence-linked opportunity hypothesis, event assessment, service-fit hypothesis, remaining discovery, and next customer decision. Stage or opportunity-creation recommendations remain unavailable until their business rules are supplied; no CRM mutation is performed.
 
-`collateral.select` is a should-have capability and does not block Phase 1. Collateral catalog/reference data is outside this contract task.
+Keep the first delivery small: reusable contracts and deterministic helpers, one end-to-end fixture-backed workflow per outcome, concise skill/workflow documentation, and targeted positive/negative/replay tests. Reuse the current evidence, gap, result, and adapter conventions rather than creating parallel envelopes or abstractions.
 
-## Business confirmation gates
+## Sequence and acceptance gates
 
-The following require confirmation by the business owner and/or an approved business requirements document before implementation:
+### Sequence
 
-- B-FITT criteria, definitions, thresholds, and handling of unknown evidence.
-- Compelling-event types and any rules for interpreting them.
-- Opportunity stage definitions, eligibility, and recommendation rules.
-- Approved offering definitions and the meanings of signal and persona vocabularies.
+1. Finish Account Intelligence contracts and a complete fixture-backed first-meeting slice.
+2. Add Engagement drafting and meeting/follow-up preparation over the same evidence boundary.
+3. Add Qualification with explicit unknowns and caller-supplied criteria until business-owned B-FITT/event rules exist.
+4. Add Opportunity Strategy with evidence-linked hypotheses; keep stage/creation rules as unresolved inputs until approved.
 
-The reference files created for the Account Intelligence contract layer are provisional placeholders, not approved policy. In particular, the offering entries are explicitly marked for business review. Do not use these placeholders to make customer-specific claims or business recommendations.
+This sequence is a library delivery recommendation, not a claim that the source proposal mandates a technical order.
 
-## Pilot dependencies outside the skills library
+### Measurable gates
 
-Live Salesforce connectivity, production role-based access control (RBAC), approval user experience, and operational telemetry are outside this repository's skills-library scope. They remain direct dependencies for a live pilot and must be supplied and governed by the client host/application environment.
+- Every emitted customer/account fact has a same-account normalized claim reference; tests cover missing, malformed, conflicting, and foreign-account evidence.
+- Unsupported or unavailable facts remain explicit gaps/unknowns. Conflicts are retained rather than resolved by the library.
+- Every v2 signal/persona/offering ID is checked against the supplied versioned registry; provisional registry status is accepted without implying approval.
+- Enrichment references resolve to actual normalized claims; `claim_ids` and `evidence_ids` identify the same set. Safe diagnostics contain no withheld claim ID or text.
+- Enrichment linked to evidence above the output classification ceiling is rejected by the v2 semantic entry point. The legacy v1 renderer's ordinary-claim filtering behavior is unchanged.
+- Each implemented workflow has deterministic success, empty/sparse, missing-input, conflicting-evidence, and failure coverage. Fixture/replay tests make no network calls.
+- Library outputs are drafts/advice only: tests demonstrate zero actual message sends and zero live CRM mutations.
+- No stage, B-FITT score, event threshold, business approval, offering capability, or customer-specific claim is asserted without an approved definition or evidence.
+
+## Dependencies and decisions still needed
+
+### Business-owned definitions and data
+
+- Full B-FITT criteria/dimensions (including the unexplained “B-FITT” versus four demo labels), evidence expectations, unknown handling, and any approved thresholds.
+- Compelling-event categories/types, verification/freshness rules, and criteria for connecting an event to a business outcome.
+- Canonical lifecycle/stage names and mappings; QL/SAL progression, three-month potential, opportunity eligibility, and approval gates.
+- Approved Relevantz offerings and service-to-need mapping, plus persona/ownership definitions and messaging guidance.
+- Approved evaluation examples and measurable business success thresholds; demo records and sample metrics are not customer data.
+
+### Host/application dependencies (outside this repository)
+
+- Cowork/orchestrator runtime, authenticated identity, role/record/field authorization, and audit/telemetry.
+- Salesforce read/write connectors, object/field mappings, production data access, approval UI, and control of mutations.
+- Any Teams/calendar/meeting-note, OneDrive/collateral, Draup, Sales Navigator, or public-source connectors, including licenses, access policy, freshness, and source approval.
+- Human approval and delivery channels for external communications and customer-facing artifacts.
+
+These are dependencies for a production pilot, not blockers to building deterministic library contracts and fixture-backed flows with explicit unknowns.
