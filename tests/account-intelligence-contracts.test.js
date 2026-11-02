@@ -211,6 +211,26 @@ test("v2 semantic validation rejects orphan gap supporting evidence IDs", () => 
   ));
 });
 
+test("v2 semantic validation rejects above-ceiling gap support only when enrichment is consumed", () => {
+  const registry = makeReferenceRegistry();
+  const enriched = makeSemanticBrief();
+  enriched.classification_ceiling = "public";
+  enriched.claims[0].access_classification = "confidential";
+  const result = validateFirstMeetingBriefInputV2(enriched, { referenceRegistry: registry });
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some((error) =>
+    error.path.endsWith("/supporting_evidence_ids") &&
+    error.message.includes("classification ceiling"),
+  ));
+  assert.doesNotMatch(JSON.stringify(result.errors), /clm_[A-Za-z0-9_-]+/);
+
+  const noEnrichment = structuredClone(enriched);
+  delete noEnrichment.signals;
+  delete noEnrichment.stakeholder_map;
+  delete noEnrichment.offering_matches;
+  assert.equal(validateFirstMeetingBriefInputV2(noEnrichment).valid, true);
+});
+
 test("v2 enrichment classification errors do not disclose withheld claim IDs or text", () => {
   const brief = makeSemanticBrief();
   const secretId = "clm_secret_withheld_991";

@@ -138,16 +138,6 @@ export function validateFirstMeetingBriefInputV2(value, { referenceRegistry } = 
     addSemanticError(errors, "/gap_result/account_id", "The gap result must belong to the brief account.");
   }
 
-  value.gap_result.questions.forEach((question, index) => {
-    if (question.supporting_evidence_ids.some((id) => !value.claims.some((claim) => claim.claim_id === id))) {
-      addSemanticError(
-        errors,
-        `/gap_result/questions/${index}/supporting_evidence_ids`,
-        "Every gap evidence ID must exist in the brief's normalized claims.",
-      );
-    }
-  });
-
   value.claims.forEach((claim, index) => {
     if (claim.account_id !== accountId) {
       addSemanticError(errors, `/claims/${index}/account_id`, "Evidence must belong to the brief account.");
@@ -157,6 +147,25 @@ export function validateFirstMeetingBriefInputV2(value, { referenceRegistry } = 
     }
     claimIds.add(claim.claim_id);
     claimsById.set(claim.claim_id, claim);
+  });
+
+  value.gap_result.questions.forEach((question, index) => {
+    question.supporting_evidence_ids.forEach((id) => {
+      const claim = claimsById.get(id);
+      if (!claim) {
+        addSemanticError(
+          errors,
+          `/gap_result/questions/${index}/supporting_evidence_ids`,
+          "Every gap evidence ID must exist in the brief's normalized claims.",
+        );
+      } else if (CLASSIFICATION_RANK[claim.access_classification] > ceilingRank) {
+        addSemanticError(
+          errors,
+          `/gap_result/questions/${index}/supporting_evidence_ids`,
+          "Gap evidence exceeds the output classification ceiling.",
+        );
+      }
+    });
   });
 
   const signalIds = new Set();

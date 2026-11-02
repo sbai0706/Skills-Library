@@ -65,6 +65,30 @@ function addHighClassificationClaim(normalize) {
   };
 }
 
+function addQuestionConflict(normalize, claimDefinitions, conflicts) {
+  return async (skillInput, deps) => {
+    const result = await normalize(skillInput, deps);
+    const source = result.data.claims.find((claim) =>
+      Array.isArray(claim.question_ids) && claim.question_ids.includes("FM-CTX-001"),
+    );
+    assert.ok(source, "the fixture should provide a claim linked to a real research question");
+    const addedClaims = claimDefinitions.map(({ claimId, classification, text }) => ({
+      ...source,
+      claim_id: claimId,
+      claim: text,
+      excerpt: text,
+      access_classification: classification,
+      verification_status: "direct",
+      question_ids: ["FM-CTX-001"],
+    }));
+    result.data.claims.push(...addedClaims);
+    result.data.claim_count = result.data.claims.length;
+    result.data.conflicts = [...result.data.conflicts, ...conflicts];
+    result.evidence_ids = result.data.claims.map((claim) => claim.claim_id).sort();
+    return result;
+  };
+}
+
 test("v2 workflow produces a cited end-to-end account intelligence brief from explicit mappings", async () => {
   const result = await prepareFirstMeetingV2(input(), makeDeps());
   assert.equal(result.status, "success");
@@ -185,6 +209,138 @@ test("above-ceiling evidence cannot leak through v2 results, diagnostics, IDs, o
   assert.equal(Object.hasOwn(result, "omitted_evidence_ids"), false);
   assert.doesNotMatch(JSON.stringify(result), new RegExp(SECRET_ID));
   assert.doesNotMatch(JSON.stringify(result), new RegExp(SECRET_TEXT));
+});
+
+test("conflicts with only withheld evidence do not affect v2 gaps, warnings, or metadata", async () => {
+  const conflictId = "cfl_hidden_conflict_991";
+  const hiddenClaims = [
+    { claimId: `${SECRET_ID}_one`, classification: "confidential", text: SECRET_TEXT },
+    { claimId: `${SECRET_ID}_two`, classification: "confidential", text: `${SECRET_TEXT} TWO` },
+  ];
+  const injectHiddenConflict = addQuestionConflict(
+    normalizeEvidence,
+    hiddenClaims,
+    [{ conflict_id: conflictId, claim_ids: hiddenClaims.map((claim) => claim.claimId) }],
+  );
+
+  for (const ceiling of ["public", "internal"]) {
+    const baseline = await prepareFirstMeetingV2(
+      input({ annotations: {}, workflow: { classification_ceiling: ceiling } }),
+      makeDeps(),
+    );
+    const result = await prepareFirstMeetingV2(
+      input({ annotations: {}, workflow: { classification_ceiling: ceiling } }),
+      makeDeps(NORTHSTAR, { normalizeEvidence: injectHiddenConflict }),
+    );
+    const normalizedStep = (value) => value.steps.find((step) => step.step === "evidence.normalize");
+    const gapStep = (value) => value.steps.find((step) => step.step === "gap.detect");
+    const serialized = JSON.stringify(result);
+
+    assert.notEqual(result.artifact, null);
+    assert.equal(
+      normalizedStep(result).conflict_count,
+      normalizedStep(baseline).conflict_count,
+    );
+    assert.equal(
+      normalizedStep(result).claim_count,
+      normalizedStep(baseline).claim_count,
+    );
+    assert.equal(
+      gapStep(result).conflicted_count,
+      gapStep(baseline).conflicted_count,
+    );
+    assert.ok(!result.warnings.some((warning) => warning.code.includes("CONFLICT")));
+    assert.ok(!gapStep(result).warning_codes.some((code) => code.includes("CONFLICT")));
+    assert.doesNotMatch(result.artifact.markdown, /Conflicting evidence requires human review/);
+    assert.doesNotMatch(serialized, /cfl_[A-Za-z0-9_-]+/);
+    assert.doesNotMatch(serialized, new RegExp(conflictId));
+    for (const claim of hiddenClaims) {
+      assert.doesNotMatch(serialized, new RegExp(claim.claimId));
+      assert.doesNotMatch(serialized, new RegExp(claim.text));
+    }
+  }
+});
+
+test("mixed visible and withheld conflicts retain only visible evidence without resolving it", async () => {
+  const visibleClaim = {
+    claimId: "clm_internal_conflict_visible_991",
+    classification: "internal",
+    text: "Visible internal evidence remains available for review.",
+  };
+  const hiddenClaim = {
+    claimId: `${SECRET_ID}_mixed`,
+    classification: "confidential",
+    text: SECRET_TEXT,
+  };
+  const conflictId = "cfl_mixed_hidden_conflict_991";
+  const injectMixedConflict = addQuestionConflict(
+    normalizeEvidence,
+    [visibleClaim, hiddenClaim],
+    [{
+      conflict_id: conflictId,
+      claim_ids: [visibleClaim.claimId, hiddenClaim.claimId],
+    }],
+  );
+
+  const publicResult = await prepareFirstMeetingV2(
+    input({ annotations: {}, workflow: { classification_ceiling: "public" } }),
+    makeDeps(NORTHSTAR, { normalizeEvidence: injectMixedConflict }),
+  );
+  assert.ok(publicResult.artifact);
+  assert.equal(publicResult.status, "partial");
+  assert.doesNotMatch(JSON.stringify(publicResult), new RegExp(conflictId));
+  assert.doesNotMatch(JSON.stringify(publicResult), /cfl_[A-Za-z0-9_-]+/);
+  assert.doesNotMatch(JSON.stringify(publicResult), new RegExp(visibleClaim.claimId));
+  assert.doesNotMatch(JSON.stringify(publicResult), new RegExp(hiddenClaim.claimId));
+  assert.ok(!publicResult.warnings.some((warning) => warning.code.includes("CONFLICT")));
+
+  const internalResult = await prepareFirstMeetingV2(
+    input({ annotations: {}, workflow: { classification_ceiling: "internal" } }),
+    makeDeps(NORTHSTAR, { normalizeEvidence: injectMixedConflict }),
+  );
+  const internalJson = JSON.stringify(internalResult);
+  assert.ok(internalResult.artifact);
+  assert.ok(internalResult.artifact.markdown.includes(visibleClaim.claimId));
+  assert.ok(internalResult.artifact.markdown.includes(visibleClaim.text));
+  assert.ok(internalResult.warnings.some((warning) => warning.code === "CONFLICTS_PRESENT"));
+  assert.match(internalResult.artifact.markdown, /Conflicting evidence requires human review/);
+  assert.doesNotMatch(internalJson, new RegExp(conflictId));
+  assert.doesNotMatch(internalJson, new RegExp(hiddenClaim.claimId));
+  assert.doesNotMatch(internalJson, new RegExp(hiddenClaim.text));
+});
+
+test("v2 keeps conflicts whose complete evidence is visible", async () => {
+  const visibleClaims = [
+    {
+      claimId: "clm_public_conflict_first_991",
+      classification: "public",
+      text: "Public evidence reports the initiative begins in 2027.",
+    },
+    {
+      claimId: "clm_public_conflict_second_991",
+      classification: "public",
+      text: "Public evidence reports the initiative begins in 2028.",
+    },
+  ];
+  const conflictId = "cfl_public_conflict_991";
+  const injectVisibleConflict = addQuestionConflict(
+    normalizeEvidence,
+    visibleClaims,
+    [{ conflict_id: conflictId, claim_ids: visibleClaims.map((claim) => claim.claimId) }],
+  );
+  const result = await prepareFirstMeetingV2(
+    input({ annotations: {}, workflow: { classification_ceiling: "public" } }),
+    makeDeps(NORTHSTAR, { normalizeEvidence: injectVisibleConflict }),
+  );
+
+  assert.ok(result.artifact);
+  assert.equal(result.steps.find((step) => step.step === "gap.detect").conflicted_count > 0, true);
+  assert.ok(result.warnings.some((warning) => warning.code === "CONFLICTS_PRESENT"));
+  assert.ok(result.artifact.markdown.includes(conflictId));
+  for (const claim of visibleClaims) {
+    assert.ok(result.artifact.markdown.includes(claim.claimId));
+    assert.ok(result.artifact.markdown.includes(claim.text));
+  }
 });
 
 test("mapping above the classification ceiling fails without exposing its ID or text", async () => {

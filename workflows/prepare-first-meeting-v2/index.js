@@ -10,7 +10,7 @@ import { detectGaps as detectGapsSkill } from "../../skills/gap-detect/index.js"
 import { prepareFirstMeeting } from "../prepare-first-meeting/index.js";
 import { verifyProvenance } from "../prepare-first-meeting/provenance.js";
 import { validateInput } from "./validate-input.js";
-import { safeReferenceStatus } from "../../skills/account-intelligence/common.js";
+import { safeReferenceStatus, visibleClaims } from "../../skills/account-intelligence/common.js";
 
 export const WORKFLOW_NAME = "prepare-first-meeting-v2";
 export const WORKFLOW_VERSION = "0.1.0";
@@ -76,6 +76,44 @@ function emptySkillStatus() {
   return { version: null, status: "unknown" };
 }
 
+function visibleConflictInputs(conflicts, visibleClaimIds, withheldClaimIds) {
+  if (!Array.isArray(conflicts)) return [];
+
+  return conflicts.flatMap((conflict) => {
+    const claimIds = Array.isArray(conflict) ? conflict : conflict?.claim_ids;
+    if (!Array.isArray(claimIds) || claimIds.length === 0) return [conflict];
+
+    const visibleIds = [...new Set(claimIds.filter((id) => visibleClaimIds.has(id)))].sort();
+    if (visibleIds.length === 0) {
+      return claimIds.every((id) => withheldClaimIds.has(id)) ? [] : [conflict];
+    }
+    if (claimIds.some((id) => !visibleClaimIds.has(id) && !withheldClaimIds.has(id))) {
+      return [conflict];
+    }
+
+    const sanitized = { claim_ids: visibleIds };
+    if (
+      !Array.isArray(conflict) &&
+      claimIds.every((id) => visibleClaimIds.has(id)) &&
+      typeof conflict.conflict_id === "string"
+    ) {
+      sanitized.conflict_id = conflict.conflict_id;
+    }
+    return [sanitized];
+  });
+}
+
+function visibleBaseSteps(baseSteps, visibleClaimCount, visibleConflictCount) {
+  return baseSteps.map((step) => {
+    if (step.step !== "evidence.normalize") return step;
+    return {
+      ...step,
+      ...(typeof step.claim_count === "number" ? { claim_count: visibleClaimCount } : {}),
+      ...(typeof step.conflict_count === "number" ? { conflict_count: visibleConflictCount } : {}),
+    };
+  });
+}
+
 /**
  * Compose the existing first-meeting workflow with explicit Account Intelligence mappings.
  * The v1 workflow and its renderer remain unchanged.
@@ -90,6 +128,11 @@ export async function prepareFirstMeetingV2(input, deps = {}) {
   let finalArtifact = null;
   let accountIntelligence = null;
   let finalEvidenceIds = [];
+  let visibleClaimsForGaps = null;
+  let visibleClaimCount = 0;
+  let visibleConflictCount = 0;
+  let withheldClaimIds = new Set();
+  let classificationCeiling = "internal";
 
   const finish = (status) => {
     if ((status === "failed" || status === "blocked") && errors.length === 0) {
@@ -124,6 +167,8 @@ export async function prepareFirstMeetingV2(input, deps = {}) {
     errors.push(diagnostic("workflow.input", WORKFLOW_NAME, inputResult.errors[0]?.code ?? "INVALID_INPUT"));
     return finish("failed");
   }
+  classificationCeiling =
+    inputResult.value.workflow_input.classification_ceiling ?? "internal";
 
   let referenceRegistry;
   try {
@@ -146,11 +191,48 @@ export async function prepareFirstMeetingV2(input, deps = {}) {
       normalizeEvidence: async (skillInput, skillDeps) => {
         const result = await normalizeEvidence(skillInput, skillDeps);
         normalizedClaims = result?.data?.claims;
+        const visibility = visibleClaims(
+          skillInput.account_id,
+          normalizedClaims,
+          classificationCeiling,
+        );
+        if (visibility.ok) {
+          visibleClaimsForGaps = normalizedClaims.filter((claim) =>
+            visibility.byId.has(claim.claim_id),
+          );
+          visibleClaimCount = visibleClaimsForGaps.length;
+          withheldClaimIds = visibility.withheldIds;
+        }
         return result;
       },
       detectGaps: async (skillInput, skillDeps) => {
-        const result = await detectGaps(skillInput, skillDeps);
+        if (!Array.isArray(visibleClaimsForGaps)) {
+          throw new Error("Visible evidence could not be scoped for gap detection.");
+        }
+        const visibleClaimIds = new Set(visibleClaimsForGaps.map((claim) => claim.claim_id));
+        const safeConflicts = visibleConflictInputs(
+          skillInput.conflicts,
+          visibleClaimIds,
+          withheldClaimIds,
+        );
+        const result = await detectGaps({
+          ...skillInput,
+          claims: visibleClaimsForGaps,
+          conflicts: safeConflicts,
+        }, skillDeps);
         gapResult = result?.data;
+        const conflictIds = [
+          ...safeConflicts.flatMap((conflict) => {
+            const claimIds = Array.isArray(conflict) ? conflict : conflict?.claim_ids;
+            return Array.isArray(claimIds) &&
+              claimIds.every((id) => visibleClaimIds.has(id)) &&
+              typeof conflict.conflict_id === "string"
+              ? [conflict.conflict_id]
+              : [];
+          }),
+          ...(gapResult?.questions ?? []).flatMap((question) => question.conflict_ids ?? []),
+        ];
+        visibleConflictCount = new Set(conflictIds).size;
         return result;
       },
     });
@@ -162,7 +244,7 @@ export async function prepareFirstMeetingV2(input, deps = {}) {
 
   warnings.push(...baseResult.warnings);
   errors.push(...baseResult.errors);
-  steps.push(...baseResult.steps);
+  steps.push(...visibleBaseSteps(baseResult.steps, visibleClaimCount, visibleConflictCount));
 
   if (baseResult.status === "failed" || baseResult.status === "blocked") {
     return finish(baseResult.status);
@@ -175,8 +257,6 @@ export async function prepareFirstMeetingV2(input, deps = {}) {
   }
 
   const accountId = baseResult.account.account_id;
-  const classificationCeiling =
-    inputResult.value.workflow_input.classification_ceiling ?? "internal";
   const skillDeps = { now: deps.now, referenceRegistry };
   const signalsRun = await runAccountIntelligenceSkill(
     deps.extractSignals ?? extractSignalsSkill,
