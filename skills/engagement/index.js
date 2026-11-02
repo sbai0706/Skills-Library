@@ -41,11 +41,10 @@ function safeMessage(code) {
   return ({
     INVALID_INPUT: "Engagement input could not be accepted.",
     ACCOUNT_SCOPE_MISMATCH: "Engagement evidence must belong to the requested account.",
-    CLASSIFICATION_RESTRICTED: "A requested evidence reference exceeds the output classification ceiling.",
     EVIDENCE_REFERENCE_UNAVAILABLE: "A requested evidence reference is unavailable in this account and classification scope.",
-    UNSUPPORTED_MAPPING: "A stakeholder name and role must occur in cited same-account evidence.",
+    UNSUPPORTED_MAPPING: "A requested mapping or evidence source could not be used.",
     STAKEHOLDER_REFERENCE_UNAVAILABLE: "The requested recipient is not uniquely identified by a supplied stakeholder mapping.",
-    MEETING_EVIDENCE_REQUIRED: "Follow-up drafting requires at least one supplied meeting evidence reference.",
+    FOLLOW_UP_EVIDENCE_REQUIRED: "Follow-up drafting requires at least one supplied evidence reference.",
   })[code] ?? "Engagement drafting could not produce a trustworthy result.";
 }
 
@@ -73,6 +72,17 @@ function cite(ids) {
   return [...new Set(ids)].sort().map((id) => `\`[${id}]\``).join(", ");
 }
 
+function resolveVisibleIds(ids, claimIndex, withheldIds) {
+  const result = resolveClaimIds(ids, claimIndex, withheldIds);
+  if (!result.ok && [
+    "CLASSIFICATION_RESTRICTED",
+    "EVIDENCE_REFERENCE_UNAVAILABLE",
+  ].includes(result.code)) {
+    return { ...result, code: "EVIDENCE_REFERENCE_UNAVAILABLE" };
+  }
+  return result;
+}
+
 function resolvedStakeholders(stakeholderMap, accountId, claimIndex, withheldIds) {
   if (stakeholderMap === undefined) return { ok: true, stakeholders: [] };
   if (!validate("stakeholderMap", stakeholderMap).valid) {
@@ -84,24 +94,16 @@ function resolvedStakeholders(stakeholderMap, accountId, claimIndex, withheldIds
 
   const stakeholders = [];
   for (const stakeholder of stakeholderMap.stakeholders) {
-    const claims = resolveClaimIds(stakeholder.claim_ids, claimIndex, withheldIds);
-    const evidence = resolveClaimIds(stakeholder.evidence_ids, claimIndex, withheldIds);
+    const claims = resolveVisibleIds(stakeholder.claim_ids, claimIndex, withheldIds);
+    const evidence = resolveVisibleIds(stakeholder.evidence_ids, claimIndex, withheldIds);
     if (!claims.ok) return claims;
     if (!evidence.ok) return evidence;
     if (JSON.stringify(claims.ids) !== JSON.stringify(evidence.ids)) {
       return { ok: false, code: "INVALID_INPUT" };
     }
-
-    const supported = claims.ids.some((id) => {
-      const excerpt = claimIndex.get(id)?.excerpt;
-      return typeof excerpt === "string" &&
-        excerpt.includes(stakeholder.display_name) &&
-        excerpt.includes(stakeholder.role_evidence);
-    });
-    if (!supported) return { ok: false, code: "UNSUPPORTED_MAPPING" };
     stakeholders.push({
-      display_name: stakeholder.display_name,
-      role_evidence: stakeholder.role_evidence,
+      name_hypothesis: stakeholder.display_name,
+      role_hypothesis: stakeholder.role_evidence,
       claim_ids: claims.ids,
     });
   }
@@ -116,12 +118,10 @@ function evidenceNotes(claims) {
   }));
 }
 
-function initialDraft(value, visible, outreachClaims, meetingClaims, stakeholders, recipient) {
+function initialDraft(value, visible, outreachClaims, meetingClaims, stakeholders) {
   const tone = TONE_COPY[value.messaging_guidance.tone];
   const citedOutreachClaims = outreachClaims.filter((claim) => claim.verification_status !== "conflicting");
-  const greeting = recipient
-    ? `Hello ${markdownEscape(recipient.display_name)} ${cite(recipient.claim_ids)},`
-    : "Hello,";
+  const greeting = "Hello,";
   const factLine = citedOutreachClaims.length > 0
     ? `The supplied evidence records ${citedOutreachClaims.map((claim) =>
       `“${markdownEscape(claim.claim)}” ${cite([claim.claim_id])}`,
@@ -147,15 +147,10 @@ function initialDraft(value, visible, outreachClaims, meetingClaims, stakeholder
     }];
 
   const stakeholderTalkingPoints = stakeholders.map((stakeholder) => ({
-    display_name: stakeholder.display_name,
-    role_evidence: stakeholder.role_evidence,
-    claim_ids: [...new Set([
-      ...stakeholder.claim_ids,
-      ...meetingClaims.map((claim) => claim.claim_id),
-    ])].sort(),
-    prompt: meetingClaims.length > 0
-      ? "Ask whether any supplied context is relevant from this person's recorded perspective; do not infer decision authority."
-      : "Ask what topics would be most useful to cover from this person's recorded perspective; do not infer decision authority.",
+    name_hypothesis: stakeholder.name_hypothesis,
+    role_hypothesis: stakeholder.role_hypothesis,
+    claim_ids: [...new Set(stakeholder.claim_ids)].sort(),
+    prompt: "Please verify this caller-supplied name and role hypothesis against the cited source notes; no person-role relationship or decision authority is established.",
   }));
 
   const notes = evidenceNotes([...new Map(
@@ -172,10 +167,7 @@ function initialDraft(value, visible, outreachClaims, meetingClaims, stakeholder
     outreach_draft: {
       subject: tone.subject,
       body: outreachBody,
-      claim_ids: [...new Set([
-        ...citedOutreachClaims.map((claim) => claim.claim_id),
-        ...(recipient?.claim_ids ?? []),
-      ])].sort(),
+      claim_ids: [...new Set(citedOutreachClaims.map((claim) => claim.claim_id))].sort(),
     },
     meeting_prep: {
       agenda,
@@ -208,13 +200,7 @@ function initialDraft(value, visible, outreachClaims, meetingClaims, stakeholder
   if (stakeholders.length === 0) {
     data.warnings.push({
       code: "NO_STAKEHOLDER_MAPPING",
-      message: "No caller-mapped, evidence-supported stakeholder was supplied.",
-    });
-  }
-  if (visible.withheldIds.size > 0) {
-    data.warnings.push({
-      code: "EVIDENCE_WITHHELD",
-      message: "Evidence above the output classification ceiling was not used.",
+      message: "No caller-supplied stakeholder hypothesis was provided.",
     });
   }
   if (visible.byId.size === 0) {
@@ -226,7 +212,7 @@ function initialDraft(value, visible, outreachClaims, meetingClaims, stakeholder
   return data;
 }
 
-function followUpDraft(value, claims, visible) {
+function followUpDraft(value, claims) {
   const notes = evidenceNotes(claims);
   const ids = claims.map((claim) => claim.claim_id);
   const conflict = claims.some((claim) => claim.verification_status === "conflicting");
@@ -237,11 +223,11 @@ function followUpDraft(value, claims, visible) {
   const body = [
     "Hello,",
     "",
-    "I’m sharing the following notes as a draft for your review:",
+    "Here is the supplied information for your review:",
     lines,
     clarification,
     "",
-    "Could you confirm whether these notes are accurate and advise what next step, if any, you would prefer?",
+    "Could you confirm whether this information is accurate and advise whether any next step should be considered?",
     "",
     "Regards,",
     "[Sender name]",
@@ -257,7 +243,7 @@ function followUpDraft(value, claims, visible) {
     follow_up_draft: { body, claim_ids: ids },
     next_actions: [
       {
-        action: "Request confirmation that the cited notes accurately capture the discussion.",
+        action: "Ask whether the cited information is accurate as supplied.",
         claim_ids: ids,
       },
       {
@@ -270,13 +256,7 @@ function followUpDraft(value, claims, visible) {
   if (conflict) {
     data.warnings.push({
       code: "VISIBLE_EVIDENCE_CONFLICT",
-      message: "Visible conflicting meeting evidence is retained for review; no version was selected.",
-    });
-  }
-  if (visible.withheldIds.size > 0) {
-    data.warnings.push({
-      code: "EVIDENCE_WITHHELD",
-      message: "Evidence above the output classification ceiling was not used.",
+      message: "Visible conflicting evidence is retained for review; no version was selected.",
     });
   }
   data.evidence_notes = notes;
@@ -290,7 +270,7 @@ function renderMarkdown(data) {
     caller_reported_approved: "caller-reported approved; approval was not verified by this skill",
   }[data.messaging_guidance.approval_status];
   const sections = [
-    `# Engagement draft — ${data.mode === "initial" ? "initial outreach and meeting preparation" : "post-meeting follow-up"}`,
+    `# Engagement draft — ${data.mode === "initial" ? "initial outreach and meeting preparation" : "follow-up"}`,
     "",
     "**Draft only:** for human review; no communication was sent.",
     `**Messaging guidance:** ${markdownEscape(data.messaging_guidance.template_id)} v${markdownEscape(data.messaging_guidance.version)} — ${approvalLabel}; tone: ${data.messaging_guidance.tone}.`,
@@ -317,9 +297,9 @@ function renderMarkdown(data) {
       "", "### Stakeholder-specific talking points", "",
       ...(data.meeting_prep.stakeholder_talking_points.length > 0
         ? data.meeting_prep.stakeholder_talking_points.map((item) =>
-          `- **${markdownEscape(item.display_name)}** — recorded role: “${markdownEscape(item.role_evidence)}” ${cite(item.claim_ids)}. ${item.prompt}`,
+          `- **Unverified caller-supplied mapping hypothesis:** name “${markdownEscape(item.name_hypothesis)}”; role “${markdownEscape(item.role_hypothesis)}”. ${item.prompt} Source notes: ${cite(item.claim_ids)}.`,
         )
-        : ["No caller-mapped, evidence-supported stakeholder was supplied; no target person or authority is inferred."]),
+        : ["No caller-supplied name/role hypothesis was provided; no target person or authority is inferred."]),
     );
     if (data.meeting_prep.evidence_notes.length > 0) {
       sections.push("", "### Evidence notes", "");
@@ -359,7 +339,7 @@ function withGuidance(value) {
 }
 
 /**
- * Draft initial outreach/meeting preparation or post-meeting follow-up from
+ * Draft initial outreach/meeting preparation or source-neutral follow-up from
  * normalized evidence. This skill never sends messages or mutates a CRM.
  */
 export function draftEngagement(input, deps = {}) {
@@ -387,18 +367,11 @@ export function draftEngagement(input, deps = {}) {
   );
   if (!stakeholderResult.ok) return fail(started, stakeholderResult.code);
 
-  let recipient = null;
   if (value.recipient_name !== undefined) {
     const matches = stakeholderResult.stakeholders.filter(
-      (stakeholder) => stakeholder.display_name === value.recipient_name,
+      (stakeholder) => stakeholder.name_hypothesis === value.recipient_name,
     );
     if (matches.length !== 1) return fail(started, "STAKEHOLDER_REFERENCE_UNAVAILABLE");
-    if (matches[0].claim_ids.some((id) =>
-      visible.byId.get(id)?.verification_status === "conflicting",
-    )) {
-      return fail(started, "UNSUPPORTED_MAPPING");
-    }
-    recipient = matches[0];
   }
 
   const selectedIds = {
@@ -412,13 +385,13 @@ export function draftEngagement(input, deps = {}) {
       resolved[key] = [];
       continue;
     }
-    const references = resolveClaimIds(ids, visible.byId, visible.withheldIds);
+    const references = resolveVisibleIds(ids, visible.byId, visible.withheldIds);
     if (!references.ok) return fail(started, references.code);
     resolved[key] = references.ids.map((id) => visible.byId.get(id));
   }
 
   if (value.mode === "follow_up" && resolved.followUp.length === 0) {
-    return blocked(started, "MEETING_EVIDENCE_REQUIRED");
+    return blocked(started, "FOLLOW_UP_EVIDENCE_REQUIRED");
   }
   if (value.mode === "follow_up" &&
       resolved.followUp.some((claim) => !["crm_activity", "internal_document"].includes(claim.source_type))) {
@@ -432,14 +405,12 @@ export function draftEngagement(input, deps = {}) {
       resolved.outreach,
       resolved.meeting,
       stakeholderResult.stakeholders,
-      recipient,
     )
-    : followUpDraft(value, resolved.followUp, visible);
+    : followUpDraft(value, resolved.followUp);
   data.messaging_guidance = withGuidance(input);
   data.markdown = renderMarkdown(data);
   const evidenceIds = citationsInMarkdown(data.markdown);
-  const status = visible.withheldIds.size > 0 ||
-      data.warnings.some((warning) => warning.code === "VISIBLE_EVIDENCE_CONFLICT") ||
+  const status = data.warnings.some((warning) => warning.code === "VISIBLE_EVIDENCE_CONFLICT") ||
       data.warnings.some((warning) => [
         "NO_VISIBLE_EVIDENCE",
         "NO_OUTREACH_CONTEXT",

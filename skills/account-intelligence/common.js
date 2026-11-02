@@ -26,6 +26,7 @@ export function visibleClaims(accountId, claims, ceiling) {
 
   const byId = new Map();
   const withheldIds = new Set();
+  const seenIds = new Set();
   for (const claim of claims) {
     if (!validate("evidence", claim).valid) {
       return { ok: false, code: "INVALID_INPUT", message: "A normalized claim is invalid." };
@@ -33,9 +34,10 @@ export function visibleClaims(accountId, claims, ceiling) {
     if (claim.account_id !== accountId) {
       return { ok: false, code: "ACCOUNT_SCOPE_MISMATCH", message: "Normalized claims must belong to the requested account." };
     }
-    if (byId.has(claim.claim_id)) {
+    if (seenIds.has(claim.claim_id)) {
       return { ok: false, code: "INVALID_INPUT", message: "Normalized claim identifiers must be unique." };
     }
+    seenIds.add(claim.claim_id);
     if (CLASSIFICATION_RANK[claim.access_classification] <= ceilingRank) {
       byId.set(claim.claim_id, claim);
     } else {

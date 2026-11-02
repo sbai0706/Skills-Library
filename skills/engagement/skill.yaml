@@ -3,7 +3,7 @@ version: 0.1.0
 status: draft
 business_owner: TBD
 
-intent: Draft initial outreach and meeting preparation or a post-meeting follow-up from explicit normalized evidence.
+intent: Draft initial outreach and meeting preparation or source-neutral follow-up from explicit normalized evidence.
 when_to_use:
   - A caller needs an internal-review outreach draft, meeting agenda, discovery questions, or evidence-based follow-up.
 when_not_to_use:

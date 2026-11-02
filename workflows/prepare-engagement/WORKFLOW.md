@@ -21,7 +21,8 @@ draft warnings are based on visible selected claims only.
 The input contract is `schemas/prepare-engagement-input.schema.json`. `mode: "initial"` returns an
 outreach draft plus meeting agenda, discovery questions, and stakeholder-specific talking points.
 `mode: "follow_up"` requires explicit `follow_up_claim_ids` from same-account `crm_activity` or
-`internal_document` meeting evidence and returns a follow-up draft plus proposed next actions.
+`internal_document` evidence and returns a source-neutral follow-up draft plus proposed next actions.
+Those source types alone do not prove that a meeting or discussion occurred.
 
 Fixture-only CLI examples:
 
@@ -51,8 +52,9 @@ const result = await prepareEngagement({
 ```
 
 The optional `annotations.stakeholders` array follows the Account Intelligence mapping contract.
-`recipient_name` is optional and must exactly match one unique mapped name. Without it, the outreach
-draft uses a generic greeting rather than choosing a person. The caller may supply a versioned
+Caller-mapped names and roles remain explicitly unverified hypotheses, with generic greetings; the
+mapping is not rendered as a recorded person-role fact or authority. `recipient_name` is optional
+and must exactly match one unique mapped name, but it does not personalize the greeting. The caller may supply a versioned
 `messaging_guidance` profile with `template_id`, `version`, `approval_status`, and `tone`. Unverified
 is the default; caller-reported approval is never treated as verified by this library.
 
@@ -62,8 +64,9 @@ The result validates against `schemas/prepare-engagement-result.schema.json`; it
 only for `success` or `partial`. `failed` and `blocked` results have `artifact: null`,
 `engagement: null`, and no evidence IDs. Empty follow-up references block; sparse initial input can
 return a generic, explicitly partial draft. Conflicting visible claims are cited and flagged without
-choosing a winner. Claims above the output ceiling are never cited or copied into names, IDs, warnings,
-or other draft-facing metadata.
+choosing a winner. Hidden evidence does not change warnings or status unless it is explicitly selected;
+missing and hidden selected references return the same generic error. Hidden claims are never cited
+or copied into names, IDs, warnings, or other draft-facing metadata.
 
 The workflow is fixture-backed and deterministic at the content level. It has no mail, calendar,
 Salesforce write, or CRM mutation adapter; every returned message and next action is draft/proposal

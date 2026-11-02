@@ -2,5 +2,5 @@
   "status": "blocked",
   "mode": "follow_up",
   "artifact": null,
-  "error_code": "MEETING_EVIDENCE_REQUIRED"
+  "error_code": "FOLLOW_UP_EVIDENCE_REQUIRED"
 }

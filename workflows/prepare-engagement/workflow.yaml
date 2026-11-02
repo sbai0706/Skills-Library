@@ -3,7 +3,7 @@ version: 0.1.0
 status: draft
 business_owner: TBD
 
-intent: Compose evidence preparation with draft-only initial engagement or post-meeting follow-up.
+intent: Compose evidence preparation with draft-only initial engagement or source-neutral follow-up.
 when_to_use:
   - A caller supplies an account reference and wants evidence-grounded outreach, meeting preparation, or follow-up text.
 when_not_to_use:
@@ -29,7 +29,7 @@ steps:
   - id: engagement.draft
     skill: engagement.draft
     required: true
-    produces: initial outreach and meeting preparation or post-meeting follow-up
+    produces: initial outreach and meeting preparation or source-neutral follow-up
   - id: provenance.check
     kind: semantic_validation
     required: true
@@ -40,7 +40,7 @@ execution:
   stop_rules:
     - stop on invalid input, blocked account resolution, failed evidence preparation, or invalid claim references.
     - return no artifact after a failed or blocked step.
-    - require at least one meeting evidence reference for follow-up.
+    - require at least one follow-up evidence reference.
 classification:
   ceiling: workflow_input.classification_ceiling
   fail_closed: true
@@ -55,7 +55,7 @@ constraints:
 gates:
   - workflow_input_schema_valid
   - all_selected_claim_ids_resolve_to_visible_same_account_claims
-  - follow_up_uses_meeting_activity_evidence
+  - follow_up_uses_supported_activity_evidence
   - all_emitted_citations_resolve
   - visible_conflicts_remain_unresolved_and_explicit
   - no_artifact_on_block_or_failure

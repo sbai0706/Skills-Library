@@ -142,10 +142,10 @@
     "talkingPoint": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["display_name", "role_evidence", "claim_ids", "prompt"],
+      "required": ["name_hypothesis", "role_hypothesis", "claim_ids", "prompt"],
       "properties": {
-        "display_name": { "type": "string", "minLength": 1 },
-        "role_evidence": { "type": "string", "minLength": 1 },
+        "name_hypothesis": { "type": "string", "minLength": 1 },
+        "role_hypothesis": { "type": "string", "minLength": 1 },
         "claim_ids": { "$ref": "#/definitions/claimIds" },
         "prompt": { "type": "string", "minLength": 1 }
       }

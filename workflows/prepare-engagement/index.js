@@ -3,7 +3,11 @@ import { validate } from "../../schemas/index.js";
 import { citationsInMarkdown } from "../prepare-first-meeting/provenance.js";
 import { visibleClaims } from "../../skills/account-intelligence/common.js";
 import { normalizeEvidence as normalizeEvidenceSkill } from "../../skills/evidence-normalize/index.js";
-import { retrieveEvidence as retrieveEvidenceSkill } from "../../skills/evidence-retrieve/index.js";
+import {
+  deriveStatus as deriveEvidenceStatus,
+  retrieveEvidence as retrieveEvidenceSkill,
+  SOURCE_OUTCOME,
+} from "../../skills/evidence-retrieve/index.js";
 import { draftEngagement as draftEngagementSkill } from "../../skills/engagement/index.js";
 import { prepareFirstMeetingV2 } from "../prepare-first-meeting-v2/index.js";
 
@@ -36,6 +40,83 @@ function sameIds(left, right) {
 
 function validMode(mode) {
   return mode === "initial" || mode === "follow_up" ? mode : null;
+}
+
+function suppressWithheldClassification(result) {
+  if (!result?.data ||
+      !Array.isArray(result.data.records) ||
+      !Array.isArray(result.data.source_results)) {
+    return result;
+  }
+
+  const hiddenWarningCodes = new Set([
+    "RECORDS_WITHHELD",
+    "UNRECOGNIZED_CLASSIFICATION_WITHHELD",
+  ]);
+  const hasWithheld = (result.errors ?? []).some((error) =>
+    error.code === "CLASSIFICATION_RESTRICTED",
+  ) || (result.warnings ?? []).some((warning) => hiddenWarningCodes.has(warning.code));
+  if (!hasWithheld) return result;
+
+  const errors = (result.errors ?? []).filter((error) =>
+    error.code !== "CLASSIFICATION_RESTRICTED",
+  );
+  const restrictedSources = new Set((result.errors ?? [])
+    .filter((error) => error.code === "CLASSIFICATION_RESTRICTED")
+    .map((error) => error.details?.source)
+    .filter((source) => typeof source === "string"));
+  const sourceResults = result.data.source_results.map((source) => {
+    if (!(source.withheld_count > 0) && !restrictedSources.has(source.source)) return source;
+    const { withheld_count: _withheldCount, ...visibleSource } = source;
+    const rejectedCount = visibleSource.rejected_count ?? 0;
+    return {
+      ...visibleSource,
+      outcome: rejectedCount > 0
+        ? source.outcome
+        : source.record_count > 0
+          ? SOURCE_OUTCOME.OK
+          : SOURCE_OUTCOME.EMPTY,
+      retained_count: source.record_count,
+    };
+  });
+  const cleanCount = sourceResults.filter((source) =>
+    source.outcome === SOURCE_OUTCOME.OK || source.outcome === SOURCE_OUTCOME.EMPTY,
+  ).length;
+  const degradedCount = sourceResults.filter((source) =>
+    source.outcome === SOURCE_OUTCOME.MALFORMED && source.record_count > 0,
+  ).length;
+  const status = deriveEvidenceStatus({
+    cleanCount,
+    degradedCount,
+    failureCodes: errors.map((error) => error.code),
+    total: sourceResults.length,
+  });
+  const warnings = (result.warnings ?? []).filter((warning) =>
+    !hiddenWarningCodes.has(warning.code) &&
+    warning.code !== "PARTIAL_SOURCES" &&
+    warning.code !== "NO_RECORDS_RETRIEVED",
+  );
+  if (result.data.records.length === 0 && status !== "failed") {
+    warnings.push({
+      code: "NO_RECORDS_RETRIEVED",
+      message: "No source records were retrieved from the requested sources. This does not mean the information does not exist.",
+    });
+  }
+  if (errors.length > 0 && status !== "failed") {
+    const usableCount = cleanCount + degradedCount;
+    warnings.push({
+      code: "PARTIAL_SOURCES",
+      message: `${sourceResults.length - usableCount} of ${sourceResults.length} requested sources did not return usable records; see source_results and errors.`,
+    });
+  }
+
+  return {
+    ...result,
+    status,
+    data: { ...result.data, source_results: sourceResults },
+    warnings,
+    errors,
+  };
 }
 
 /**
@@ -115,8 +196,9 @@ export async function prepareEngagement(input, deps = {}) {
       retrieveEvidence: async (skillInput, skillDeps) => {
         const retrieve = deps.retrieveEvidence ?? retrieveEvidenceSkill;
         const result = await retrieve(skillInput, skillDeps);
-        retrievalStatus = result?.status;
-        return result;
+        const safeResult = suppressWithheldClassification(result);
+        retrievalStatus = safeResult?.status;
+        return safeResult;
       },
       normalizeEvidence: async (skillInput, skillDeps) => {
         const normalize = deps.normalizeEvidence ?? normalizeEvidenceSkill;
