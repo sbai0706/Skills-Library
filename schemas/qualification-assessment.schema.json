@@ -1,0 +1,150 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sales-copilot.local/schemas/qualification-assessment.schema.json",
+  "title": "qualification.assess data",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "account_id",
+    "criteria_set",
+    "qualification_decision",
+    "event_assessment",
+    "stage_readiness",
+    "discovery_questions"
+  ],
+  "properties": {
+    "account_id": { "type": "string", "minLength": 1 },
+    "criteria_set": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "version", "assessments"],
+      "properties": {
+        "status": { "enum": ["unprovided", "provisional", "approved"] },
+        "version": {
+          "type": ["string", "null"],
+          "pattern": "^\\d+\\.\\d+\\.\\d+$"
+        },
+        "assessments": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/criterionAssessment" }
+        }
+      }
+    },
+    "qualification_decision": {
+      "const": "not_determined",
+      "description": "Evidence references are not qualification decisions; no authorized interpretation or threshold is implied."
+    },
+    "event_assessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "fields"],
+      "properties": {
+        "status": {
+          "const": "unverified",
+          "description": "Field evidence availability does not verify a compelling event, urgency, or causality."
+        },
+        "fields": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "event",
+            "deadline",
+            "consequence",
+            "accountable_owner",
+            "relevantz_service_need",
+            "next_customer_decision"
+          ],
+          "properties": {
+            "event": { "$ref": "#/definitions/fieldAssessment" },
+            "deadline": { "$ref": "#/definitions/fieldAssessment" },
+            "consequence": { "$ref": "#/definitions/fieldAssessment" },
+            "accountable_owner": { "$ref": "#/definitions/fieldAssessment" },
+            "relevantz_service_need": { "$ref": "#/definitions/fieldAssessment" },
+            "next_customer_decision": { "$ref": "#/definitions/fieldAssessment" }
+          }
+        }
+      }
+    },
+    "stage_readiness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "reason"],
+      "properties": {
+        "status": { "const": "unavailable" },
+        "reason": { "const": "NO_APPROVED_STAGE_RULES" }
+      }
+    },
+    "discovery_questions": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/discoveryQuestion" }
+    }
+  },
+  "definitions": {
+    "evidenceExcerpt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["claim_id", "excerpt"],
+      "properties": {
+        "claim_id": { "type": "string", "pattern": "^clm_[A-Za-z0-9_-]+$" },
+        "excerpt": { "type": "string", "minLength": 1 }
+      }
+    },
+    "evidenceState": {
+      "enum": [
+        "missing",
+        "evidence_linked",
+        "uncertain_evidence",
+        "conflicting_evidence"
+      ]
+    },
+    "criterionAssessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "definition", "evidence_state", "evidence"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "label": { "type": "string", "minLength": 1 },
+        "definition": { "type": "string", "minLength": 1 },
+        "evidence_state": { "$ref": "#/definitions/evidenceState" },
+        "evidence": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/evidenceExcerpt" }
+        }
+      }
+    },
+    "fieldAssessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidence_state", "evidence"],
+      "properties": {
+        "evidence_state": { "$ref": "#/definitions/evidenceState" },
+        "evidence": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/evidenceExcerpt" }
+        }
+      }
+    },
+    "discoveryQuestion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["target", "question"],
+      "properties": {
+        "target": {
+          "enum": [
+            "criteria_definition",
+            "criterion",
+            "event",
+            "deadline",
+            "consequence",
+            "accountable_owner",
+            "relevantz_service_need",
+            "next_customer_decision",
+            "stage_readiness"
+          ]
+        },
+        "criterion_id": { "type": "string", "minLength": 1 },
+        "question": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

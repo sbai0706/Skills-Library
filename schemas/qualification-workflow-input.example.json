@@ -1,0 +1,21 @@
+{
+  "workflow_input": {
+    "account_reference": "Northstar Logistics",
+    "classification_ceiling": "internal"
+  },
+  "criteria_set": {
+    "version": "0.1.0",
+    "approval_status": "provisional",
+    "criteria": [
+      {
+        "id": "criterion_example_only",
+        "label": "Illustrative fixture criterion",
+        "definition": "Example-only mapping used to demonstrate evidence references; not a business rule.",
+        "evidence_ids": ["clm_e5754f979c134d33"]
+      }
+    ]
+  },
+  "event_evidence": {
+    "event": ["clm_e5754f979c134d33"]
+  }
+}

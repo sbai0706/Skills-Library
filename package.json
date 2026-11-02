@@ -11,7 +11,8 @@
     "test": "node --test",
     "prepare-first-meeting": "node bin/prepare-first-meeting.js",
     "prepare-first-meeting-v2": "node bin/prepare-first-meeting-v2.js",
-    "opportunity-strategy": "node bin/opportunity-strategy.js"
+    "opportunity-strategy": "node bin/opportunity-strategy.js",
+    "qualification": "node bin/qualification.js"
   },
   "dependencies": {
     "ajv": "^8.17.1",

@@ -1,0 +1,84 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sales-copilot.local/schemas/qualification-workflow-result.schema.json",
+  "title": "qualification workflow result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "workflow",
+    "workflow_version",
+    "status",
+    "account",
+    "assessment",
+    "artifact",
+    "evidence_ids",
+    "warnings",
+    "errors",
+    "steps",
+    "trace_id",
+    "started_at",
+    "finished_at"
+  ],
+  "properties": {
+    "workflow": { "const": "qualification" },
+    "workflow_version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "status": { "enum": ["success", "partial", "blocked", "failed"] },
+    "account": {
+      "$ref": "https://sales-copilot.local/schemas/workflow-result.schema.json#/properties/account"
+    },
+    "assessment": {
+      "oneOf": [
+        { "$ref": "https://sales-copilot.local/schemas/qualification-assessment.schema.json" },
+        { "type": "null" }
+      ]
+    },
+    "artifact": {
+      "$ref": "https://sales-copilot.local/schemas/workflow-result.schema.json#/properties/artifact"
+    },
+    "evidence_ids": {
+      "$ref": "https://sales-copilot.local/schemas/workflow-result.schema.json#/properties/evidence_ids"
+    },
+    "warnings": {
+      "type": "array",
+      "items": { "$ref": "https://sales-copilot.local/schemas/workflow-result.schema.json#/definitions/diagnostic" }
+    },
+    "errors": {
+      "type": "array",
+      "items": { "$ref": "https://sales-copilot.local/schemas/workflow-result.schema.json#/definitions/diagnostic" }
+    },
+    "steps": {
+      "type": "array",
+      "items": { "$ref": "https://sales-copilot.local/schemas/workflow-result.schema.json#/definitions/stepSummary" }
+    },
+    "trace_id": { "type": "string", "pattern": "^trace_" },
+    "started_at": { "type": "string", "format": "date-time" },
+    "finished_at": { "type": "string", "format": "date-time" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "status": { "enum": ["failed", "blocked"] } }, "required": ["status"] },
+      "then": {
+        "properties": {
+          "assessment": { "type": "null" },
+          "artifact": { "type": "null" },
+          "evidence_ids": { "type": "array", "maxItems": 0 },
+          "errors": { "type": "array", "minItems": 1 }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "status": { "enum": ["success", "partial"] } }, "required": ["status"] },
+      "then": {
+        "properties": {
+          "account": { "type": "object" },
+          "assessment": { "type": "object" },
+          "artifact": { "type": "object" }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "status": { "const": "success" } }, "required": ["status"] },
+      "then": { "properties": { "errors": { "type": "array", "maxItems": 0 } } }
+    }
+  ]
+}

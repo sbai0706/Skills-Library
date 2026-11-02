@@ -30,6 +30,10 @@ const SCHEMA_FILES = {
   opportunityStrategyResult: "opportunity-strategy-result.schema.json",
   opportunityStrategyWorkflowInput: "opportunity-strategy-workflow-input.schema.json",
   opportunityStrategyWorkflowResult: "opportunity-strategy-workflow-result.schema.json",
+  qualificationAssessInput: "qualification-assess-input.schema.json",
+  qualificationAssessment: "qualification-assessment.schema.json",
+  qualificationWorkflowInput: "qualification-workflow-input.schema.json",
+  qualificationWorkflowResult: "qualification-workflow-result.schema.json",
   workflowInput: "workflow-input.schema.json",
   workflowResult: "workflow-result.schema.json",
 };
