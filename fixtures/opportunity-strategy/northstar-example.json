@@ -4,64 +4,10 @@
     "requested_sources": ["crm", "public_source"],
     "classification_ceiling": "internal"
   },
-  "qualification_result": {
-    "skill": "qualification.assess",
-    "skill_version": "0.1.0",
-    "status": "partial",
-    "data": {
-      "account_id": "sf_wf_northstar",
-      "criteria_set": {
-        "status": "unprovided",
-        "version": null,
-        "assessments": []
-      },
-      "qualification_decision": "not_determined",
-      "event_assessment": {
-        "status": "unverified",
-        "fields": {
-          "event": {
-            "evidence_state": "linked",
-            "evidence": [
-              {
-                "claim_id": "clm_e5754f979c134d33",
-                "excerpt": "Northstar Logistics discussed a 2027 warehouse automation program"
-              }
-            ]
-          },
-          "deadline": {
-            "evidence_state": "missing",
-            "evidence": []
-          },
-          "consequence": {
-            "evidence_state": "missing",
-            "evidence": []
-          },
-          "accountable_owner": {
-            "evidence_state": "missing",
-            "evidence": []
-          },
-          "relevantz_service_need": {
-            "evidence_state": "missing",
-            "evidence": []
-          },
-          "next_customer_decision": {
-            "evidence_state": "missing",
-            "evidence": []
-          }
-        }
-      },
-      "stage_readiness": {
-        "status": "unavailable",
-        "reason": "NO_APPROVED_STAGE_RULES"
-      },
-      "discovery_questions": []
-    },
-    "evidence_ids": ["clm_e5754f979c134d33"],
-    "warnings": [],
-    "errors": [],
-    "trace_id": "trace_fixture_qualification",
-    "started_at": "2026-10-25T00:00:00.000Z",
-    "finished_at": "2026-10-25T00:00:00.000Z"
+  "qualification": {
+    "event_evidence": {
+      "event": ["clm_e5754f979c134d33"]
+    }
   },
   "offering_annotations": [
     {

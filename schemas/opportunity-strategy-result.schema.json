@@ -201,7 +201,7 @@
         "label": { "type": "string", "minLength": 1 },
         "catalogue_status": { "enum": ["approved", "provisional", "unknown"] },
         "fit_basis": {
-          "enum": ["caller_mapped_to_problem_evidence", "not_linked_to_problem_evidence"]
+          "enum": ["caller_mapping_overlaps_problem_evidence", "not_linked_to_problem_evidence"]
         },
         "match_status": { "const": "candidate_hypothesis" },
         "rationale": { "type": "string", "minLength": 1 },

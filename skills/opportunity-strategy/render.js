@@ -32,6 +32,13 @@ export function renderOpportunityStrategy(account, strategy) {
     return { ok: false };
   }
 
+  const fieldEvidence = Object.values(strategy.event_assessment.fields)
+    .flatMap((field) => field.evidence);
+  const evidenceById = new Map(fieldEvidence.map((item) => [item.claim_id, item]));
+  if (strategy.customer_problem_hypothesis.evidence_ids.some((id) => !evidenceById.has(id))) {
+    return { ok: false };
+  }
+
   const lines = [
     `# Opportunity strategy hypothesis — ${escapeMarkdown(account.canonical_name)}`,
     "",
@@ -43,12 +50,7 @@ export function renderOpportunityStrategy(account, strategy) {
     "",
     "Evidence:",
     ...renderEvidence({
-      evidence: strategy.customer_problem_hypothesis.evidence_ids.map((id) => {
-        const fieldEvidence = Object.values(strategy.event_assessment.fields)
-          .flatMap((field) => field.evidence);
-        const item = fieldEvidence.find((entry) => entry.claim_id === id);
-        return item ?? { claim_id: id, excerpt: "Visible normalized evidence" };
-      }),
+      evidence: strategy.customer_problem_hypothesis.evidence_ids.map((id) => evidenceById.get(id)),
     }).split("\n"),
     "",
     "## Compelling-event evidence",
@@ -81,7 +83,9 @@ export function renderOpportunityStrategy(account, strategy) {
         "",
         `Candidate hypothesis only — ${escapeMarkdown(candidate.catalogue_status)} catalogue. ${escapeMarkdown(candidate.rationale)}`,
         "",
-        `Fit basis: ${escapeMarkdown(candidate.fit_basis.replaceAll("_", " "))}. Evidence: ${citations(candidate.claim_ids)}.`,
+        candidate.fit_basis === "caller_mapping_overlaps_problem_evidence"
+          ? `The caller's mapping reuses references that also support the problem hypothesis; this overlap does not establish fit. Evidence: ${citations(candidate.claim_ids)}.`
+          : `The caller's mapping does not overlap the problem-hypothesis evidence. Evidence: ${citations(candidate.claim_ids)}.`,
         "",
         "Uncertainties:",
         ...candidate.uncertainties.map((item) => `- ${escapeMarkdown(item)}`),

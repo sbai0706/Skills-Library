@@ -14,7 +14,7 @@ export function validateInput(input) {
     ok: true,
     value: {
       workflow_input: input.workflow_input,
-      qualification_result: input.qualification_result,
+      qualification: input.qualification ?? {},
       offering_annotations: input.offering_annotations ?? [],
     },
   };

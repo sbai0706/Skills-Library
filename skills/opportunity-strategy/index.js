@@ -43,7 +43,7 @@ function validateQualificationResult(result, accountId, claimsById, withheldIds)
     result.skill !== "qualification.assess" ||
     !["success", "partial"].includes(result.status) ||
     !result.data ||
-    typeof result.data !== "object"
+    !validate("qualificationAssessment", result.data).valid
   ) {
     return {
       ok: false,
@@ -67,53 +67,16 @@ function validateQualificationResult(result, accountId, claimsById, withheldIds)
     };
   }
 
-  for (const id of result.evidence_ids) {
-    const resolved = resolveClaimIds([id], claimsById, withheldIds);
-    if (!resolved.ok) return resolved;
-  }
-
-  const fields = result.data.event_assessment?.fields;
-  if (!fields || typeof fields !== "object") {
-    return {
-      ok: false,
-      code: "QUALIFICATION_RESULT_INVALID",
-      message: "The qualification result must contain the six-field event assessment.",
-    };
-  }
-
-  const normalizedFields = {};
-  for (const fieldId of EVENT_FIELDS) {
-    const field = fields[fieldId];
-    if (field === undefined) {
-      normalizedFields[fieldId] = { evidence_state: "missing", evidence: [] };
-      continue;
-    }
-    if (
-      !field ||
-      typeof field !== "object" ||
-      !["missing", "linked", "uncertain", "conflicting", "visible_conflict", "visible conflict", "conflicted"].includes(field.evidence_state) ||
-      !Array.isArray(field.evidence)
-    ) {
+  const referencedIds = new Set();
+  const validateEvidence = (items) => {
+    const ids = items.map((item) => item.claim_id);
+    if (new Set(ids).size !== ids.length) {
       return {
         ok: false,
         code: "QUALIFICATION_RESULT_INVALID",
-        message: "A qualification event field has an invalid evidence structure.",
+        message: "Qualification evidence must use unique normalized claim references.",
       };
     }
-
-    const ids = field.evidence.map((item) => item?.claim_id);
-    if (
-      ids.some((id) => typeof id !== "string") ||
-      new Set(ids).size !== ids.length ||
-      field.evidence.some((item) => typeof item.excerpt !== "string")
-    ) {
-      return {
-        ok: false,
-        code: "QUALIFICATION_RESULT_INVALID",
-        message: "Qualification evidence must use unique normalized claim references and excerpts.",
-      };
-    }
-
     const resolved = ids.length > 0
       ? resolveClaimIds(ids, claimsById, withheldIds)
       : { ok: true, ids: [] };
@@ -121,8 +84,9 @@ function validateQualificationResult(result, accountId, claimsById, withheldIds)
 
     const evidence = resolved.ids.map((id) => {
       const sourceClaim = claimsById.get(id);
-      const supplied = field.evidence.find((item) => item.claim_id === id);
+      const supplied = items.find((item) => item.claim_id === id);
       if (supplied.excerpt !== sourceClaim.excerpt) return null;
+      referencedIds.add(id);
       return { claim_id: id, excerpt: sourceClaim.excerpt };
     });
     if (evidence.some((item) => item === null)) {
@@ -132,23 +96,67 @@ function validateQualificationResult(result, accountId, claimsById, withheldIds)
         message: "Qualification excerpts must exactly match visible normalized evidence.",
       };
     }
+    return { ok: true, evidence };
+  };
 
-    const hasConflictingClaim = resolved.ids.some(
+  for (const assessment of result.data.criteria_set.assessments) {
+    const checked = validateEvidence(assessment.evidence);
+    if (!checked.ok) return checked;
+  }
+
+  const normalizedFields = {};
+  for (const fieldId of EVENT_FIELDS) {
+    const field = result.data.event_assessment.fields[fieldId];
+    const checked = validateEvidence(field.evidence);
+    if (!checked.ok) return checked;
+    if ((checked.evidence.length === 0) !== (field.evidence_state === "missing")) {
+      return {
+        ok: false,
+        code: "QUALIFICATION_RESULT_INVALID",
+        message: "Qualification evidence state does not match its linked evidence.",
+      };
+    }
+
+    const ids = checked.evidence.map((item) => item.claim_id);
+    const hasConflictingClaim = ids.some(
       (id) => claimsById.get(id).verification_status === "conflicting",
     );
-    const evidenceState = resolved.ids.length === 0
+    const evidenceState = ids.length === 0
       ? "missing"
-      : hasConflictingClaim || ["conflicting", "visible_conflict", "visible conflict", "conflicted"].includes(field.evidence_state)
+      : hasConflictingClaim || field.evidence_state === "conflicting_evidence"
         ? "conflicting"
-        : field.evidence_state === "uncertain" ||
-            resolved.ids.some((id) => claimsById.get(id).verification_status === "inferred")
+        : field.evidence_state === "uncertain_evidence" ||
+            ids.some((id) => claimsById.get(id).verification_status === "inferred" ||
+              claimsById.get(id).confidence === "low")
           ? "uncertain"
           : "linked";
 
-    normalizedFields[fieldId] = { evidence_state: evidenceState, evidence };
+    normalizedFields[fieldId] = { evidence_state: evidenceState, evidence: checked.evidence };
   }
 
-  return { ok: true, fields: normalizedFields };
+  const declaredEvidence = result.evidence_ids.length > 0
+    ? resolveClaimIds(result.evidence_ids, claimsById, withheldIds)
+    : { ok: true, ids: [] };
+  if (!declaredEvidence.ok) return declaredEvidence;
+  const declaredIds = new Set(result.evidence_ids);
+  if (
+    declaredIds.size !== result.evidence_ids.length ||
+    declaredIds.size !== referencedIds.size ||
+    [...declaredIds].some((id) => !referencedIds.has(id))
+  ) {
+    return {
+      ok: false,
+      code: "QUALIFICATION_EVIDENCE_INVALID",
+      message: "Qualification result evidence references are inconsistent.",
+    };
+  }
+
+  return {
+    ok: true,
+    fields: normalizedFields,
+    status: result.status,
+    policyUnavailable: result.warnings.some((warning) => warning.code === "POLICY_UNAVAILABLE"),
+  };
 }
 
 function evidenceForFields(fields, fieldIds) {
@@ -194,7 +202,7 @@ function makeNextActions(fields, problemEvidence, offeringCandidates) {
     },
     {
       id: "review_candidate_fit",
-      text: "Review any caller-mapped offering candidate and its uncertainties with the appropriate SPO or Presales participants.",
+      text: "Review any caller-mapped offering candidate and its uncertainties with appropriate internal reviewers.",
       provenance: {
         kind: offeringCandidates.length > 0 ? "visible_evidence" : "open_evidence_gap",
         evidence_ids: offeringEvidence,
@@ -304,7 +312,7 @@ export function assessOpportunityStrategy(input, deps = {}) {
       label: offering?.label ?? match.offering_id,
       catalogue_status: catalogueStatus,
       fit_basis: linkedToProblem
-        ? "caller_mapped_to_problem_evidence"
+        ? "caller_mapping_overlaps_problem_evidence"
         : "not_linked_to_problem_evidence",
       match_status: match.match_status,
       rationale: match.rationale,
@@ -317,7 +325,7 @@ export function assessOpportunityStrategy(input, deps = {}) {
 
   const valueHypotheses = offeringCandidates
     .filter((candidate) =>
-      candidate.fit_basis === "caller_mapped_to_problem_evidence" &&
+      candidate.fit_basis === "caller_mapping_overlaps_problem_evidence" &&
       candidate.claim_ids.length > 0 &&
       problemIds.size > 0 &&
       !candidate.claim_ids.some((id) =>
@@ -345,6 +353,12 @@ export function assessOpportunityStrategy(input, deps = {}) {
     ...offeringCandidates.flatMap((candidate) => candidate.evidence_ids),
   ])].sort();
   const warnings = [];
+  if (qualification.policyUnavailable) {
+    warnings.push({
+      code: "POLICY_UNAVAILABLE",
+      message: "Qualification decisions, compelling-event verification, and stage readiness remain advisory and unresolved.",
+    });
+  }
   if (Object.values(qualification.fields).some((field) => field.evidence_state !== "linked")) {
     warnings.push({
       code: "EVENT_FIELDS_INCOMPLETE",
@@ -406,6 +420,7 @@ export function assessOpportunityStrategy(input, deps = {}) {
   }
 
   const partial =
+    qualification.status === "partial" ||
     Object.values(qualification.fields).some((field) => field.evidence_state !== "linked") ||
     problemEvidence.length === 0 ||
     offeringCandidates.length === 0 ||

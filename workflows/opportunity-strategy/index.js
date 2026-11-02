@@ -3,6 +3,7 @@ import { validate } from "../../schemas/index.js";
 import { normalizeEvidence as normalizeEvidenceSkill } from "../../skills/evidence-normalize/index.js";
 import { assessOpportunityStrategy } from "../../skills/opportunity-strategy/index.js";
 import { renderOpportunityStrategy } from "../../skills/opportunity-strategy/render.js";
+import { assessQualification } from "../../skills/qualification-assess/index.js";
 import { citationsInMarkdown } from "../prepare-first-meeting/provenance.js";
 import { prepareFirstMeeting } from "../prepare-first-meeting/index.js";
 import { validateInput } from "./validate-input.js";
@@ -75,6 +76,7 @@ export async function runOpportunityStrategy(input, deps = {}) {
   const classificationCeiling =
     inputResult.value.workflow_input.classification_ceiling ?? "internal";
   let normalizedClaims = null;
+  let normalizedConflicts = null;
   const normalizeEvidence = deps.normalizeEvidence ?? normalizeEvidenceSkill;
 
   let evidenceResult;
@@ -85,6 +87,7 @@ export async function runOpportunityStrategy(input, deps = {}) {
       normalizeEvidence: async (skillInput, skillDeps) => {
         const result = await normalizeEvidence(skillInput, skillDeps);
         normalizedClaims = result?.data?.claims;
+        normalizedConflicts = result?.data?.conflicts;
         return result;
       },
     });
@@ -116,7 +119,8 @@ export async function runOpportunityStrategy(input, deps = {}) {
   if (
     !["success", "partial"].includes(evidenceResult.status) ||
     !account ||
-    !Array.isArray(normalizedClaims)
+    !Array.isArray(normalizedClaims) ||
+    !Array.isArray(normalizedConflicts)
   ) {
     steps.push(step("evidence.prepare", "prepare-first-meeting", "failed"));
     errors.push(diagnostic(
@@ -129,13 +133,50 @@ export async function runOpportunityStrategy(input, deps = {}) {
   }
   steps.push(step("evidence.prepare", "prepare-first-meeting", evidenceResult.status));
 
+  let qualificationResult;
+  try {
+    qualificationResult = assessQualification({
+      account_id: account.account_id,
+      claims: normalizedClaims,
+      conflicts: normalizedConflicts,
+      classification_ceiling: classificationCeiling,
+      ...(inputResult.value.qualification.criteria_set
+        ? { criteria_set: inputResult.value.qualification.criteria_set }
+        : {}),
+      ...(inputResult.value.qualification.event_evidence
+        ? { event_evidence: inputResult.value.qualification.event_evidence }
+        : {}),
+    }, { now: deps.now });
+  } catch {
+    steps.push(step("qualification.assess", "qualification.assess", "failed"));
+    errors.push(diagnostic(
+      "qualification.assess",
+      "qualification.assess",
+      "WORKFLOW_INTERNAL_ERROR",
+      "Qualification evidence assessment failed; no artifact was produced.",
+    ));
+    return finish("failed");
+  }
+  if (!["success", "partial"].includes(qualificationResult.status)) {
+    steps.push(step("qualification.assess", "qualification.assess", "failed"));
+    const error = qualificationResult.errors[0];
+    errors.push(diagnostic(
+      "qualification.assess",
+      "qualification.assess",
+      error?.code ?? "QUALIFICATION_RESULT_INVALID",
+      error?.message ?? "Qualification evidence assessment failed; no artifact was produced.",
+    ));
+    return finish("failed");
+  }
+  steps.push(step("qualification.assess", "qualification.assess", qualificationResult.status));
+
   let assessment;
   try {
     assessment = assessOpportunityStrategy({
       account_id: account.account_id,
       claims: normalizedClaims,
       classification_ceiling: classificationCeiling,
-      qualification_result: inputResult.value.qualification_result,
+      qualification_result: qualificationResult,
       offering_annotations: inputResult.value.offering_annotations,
     }, {
       now: deps.now,
@@ -174,7 +215,12 @@ export async function runOpportunityStrategy(input, deps = {}) {
     ));
   }
 
-  const rendered = renderOpportunityStrategy(account, strategy);
+  let rendered;
+  try {
+    rendered = renderOpportunityStrategy(account, strategy);
+  } catch {
+    rendered = { ok: false };
+  }
   if (!rendered.ok) {
     steps.push(step("artifact.render", "opportunity-strategy-renderer", "failed"));
     errors.push(diagnostic(

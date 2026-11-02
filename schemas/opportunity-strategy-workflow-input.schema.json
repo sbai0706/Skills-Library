@@ -4,13 +4,22 @@
   "title": "opportunity-strategy workflow input",
   "type": "object",
   "additionalProperties": false,
-  "required": ["workflow_input", "qualification_result"],
+  "required": ["workflow_input"],
   "properties": {
     "workflow_input": {
       "$ref": "https://sales-copilot.local/schemas/workflow-input.schema.json"
     },
-    "qualification_result": {
-      "$ref": "https://sales-copilot.local/schemas/skill-result.schema.json"
+    "qualification": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "criteria_set": {
+          "$ref": "https://sales-copilot.local/schemas/qualification-assess-input.schema.json#/definitions/criteriaSet"
+        },
+        "event_evidence": {
+          "$ref": "https://sales-copilot.local/schemas/qualification-assess-input.schema.json#/definitions/eventEvidence"
+        }
+      }
     },
     "offering_annotations": {
       "type": "array",
