@@ -26,6 +26,10 @@ const SCHEMA_FILES = {
   offeringMatchInput: "offering-match-input.schema.json",
   prepareFirstMeetingV2Input: "prepare-first-meeting-v2-input.schema.json",
   prepareFirstMeetingV2Result: "prepare-first-meeting-v2-result.schema.json",
+  opportunityStrategyInput: "opportunity-strategy-input.schema.json",
+  opportunityStrategyResult: "opportunity-strategy-result.schema.json",
+  opportunityStrategyWorkflowInput: "opportunity-strategy-workflow-input.schema.json",
+  opportunityStrategyWorkflowResult: "opportunity-strategy-workflow-result.schema.json",
   workflowInput: "workflow-input.schema.json",
   workflowResult: "workflow-result.schema.json",
 };

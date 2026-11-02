@@ -28,7 +28,11 @@
         "REFERENCE_UNAVAILABLE",
         "REFERENCE_INVALID",
         "SIGNAL_REFERENCE_UNAVAILABLE",
-        "INTERNAL_ERROR"
+        "INTERNAL_ERROR",
+        "QUALIFICATION_REQUIRED",
+        "QUALIFICATION_RESULT_INVALID",
+        "QUALIFICATION_EVIDENCE_INVALID",
+        "OFFERING_MAPPING_INVALID"
       ],
       "description": "Stable error code. Extend this enum when a new skill introduces a new failure class."
     },

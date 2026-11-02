@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sales-copilot.local/schemas/opportunity-strategy-workflow-input.schema.json",
+  "title": "opportunity-strategy workflow input",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["workflow_input", "qualification_result"],
+  "properties": {
+    "workflow_input": {
+      "$ref": "https://sales-copilot.local/schemas/workflow-input.schema.json"
+    },
+    "qualification_result": {
+      "$ref": "https://sales-copilot.local/schemas/skill-result.schema.json"
+    },
+    "offering_annotations": {
+      "type": "array",
+      "items": {
+        "$ref": "https://sales-copilot.local/schemas/opportunity-strategy-input.schema.json#/definitions/offeringMapping"
+      }
+    }
+  }
+}

@@ -1,0 +1,19 @@
+workflow: opportunity-strategy
+version: 0.1.0
+status: draft
+business_owner: TBD
+description: >
+  Compose normalized account evidence, a caller-supplied qualification assessment,
+  explicit offering mappings, and a provenance-checked opportunity strategy artifact.
+inputs:
+  schema: schemas/opportunity-strategy-workflow-input.schema.json
+outputs:
+  schema: schemas/opportunity-strategy-workflow-result.schema.json
+entrypoint: workflows/opportunity-strategy/index.js
+exports:
+  - runOpportunityStrategy
+steps:
+  - prepare-first-meeting evidence retrieval and normalization
+  - opportunity.strategy
+  - opportunity-strategy artifact rendering
+  - citation provenance check
