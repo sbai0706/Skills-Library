@@ -64,9 +64,7 @@ replaced with inferred content.
 Portable fixture invocation:
 
 ```bash
-npm run prepare-first-meeting-v2 -- \
-  --account "Northstar Logistics" \
-  --mapping-fixture northstar-example
+npm run prepare-first-meeting-v2 -- --account "Northstar Logistics" --mapping-fixture northstar-example
 ```
 
 `northstar-example` is illustrative fixture mapping data, not automated research, approved business

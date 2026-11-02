@@ -126,9 +126,7 @@ semantic validator before rendering enrichment, and verifies citations before re
 artifact:
 
 ```bash
-npm run prepare-first-meeting-v2 -- \
-  --account "Northstar Logistics" \
-  --mapping-fixture northstar-example
+npm run prepare-first-meeting-v2 -- --account "Northstar Logistics" --mapping-fixture northstar-example
 ```
 
 The default `--mapping-fixture none` leaves signal, stakeholder, and offering coverage explicitly
