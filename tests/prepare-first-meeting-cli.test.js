@@ -10,11 +10,19 @@ const subdirectory = resolve(root, "workflows/prepare-first-meeting");
 const cliPath = resolve(root, "bin/prepare-first-meeting.js");
 
 function invoke(args, { cwd = root, useNpm = false } = {}) {
+  const isWindowsNpm = useNpm && process.platform === "win32";
+  const command = useNpm
+    ? (isWindowsNpm ? process.execPath : "npm")
+    : process.execPath;
+  const commandArgs = useNpm
+    ? [
+        ...(isWindowsNpm ? [process.env.npm_execpath] : []),
+        "run", "prepare-first-meeting", "--", ...args,
+      ]
+    : [cliPath, ...args];
   return spawnSync(
-    useNpm ? "npm" : process.execPath,
-    useNpm
-      ? ["run", "prepare-first-meeting", "--", ...args]
-      : [cliPath, ...args],
+    command,
+    commandArgs,
     { cwd, encoding: "utf8" },
   );
 }
