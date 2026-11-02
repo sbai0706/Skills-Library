@@ -1,8 +1,10 @@
 # Sales Copilot — Skills Foundation
 
-Working foundation for Sales Copilot skills with five implemented capabilities and one composed
-workflow: `account.resolve` (v0.2.0), `evidence.retrieve` (v0.2.0), `evidence.normalize` (v0.1.0),
-`gap.detect` (v0.1.0), `artifact.render` (v0.1.0), and `prepare-first-meeting` (v0.1.0).
+Working foundation for Sales Copilot skills with eight callable capabilities and two composed
+workflows: `account.resolve` (v0.2.0), `evidence.retrieve` (v0.2.0), `evidence.normalize` (v0.1.0),
+`gap.detect` (v0.1.0), `artifact.render` (v0.1.0), `signal.extract` (v0.1.0),
+`stakeholder.map` (v0.1.0), `offering.match` (v0.1.0), `prepare-first-meeting` (v0.1.0), and
+`prepare-first-meeting-v2` (v0.1.0).
 
 The two v0.2.0 skills carry the earlier policy tightening (exact-match-only account
 resolution, fail-closed classification defaults, documented no-retry rule). `evidence.normalize`
@@ -13,8 +15,15 @@ provenance verification.
 
 Architecture reference: [Sales_Skills_Library_Architecture_v2.md](Sales_Skills_Library_Architecture_v2.md).
 That document describes the eventual direction; this repository implements the shared contracts,
-these five skills, and the fixed workflow. See [docs/MVP_HANDOFF.md](docs/MVP_HANDOFF.md) for the
+the five original skills, three Account Intelligence skills, and two fixed workflows. See
+[docs/MVP_HANDOFF.md](docs/MVP_HANDOFF.md) for the
 original frozen contracts and parallel branch handoff.
+
+The three Account Intelligence skills accept only explicit caller mappings to normalized evidence.
+They do not discover signals, infer stakeholder authority, or automatically recommend offerings.
+The default signal, persona, and offering registries remain provisional fixtures, and the sample
+offering entries are placeholders pending business review. See
+[workflows/prepare-first-meeting-v2/WORKFLOW.md](workflows/prepare-first-meeting-v2/WORKFLOW.md).
 
 The skills are plain JavaScript functions. There is no agent-platform integration, no prompt
 parsing, and no model provider dependency. `SKILL.md` is the agent-facing description;
@@ -37,7 +46,7 @@ services, credentials, or network calls are required.
 
 ## Portable first-meeting CLI
 
-The CLI is a **development and demonstration interface**. It invokes the existing workflow with
+The v1 CLI is a **development and demonstration interface**. It invokes the existing workflow with
 repository fixture adapters and the deterministic fixture claim extractor. It is agent-agnostic,
 does not contact live systems, and is not an authorization boundary for production data.
 
@@ -109,6 +118,25 @@ command preserves that output contract. `--output markdown` prints only the rend
 available; blocked and failed runs print a concise safe explanation to stderr and no artifact to
 stdout.
 
+### Account Intelligence v2 CLI
+
+The additive v2 consumer keeps the v1 workflow, schema, and renderer unchanged. It composes
+`signal.extract`, `stakeholder.map`, and `offering.match` from explicit mappings, calls the v2
+semantic validator before rendering enrichment, and verifies citations before returning the
+artifact:
+
+```bash
+npm run prepare-first-meeting-v2 -- \
+  --account "Northstar Logistics" \
+  --mapping-fixture northstar-example
+```
+
+The default `--mapping-fixture none` leaves signal, stakeholder, and offering coverage explicitly
+unknown. `northstar-example` is a deterministic illustrative mapping over existing fixture claims;
+it is not automated research, approved policy, or a real offering recommendation. `--output
+markdown` prints only the final artifact when the workflow succeeds or is partial. The v2 result
+does not expose withheld claim IDs.
+
 | Exit code | Meaning |
 | --- | --- |
 | `0` | Success with usable artifact. |
@@ -116,10 +144,9 @@ stdout.
 | `3` | Blocked by an account or workflow gate. |
 | `1` | Failed workflow or invalid CLI invocation. |
 
-To move toward live use, a future host can retain `prepareFirstMeeting` as the composition boundary
-and replace the fixture adapter/extractor construction in `bin/prepare-first-meeting.js` with
-approved implementations of the existing account adapter, evidence adapter, and claim-extractor
-interfaces. The CLI itself currently has no live-adapter support.
+To move toward live use, a future host can invoke `prepareFirstMeetingV2` with approved adapter and
+extractor implementations, explicit caller mappings, and the correct reference registries. Both
+CLIs remain fixture-only and do not provide live-adapter support.
 
 ## Layout
 
@@ -133,6 +160,8 @@ schemas/
   gap-result.schema.json        Structured answer/gap/conflict status per question
   gap-result.example.json       Example gap result used by tests
   first-meeting-brief-input.schema.json   Structured renderer input (structural validation only)
+  first-meeting-brief-input-v2.schema.json Additive structured renderer input
+  prepare-first-meeting-v2-*.schema.json  V2 workflow and mapping contracts
   first-meeting-brief-input.example.json  Example renderer input used by tests
   workflow-input.schema.json    prepare-first-meeting input contract
   workflow-result.schema.json   prepare-first-meeting result contract
@@ -149,6 +178,7 @@ adapters/
 
 bin/
   prepare-first-meeting.js      Portable fixture CLI; invokes the existing workflow
+  prepare-first-meeting-v2.js   Portable CLI; invokes the additive Account Intelligence workflow
 
 skills/account-resolve/
   SKILL.md                      Agent-facing instructions
@@ -191,6 +221,7 @@ skills/artifact-render/
   validate-input.js             Structural input validation
   templates.js                  Template registry; unknown IDs fail structurally
   first-meeting-brief.js        Deterministic Markdown brief renderer
+  first-meeting-brief-v2.js     Semantically validated Account Intelligence renderer
   reference.js                  Reference question-set loader
 
 workflows/prepare-first-meeting/
@@ -200,6 +231,16 @@ workflows/prepare-first-meeting/
   validate-input.js             Input defaults and validation
   provenance.js                 Citation/omission provenance invariants
   reference.js                  Reference question-set loader
+
+skills/signal-extract/
+skills/stakeholder-map/
+skills/offering-match/
+  SKILL.md, skill.yaml, validate-input.js, and index.js for explicit mapping skills
+
+workflows/prepare-first-meeting-v2/
+  WORKFLOW.md                   Account Intelligence v2 workflow contract and invocation
+  workflow.yaml                 Machine-readable workflow contract
+  index.js                      Additive workflow composition and v2 validation
 
 fixtures/
   clear-account/                Account fixtures: accounts.json + expected.json

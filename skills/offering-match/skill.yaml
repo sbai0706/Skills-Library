@@ -1,0 +1,34 @@
+skill: offering.match
+version: 0.1.0
+status: draft
+business_owner: TBD
+
+intent: Validate explicit evidence-to-offering candidate mappings without asserting approved fit or recommendation.
+when_to_use:
+  - A caller supplies an offering ID and supporting normalized claim IDs.
+when_not_to_use:
+  - Offering fit, commercial terms, suitability, urgency, or recommendation must be decided automatically.
+inputs:
+  schema: ../../schemas/offering-match-input.schema.json
+  required: [account_id, claims, classification_ceiling]
+  optional: [annotations, signals]
+outputs:
+  schema: ../../schemas/skill-result.schema.json
+  data_schema: ../../schemas/offering-match.schema.json
+  evidence_ids: sorted union of referenced normalized claim IDs
+dependencies:
+  reference: [../../reference/offerings.yaml]
+  skills: [evidence.normalize, signal.extract]
+constraints:
+  - Only caller-provided offering mappings are accepted.
+  - Every claim and signal reference must resolve to the same account and classification scope.
+  - Every output is a candidate hypothesis with rationale, uncertainties, and discovery prompts.
+  - Non-approved registries and placeholder entries remain explicitly provisional.
+  - No fit score, weight, urgency, price, or business approval is invented.
+gates:
+  - input_schema_valid
+  - versioned_offering_id_exists
+  - all_claim_and_signal_references_exist
+  - claim_ids_equal_evidence_ids
+  - safe_diagnostics
+  - deterministic_order

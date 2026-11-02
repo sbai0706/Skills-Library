@@ -13,10 +13,11 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["stakeholder_id", "display_name", "persona_id", "claim_ids", "evidence_ids"],
+        "required": ["stakeholder_id", "display_name", "role_evidence", "persona_id", "claim_ids", "evidence_ids"],
         "properties": {
           "stakeholder_id": { "type": "string", "pattern": "^stkh_[A-Za-z0-9_-]+$" },
           "display_name": { "type": "string", "minLength": 1, "maxLength": 200 },
+          "role_evidence": { "type": "string", "minLength": 1, "maxLength": 300 },
           "persona_id": { "type": "string", "pattern": "^per_[A-Za-z0-9_-]+$" },
           "claim_ids": {
             "type": "array",

@@ -41,8 +41,8 @@ fabricated defaults.
 | Area | Current state |
 |---|---|
 | Shared evidence foundation | `account.resolve`, `evidence.retrieve`, `evidence.normalize`, `gap.detect`, `artifact.render`, and the fixture-backed `prepare-first-meeting` workflow exist. They provide a reusable, evidence-linked base; they do not supply a live integration or four finished Phase 1 agents. |
-| Account Intelligence contracts | Signal, stakeholder, offering-hypothesis, and additive brief-v2 schemas/reference files exist. The v1 schema and renderer behavior remain unchanged. The v2 semantic entry point `validateFirstMeetingBriefInputV2(value, { referenceRegistry })` checks account scope, same-claim provenance references, versioned reference IDs, signal links, and enrichment classification ceiling. It accepts provisional registries and does not authorize access. It is not wired into the v1 renderer; a v2 consumer must call it before consuming enrichment. |
-| Four Phase 1 outcomes | Account Intelligence has a first-meeting foundation and contract work; Engagement, Qualification, and Opportunity Strategy still need practical skill/workflow implementations. No complete implementation of all four outcomes is claimed. |
+| Account Intelligence contracts and implementation | `signal.extract`, `stakeholder.map`, `offering.match`, and additive `prepare-first-meeting-v2` are callable, deterministic, fixture-backed implementations. Mappings must be supplied by the caller and resolve to normalized same-account evidence within the classification ceiling. The v2 workflow calls `validateFirstMeetingBriefInputV2(value, { referenceRegistry })` before rendering enrichment and checks final citations. It also checks gap supporting IDs and safe failure behavior. The v1 schema, output, and renderer remain unchanged. This is not automated research, a verified business catalogue, or an authorization boundary. |
+| Four Phase 1 outcomes | Account Intelligence has a complete fixture-backed library slice with explicit mapping inputs and visible unknowns. Engagement, Qualification, and Opportunity Strategy still need practical skill/workflow implementations. No complete implementation of all four outcomes is claimed. |
 | Reference vocabularies | `reference/signal-taxonomy.yaml`, `reference/personas.yaml`, and `reference/offerings.yaml` are versioned provisional fixtures with TBD ownership/approval. They are not approved business policy. |
 | Out of default scope | Deal Intelligence, nurture/collateral selection, production integrations, and host-side execution are not mandatory library work in this plan. Add them only after explicit scope and dependency decisions. |
 
@@ -59,7 +59,9 @@ Keep the first delivery small: reusable contracts and deterministic helpers, one
 
 ### Sequence
 
-1. Finish Account Intelligence contracts and a complete fixture-backed first-meeting slice.
+1. Complete Account Intelligence contracts and the fixture-backed first-meeting slice (this
+   library milestone is implemented; mappings remain caller-provided and business vocabularies
+   provisional).
 2. Add Engagement drafting and meeting/follow-up preparation over the same evidence boundary.
 3. Add Qualification with explicit unknowns and caller-supplied criteria until business-owned B-FITT/event rules exist.
 4. Add Opportunity Strategy with evidence-linked hypotheses; keep stage/creation rules as unresolved inputs until approved.
@@ -71,6 +73,7 @@ This sequence is a library delivery recommendation, not a claim that the source 
 - Every emitted customer/account fact has a same-account normalized claim reference; tests cover missing, malformed, conflicting, and foreign-account evidence.
 - Unsupported or unavailable facts remain explicit gaps/unknowns. Conflicts are retained rather than resolved by the library.
 - Every v2 signal/persona/offering ID is checked against the supplied versioned registry; provisional registry status is accepted without implying approval.
+- Signal, stakeholder, and offering mappings are caller-provided. Empty mappings preserve unknown coverage; the sample Northstar mapping fixture is illustrative and does not claim automated research or customer-approved policy.
 - Enrichment references resolve to actual normalized claims; `claim_ids` and `evidence_ids` identify the same set. Safe diagnostics contain no withheld claim ID or text.
 - Enrichment linked to evidence above the output classification ceiling is rejected by the v2 semantic entry point. The legacy v1 renderer's ordinary-claim filtering behavior is unchanged.
 - Each implemented workflow has deterministic success, empty/sparse, missing-input, conflicting-evidence, and failure coverage. Fixture/replay tests make no network calls.

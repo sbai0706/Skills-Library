@@ -1,0 +1,13 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sales-copilot.local/schemas/prepare-first-meeting-v2-input.schema.json",
+  "title": "prepare-first-meeting-v2 input",
+  "description": "Existing first-meeting workflow input plus optional explicit Account Intelligence mappings.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["workflow_input"],
+  "properties": {
+    "workflow_input": { "$ref": "https://sales-copilot.local/schemas/workflow-input.schema.json" },
+    "annotations": { "$ref": "https://sales-copilot.local/schemas/account-intelligence-annotations.schema.json#/definitions/set" }
+  }
+}

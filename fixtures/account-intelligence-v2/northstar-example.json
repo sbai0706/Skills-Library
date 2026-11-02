@@ -1,0 +1,26 @@
+{
+  "signals": [
+    {
+      "signal_type_id": "sigcat_technology_change",
+      "claim_ids": ["clm_e5754f979c134d33"]
+    },
+    {
+      "signal_type_id": "sigcat_technology_change",
+      "claim_ids": ["clm_fd803734df7d6b56"]
+    }
+  ],
+  "stakeholders": [
+    {
+      "display_name": "Priya Raman",
+      "persona_id": "per_operations_leader",
+      "role_evidence": "Priya Raman, Director of Operations",
+      "claim_ids": ["clm_5e66a71c957aaada"]
+    }
+  ],
+  "offerings": [
+    {
+      "offering_id": "off_placeholder_advisory",
+      "claim_ids": ["clm_e5754f979c134d33"]
+    }
+  ]
+}

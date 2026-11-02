@@ -1,0 +1,126 @@
+workflow: prepare-first-meeting-v2
+version: 0.1.0
+status: draft
+business_owner: TBD
+
+intent: Compose the first-meeting workflow with caller-mapped, evidence-linked Account Intelligence and a separately validated v2 artifact.
+when_to_use:
+  - A caller needs a fixture-backed first-meeting brief and supplies explicit signal, stakeholder, or offering mappings.
+  - A caller needs deterministic evidence-linked hypotheses with unknown coverage left explicit.
+when_not_to_use:
+  - Live research, contact discovery, event urgency, approved service recommendation, or business fit scoring is required.
+  - A production host, authorization service, live connector, message send, or CRM write is required.
+inputs:
+  schema: ../../schemas/prepare-first-meeting-v2-input.schema.json
+  required: [workflow_input]
+  optional: [annotations]
+  annotations:
+    required_ids: [claim_ids]
+    signal_id: versioned signal taxonomy
+    persona_id: versioned persona registry
+    offering_id: versioned offering registry
+    notes:
+      - Mappings are explicit caller input, never inferred from source prose.
+      - Stakeholder role_evidence must occur with the display_name in a cited claim excerpt.
+      - All mappings may be empty; absent coverage stays unknown.
+outputs:
+  schema: ../../schemas/prepare-first-meeting-v2-result.schema.json
+  statuses: [success, partial, blocked, failed]
+  fields: [status, account, account_candidates, artifact, account_intelligence, evidence_ids, warnings, errors, steps]
+  artifact:
+    format: markdown
+    only_when: status is success or partial and semantic and provenance validation pass
+  notes:
+    - evidence_ids are exactly the visible citations in the final artifact.
+    - Above-ceiling claim IDs are not returned in v2 workflow results.
+    - account_intelligence and artifact are null on blocked or failed runs.
+steps:
+  - id: workflow.input
+    kind: validation
+    required: true
+  - id: prepare-first-meeting
+    workflow: prepare-first-meeting
+    required: true
+    produces: normalized claims, gap result, and base artifact through existing v1 consumer
+  - id: signal.extract
+    skill: signal.extract
+    required: true
+    produces: explicit category mappings to visible normalized claims
+  - id: stakeholder.map
+    skill: stakeholder.map
+    required: true
+    produces: explicitly caller-mapped, evidenced names and persona hypotheses
+  - id: offering.match
+    skill: offering.match
+    required: true
+    produces: evidence-linked candidate hypotheses, uncertainties, and discovery prompts
+  - id: account-intelligence.validate
+    kind: semantic_validation
+    required: true
+    produces: v2 account, vocabulary, evidence, gap, and classification validation
+  - id: artifact.render-v2
+    kind: rendering
+    required: true
+    produces: base artifact plus Account Intelligence sections
+  - id: provenance.check-v2
+    kind: provenance_validation
+    required: true
+    produces: verified final citation set
+execution:
+  mode: fixed_sequential
+  order_matters: true
+  no_retries: true
+  no_step_skipping: true
+  stop_rules:
+    - stop failed when workflow input or annotation schema validation fails.
+    - preserve blocked or failed results from prepare-first-meeting with no v2 artifact.
+    - stop failed when a mapping has an unknown reference or unavailable evidence.
+    - stop failed when semantic validation or final provenance verification fails.
+    - never return a partial artifact after a failed or blocked step.
+classification:
+  ceiling: workflow_input.classification_ceiling
+  behavior:
+    - Enrichment mappings resolve only to evidence at or below the output ceiling.
+    - The base renderer filters ordinary claims using the unchanged v1 behavior.
+    - V2 results do not expose withheld claim IDs.
+  fail_closed: true
+provenance:
+  verification_point: after v2 rendering, before exposing the artifact
+  invariants:
+    - validateFirstMeetingBriefInputV2 runs before enrichment is rendered
+    - all claim_ids and evidence_ids identify the same actual normalized claims
+    - all supplied vocabulary IDs exist in versioned registries
+    - all gap supporting evidence IDs exist in normalized claims
+    - final citations equal visible evidence_ids and respect the classification ceiling
+diagnostics:
+  guarantee:
+    - diagnostics contain no withheld claim IDs, claim text, excerpts, or source content
+    - validation failures use safe fixed messages and codes
+dependencies:
+  workflows: [prepare-first-meeting]
+  skills: [signal.extract, stakeholder.map, offering.match, artifact.render]
+  reference:
+    - ../../reference/signal-taxonomy.yaml
+    - ../../reference/personas.yaml
+    - ../../reference/offerings.yaml
+constraints:
+  - Only caller mappings are used; the workflow performs no automated research.
+  - Provisional fixtures do not establish business approval or customer-specific facts.
+  - Do not infer contact authority, scores, weights, urgency, or approved fit.
+  - Preserve conflicts and expose missing coverage as unknown.
+  - Do not change the frozen v1 schema, output, or renderer behavior.
+gates:
+  - workflow_input_schema_valid
+  - all_mapping_ids_resolve
+  - same_account_visible_evidence_only
+  - v2_semantic_validation_before_enrichment_rendering
+  - gap_supporting_evidence_references_exist
+  - final_citations_match_visible_claims
+  - no_artifact_on_block_or_failure
+  - safe_diagnostics_and_withheld_content
+evals:
+  suites: [golden, empty, unknown_ids, foreign_account, classification, conflicts, provenance, determinism, cli]
+  fixtures:
+    - fixtures/workflow-first-meeting-success
+    - fixtures/account-intelligence-v2/northstar-example.json
+  command: npm test

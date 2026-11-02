@@ -9,7 +9,8 @@
   },
   "scripts": {
     "test": "node --test",
-    "prepare-first-meeting": "node bin/prepare-first-meeting.js"
+    "prepare-first-meeting": "node bin/prepare-first-meeting.js",
+    "prepare-first-meeting-v2": "node bin/prepare-first-meeting-v2.js"
   },
   "dependencies": {
     "ajv": "^8.17.1",

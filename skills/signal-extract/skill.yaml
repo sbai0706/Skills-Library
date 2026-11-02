@@ -1,0 +1,33 @@
+skill: signal.extract
+version: 0.1.0
+status: draft
+business_owner: TBD
+
+intent: Map caller-annotated normalized claims to a versioned signal vocabulary without discovering or ranking events.
+when_to_use:
+  - A caller has supplied explicit signal category and normalized claim mappings.
+when_not_to_use:
+  - Signals must be found in source prose or judged for urgency, compellingness, or business impact.
+inputs:
+  schema: ../../schemas/signal-extract-input.schema.json
+  required: [account_id, claims, classification_ceiling]
+  optional: [annotations]
+outputs:
+  schema: ../../schemas/skill-result.schema.json
+  data_schema: ../../schemas/signal-result.schema.json
+  evidence_ids: sorted union of referenced normalized claim IDs
+dependencies:
+  reference: [../../reference/signal-taxonomy.yaml]
+  skills: [evidence.normalize]
+constraints:
+  - Only explicit caller mappings are accepted; source prose is not semantically interpreted.
+  - Every emitted reference resolves to a same-account normalized claim within the classification ceiling.
+  - Unknown vocabulary and evidence references fail safely without echoing IDs or source text.
+  - Conflicting claims remain referenced; no winner, score, urgency, or compelling-event judgment is produced.
+  - observed_at is emitted only when supplied by the caller.
+gates:
+  - input_schema_valid
+  - versioned_vocabulary_id_exists
+  - same_account_visible_claim_references
+  - safe_diagnostics
+  - deterministic_ids_and_order

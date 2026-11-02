@@ -21,6 +21,13 @@
         "CLASSIFICATION_RESTRICTED",
         "EXTRACTOR_UNAVAILABLE",
         "EXTRACTOR_MALFORMED_RESPONSE",
+        "ACCOUNT_SCOPE_MISMATCH",
+        "UNKNOWN_REFERENCE_ID",
+        "EVIDENCE_REFERENCE_UNAVAILABLE",
+        "UNSUPPORTED_MAPPING",
+        "REFERENCE_UNAVAILABLE",
+        "REFERENCE_INVALID",
+        "SIGNAL_REFERENCE_UNAVAILABLE",
         "INTERNAL_ERROR"
       ],
       "description": "Stable error code. Extend this enum when a new skill introduces a new failure class."

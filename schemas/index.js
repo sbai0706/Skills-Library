@@ -20,6 +20,12 @@ const SCHEMA_FILES = {
   stakeholderMap: "stakeholder-map.schema.json",
   offeringMatch: "offering-match.schema.json",
   firstMeetingBriefInputV2: "first-meeting-brief-input-v2.schema.json",
+  accountIntelligenceAnnotations: "account-intelligence-annotations.schema.json",
+  signalExtractInput: "signal-extract-input.schema.json",
+  stakeholderMapInput: "stakeholder-map-input.schema.json",
+  offeringMatchInput: "offering-match-input.schema.json",
+  prepareFirstMeetingV2Input: "prepare-first-meeting-v2-input.schema.json",
+  prepareFirstMeetingV2Result: "prepare-first-meeting-v2-result.schema.json",
   workflowInput: "workflow-input.schema.json",
   workflowResult: "workflow-result.schema.json",
 };
@@ -132,6 +138,16 @@ export function validateFirstMeetingBriefInputV2(value, { referenceRegistry } = 
     addSemanticError(errors, "/gap_result/account_id", "The gap result must belong to the brief account.");
   }
 
+  value.gap_result.questions.forEach((question, index) => {
+    if (question.supporting_evidence_ids.some((id) => !value.claims.some((claim) => claim.claim_id === id))) {
+      addSemanticError(
+        errors,
+        `/gap_result/questions/${index}/supporting_evidence_ids`,
+        "Every gap evidence ID must exist in the brief's normalized claims.",
+      );
+    }
+  });
+
   value.claims.forEach((claim, index) => {
     if (claim.account_id !== accountId) {
       addSemanticError(errors, `/claims/${index}/account_id`, "Evidence must belong to the brief account.");
@@ -179,6 +195,19 @@ export function validateFirstMeetingBriefInputV2(value, { referenceRegistry } = 
         addSemanticError(errors, `${path}/persona_id`, "The persona is not in the supplied versioned reference list.");
       }
       validateEvidenceReferences(stakeholder, path, claimsById, ceilingRank, errors);
+      const supported = stakeholder.claim_ids.some((id) => {
+        const excerpt = claimsById.get(id)?.excerpt;
+        return typeof excerpt === "string" &&
+          excerpt.includes(stakeholder.display_name) &&
+          excerpt.includes(stakeholder.role_evidence);
+      });
+      if (!supported) {
+        addSemanticError(
+          errors,
+          `${path}/role_evidence`,
+          "The mapped stakeholder name and role must occur in a cited claim excerpt.",
+        );
+      }
     });
   }
 

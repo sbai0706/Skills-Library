@@ -13,10 +13,36 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["offering_id", "match_status", "claim_ids", "evidence_ids"],
+        "required": ["offering_id", "match_status", "claim_ids", "evidence_ids", "rationale", "uncertainties", "discovery_questions"],
         "properties": {
           "offering_id": { "type": "string", "pattern": "^off_[A-Za-z0-9_-]+$" },
           "match_status": { "enum": ["candidate_hypothesis"] },
+          "rationale": {
+            "const": "Caller-supplied mapping only; cited evidence records account activity, not offering fit."
+          },
+          "uncertainties": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "The offering vocabulary or entry is provisional and requires business review.",
+                "No offering-specific fit criteria or customer priorities were supplied.",
+                "At least one cited claim is marked as conflicting; it has not been resolved."
+              ]
+            }
+          },
+          "discovery_questions": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "What outcome and constraints should be used to assess fit?",
+                "What scope, responsibilities, timeline, and measures of success should be confirmed?"
+              ]
+            }
+          },
           "claim_ids": {
             "type": "array",
             "minItems": 1,

@@ -41,7 +41,20 @@ function makeSemanticBrief() {
   const brief = readJson("first-meeting-brief-input-v2.example.json");
   const claim = readJson("evidence.example.json");
   claim.account_id = brief.account.account_id;
+  claim.claim = "Alex Example is a technology leader.";
+  claim.excerpt = "Alex Example is a technology leader.";
   brief.claims = [claim];
+  brief.gap_result = {
+    account_id: brief.account.account_id,
+    question_set_version: "0.1.0",
+    questions: [{
+      question_id: "FM-CTX-001",
+      status: "answered",
+      supporting_evidence_ids: [claim.claim_id],
+      reason_codes: [],
+    }],
+    summary_counts: { total: 1, answered: 1, partial: 0, unanswered: 0, conflicted: 0 },
+  };
   brief.signals = readJson("signal-result.example.json");
   brief.stakeholder_map = readJson("stakeholder-map.example.json");
   brief.offering_matches = readJson("offering-match.example.json");
@@ -50,6 +63,8 @@ function makeSemanticBrief() {
   brief.offering_matches.account_id = brief.account.account_id;
   brief.signals.signals[0].claim_ids = [claim.claim_id];
   brief.signals.signals[0].evidence_ids = [claim.claim_id];
+  brief.stakeholder_map.stakeholders[0].display_name = "Alex Example";
+  brief.stakeholder_map.stakeholders[0].role_evidence = "Alex Example is a technology leader.";
   brief.stakeholder_map.stakeholders[0].claim_ids = [claim.claim_id];
   brief.stakeholder_map.stakeholders[0].evidence_ids = [claim.claim_id];
   return brief;
@@ -181,6 +196,19 @@ test("v2 semantic validation rejects inconsistent evidence references and cross-
   const foreignEnrichment = makeSemanticBrief();
   foreignEnrichment.stakeholder_map.account_id = "another-account";
   assert.equal(validateFirstMeetingBriefInputV2(foreignEnrichment, { referenceRegistry: registry }).valid, false);
+});
+
+test("v2 semantic validation rejects orphan gap supporting evidence IDs", () => {
+  const orphan = makeSemanticBrief();
+  orphan.gap_result.questions[0].supporting_evidence_ids = ["clm_nonexistent_001"];
+  const result = validateFirstMeetingBriefInputV2(orphan, {
+    referenceRegistry: makeReferenceRegistry(),
+  });
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some((error) =>
+    error.path.endsWith("/supporting_evidence_ids") &&
+    error.message.includes("gap evidence ID"),
+  ));
 });
 
 test("v2 enrichment classification errors do not disclose withheld claim IDs or text", () => {
