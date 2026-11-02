@@ -1,0 +1,12 @@
+{
+  "account_id": "sf_clear_001",
+  "stakeholders": [
+    {
+      "stakeholder_id": "stkh_example_001",
+      "display_name": "Alex Example",
+      "persona_id": "per_technology_leader",
+      "claim_ids": ["clm_example_002"],
+      "evidence_ids": ["clm_example_002"]
+    }
+  ]
+}

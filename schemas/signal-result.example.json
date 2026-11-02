@@ -1,0 +1,12 @@
+{
+  "account_id": "sf_clear_001",
+  "signals": [
+    {
+      "signal_id": "sig_northstar_001",
+      "signal_type_id": "sigcat_technology_change",
+      "claim_ids": ["clm_example_001"],
+      "evidence_ids": ["clm_example_001"],
+      "observed_at": "2026-09-28T09:00:00Z"
+    }
+  ]
+}

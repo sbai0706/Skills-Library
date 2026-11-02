@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sales-copilot.local/schemas/stakeholder-map.schema.json",
+  "title": "Account stakeholder map",
+  "description": "Evidence-linked people and recorded role/persona references. It does not infer authority or decision rights.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["account_id", "stakeholders"],
+  "properties": {
+    "account_id": { "type": "string", "pattern": "^(acct|sf)_[A-Za-z0-9_-]+$" },
+    "stakeholders": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["stakeholder_id", "display_name", "persona_id", "claim_ids", "evidence_ids"],
+        "properties": {
+          "stakeholder_id": { "type": "string", "pattern": "^stkh_[A-Za-z0-9_-]+$" },
+          "display_name": { "type": "string", "minLength": 1, "maxLength": 200 },
+          "persona_id": { "type": "string", "pattern": "^per_[A-Za-z0-9_-]+$" },
+          "claim_ids": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "pattern": "^clm_[A-Za-z0-9_-]+$" } },
+          "evidence_ids": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "pattern": "^clm_[A-Za-z0-9_-]+$" } }
+        }
+      }
+    }
+  }
+}

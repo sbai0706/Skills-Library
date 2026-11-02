@@ -16,6 +16,10 @@ const SCHEMA_FILES = {
   sourceRecord: "source-record.schema.json",
   gapResult: "gap-result.schema.json",
   firstMeetingBriefInput: "first-meeting-brief-input.schema.json",
+  signalResult: "signal-result.schema.json",
+  stakeholderMap: "stakeholder-map.schema.json",
+  offeringMatch: "offering-match.schema.json",
+  firstMeetingBriefInputV2: "first-meeting-brief-input-v2.schema.json",
   workflowInput: "workflow-input.schema.json",
   workflowResult: "workflow-result.schema.json",
 };
