@@ -1,0 +1,70 @@
+workflow: prepare-engagement
+version: 0.1.0
+status: draft
+business_owner: TBD
+
+intent: Compose evidence preparation with draft-only initial engagement or post-meeting follow-up.
+when_to_use:
+  - A caller supplies an account reference and wants evidence-grounded outreach, meeting preparation, or follow-up text.
+when_not_to_use:
+  - A live integration, message send, CRM write, contact lookup, or approved business decision is required.
+inputs:
+  schema: ../../schemas/prepare-engagement-input.schema.json
+  required: [mode, workflow_input]
+  optional: [annotations, outreach_claim_ids, meeting_claim_ids, follow_up_claim_ids, recipient_name, messaging_guidance]
+outputs:
+  schema: ../../schemas/prepare-engagement-result.schema.json
+  statuses: [success, partial, blocked, failed]
+  artifact:
+    format: markdown
+    only_when: status is success or partial and selected evidence citations validate
+steps:
+  - id: workflow.input
+    kind: validation
+    required: true
+  - id: prepare-first-meeting-v2
+    workflow: prepare-first-meeting-v2
+    required: true
+    produces: resolved account and normalized claims
+  - id: engagement.draft
+    skill: engagement.draft
+    required: true
+    produces: initial outreach and meeting preparation or post-meeting follow-up
+  - id: provenance.check
+    kind: semantic_validation
+    required: true
+    produces: citation equality, same-account references, and classification-ceiling validation
+execution:
+  mode: fixed_sequential
+  no_retries: true
+  stop_rules:
+    - stop on invalid input, blocked account resolution, failed evidence preparation, or invalid claim references.
+    - return no artifact after a failed or blocked step.
+    - require at least one meeting evidence reference for follow-up.
+classification:
+  ceiling: workflow_input.classification_ceiling
+  fail_closed: true
+  behavior:
+    - only selected visible same-account normalized claims may be cited
+    - hidden claim IDs and text are not returned
+    - gap metadata is recomputed from visible draft inputs rather than copied from the base workflow
+constraints:
+  - Caller-selected facts remain distinct from generic draft prose and open questions.
+  - No contact, business rule, commitment, owner, date, agreement, or approval is inferred.
+  - The workflow performs no external message send or CRM mutation.
+gates:
+  - workflow_input_schema_valid
+  - all_selected_claim_ids_resolve_to_visible_same_account_claims
+  - follow_up_uses_meeting_activity_evidence
+  - all_emitted_citations_resolve
+  - visible_conflicts_remain_unresolved_and_explicit
+  - no_artifact_on_block_or_failure
+evals:
+  suites: [initial, follow_up, sparse, empty, conflicts, missing_ids, foreign_account, classification, determinism, cli]
+  fixtures:
+    - fixtures/engagement-initial
+    - fixtures/engagement-follow-up
+    - fixtures/engagement-sparse
+    - fixtures/engagement-empty
+    - fixtures/engagement-conflicting
+  command: npm test

@@ -34,6 +34,10 @@ const SCHEMA_FILES = {
   qualificationAssessment: "qualification-assessment.schema.json",
   qualificationWorkflowInput: "qualification-workflow-input.schema.json",
   qualificationWorkflowResult: "qualification-workflow-result.schema.json",
+  engagementDraftInput: "engagement-draft-input.schema.json",
+  engagementDraftData: "engagement-draft-data.schema.json",
+  prepareEngagementInput: "prepare-engagement-input.schema.json",
+  prepareEngagementResult: "prepare-engagement-result.schema.json",
   workflowInput: "workflow-input.schema.json",
   workflowResult: "workflow-result.schema.json",
 };

@@ -1,0 +1,10 @@
+{
+  "status": "partial",
+  "mode": "follow_up",
+  "expected_citations": [
+    "clm_486a60a81f8ddd0c",
+    "clm_4508f27821b000d6"
+  ],
+  "warning_code": "VISIBLE_EVIDENCE_CONFLICT",
+  "must_not_select_conflict_winner": true
+}

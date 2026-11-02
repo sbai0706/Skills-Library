@@ -1,0 +1,48 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sales-copilot.local/schemas/prepare-engagement-input.schema.json",
+  "title": "prepare-engagement workflow input",
+  "description": "Compose existing account/evidence preparation with draft-only Engagement output.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["mode", "workflow_input"],
+  "properties": {
+    "mode": { "enum": ["initial", "follow_up"] },
+    "workflow_input": {
+      "$ref": "https://sales-copilot.local/schemas/prepare-first-meeting-v2-input.schema.json#/properties/workflow_input"
+    },
+    "annotations": {
+      "$ref": "https://sales-copilot.local/schemas/prepare-first-meeting-v2-input.schema.json#/properties/annotations"
+    },
+    "outreach_claim_ids": { "$ref": "#/definitions/claimIds" },
+    "meeting_claim_ids": { "$ref": "#/definitions/claimIds" },
+    "follow_up_claim_ids": { "$ref": "#/definitions/claimIds" },
+    "recipient_name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "messaging_guidance": {
+      "$ref": "https://sales-copilot.local/schemas/engagement-draft-input.schema.json#/definitions/messagingGuidance"
+    }
+  },
+  "definitions": {
+    "claimIds": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^clm_[A-Za-z0-9_-]+$" }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "mode": { "const": "follow_up" } },
+        "required": ["mode"]
+      },
+      "then": {
+        "properties": { "follow_up_claim_ids": {} },
+        "required": ["follow_up_claim_ids"]
+      }
+    }
+  ]
+}
