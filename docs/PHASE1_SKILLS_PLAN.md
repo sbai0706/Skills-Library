@@ -40,33 +40,58 @@ fabricated defaults.
 
 | Area | Current state |
 |---|---|
-| Shared evidence foundation | `account.resolve`, `evidence.retrieve`, `evidence.normalize`, `gap.detect`, `artifact.render`, and the fixture-backed `prepare-first-meeting` workflow exist. They provide a reusable, evidence-linked base; they do not supply a live integration or four finished Phase 1 agents. |
-| Account Intelligence contracts and implementation | `signal.extract`, `stakeholder.map`, `offering.match`, and additive `prepare-first-meeting-v2` are callable, deterministic, fixture-backed implementations. Mappings must be supplied by the caller and resolve to normalized same-account evidence within the classification ceiling. The v2 workflow calls `validateFirstMeetingBriefInputV2(value, { referenceRegistry })` before rendering enrichment and checks final citations. It also checks gap supporting IDs and safe failure behavior. The v1 schema, output, and renderer remain unchanged. This is not automated research, a verified business catalogue, or an authorization boundary. |
-| Four Phase 1 outcomes | Account Intelligence has a complete fixture-backed library slice with explicit mapping inputs and visible unknowns. Engagement, Qualification, and Opportunity Strategy still need practical skill/workflow implementations. No complete implementation of all four outcomes is claimed. |
-| Reference vocabularies | `reference/signal-taxonomy.yaml`, `reference/personas.yaml`, and `reference/offerings.yaml` are versioned provisional fixtures with TBD ownership/approval. They are not approved business policy. |
-| Out of default scope | Deal Intelligence, nurture/collateral selection, production integrations, and host-side execution are not mandatory library work in this plan. Add them only after explicit scope and dependency decisions. |
+| Shared evidence foundation | `account.resolve`, `evidence.retrieve`, `evidence.normalize`, `gap.detect`, `artifact.render`, and fixture-backed `prepare-first-meeting` remain the common evidence/provenance base. The v1 first-meeting schema, output, and renderer are unchanged by the additive v2 path. No live integration is provided. |
+| Account Intelligence | Callable `signal.extract`, `stakeholder.map`, and `offering.match` skills compose in [`prepare-first-meeting-v2`](../workflows/prepare-first-meeting-v2/WORKFLOW.md). The workflow semantically validates enrichment IDs, account scope, registry IDs, gap support, and classification ceiling before rendering and verifies citations afterward. All enrichment mappings are caller supplied; absence remains unknown. Stakeholder output explicitly marks the role mapping `caller_hypothesis` and preserves visible cited excerpts without treating overlap as relationship verification. |
+| Engagement | Callable `engagement.draft` composes in [`prepare-engagement`](../workflows/prepare-engagement/WORKFLOW.md) for initial outreach/meeting drafts and follow-up drafts. Follow-up requires explicitly selected, same-account evidence. Outputs are proposals only and are never sent. |
+| Qualification | Callable `qualification.assess` composes in the [`qualification` workflow](../workflows/qualification/WORKFLOW.md). It inventories caller-mapped criteria and six event fields, preserves visible conflicts, and emits discovery questions. It always leaves the qualification decision undetermined and stage readiness unavailable; no B-FITT expansion or threshold is embedded. |
+| Opportunity Strategy | Callable `opportunity.strategy` composes in [`opportunity-strategy`](../workflows/opportunity-strategy/WORKFLOW.md) with the actual Qualification assessor. It produces cited problem/value hypotheses, mapped offering candidates, uncertainty, discovery, and proposed next actions. Stage readiness/opportunity creation remain unavailable. |
+| Four Phase 1 outcomes | **All four Skills Library slices are implemented and fixture-backed.** This is repository-scope completion, not a business-validated customer Phase 1 pilot. The outputs are evidence inventories, drafts, and hypotheses, not approvals or external actions. |
+| Reference vocabularies and examples | `reference/signal-taxonomy.yaml`, `reference/personas.yaml`, and `reference/offerings.yaml` are versioned provisional fixtures. Example Northstar/qualification mappings demonstrate interfaces only; they are not automated source research, customer facts, approved criteria, or catalogue sign-off. |
+| External scope | Live source discovery, production host/runtime, identity/authorization, CRM connectors or writes, message sending, approval UX, and other integrations remain outside this Skills Library implementation. |
 
-## Practical Phase 1 deliverables
+## Implemented deliverables and portable invocations
 
-1. **Account Intelligence:** Complete an evidence-grounded account/first-meeting preparation workflow. Include normalized account context, evidence-linked signals, only evidenced stakeholder roles, offering-fit hypotheses, explicit gaps/conflicts, source/provenance IDs, and questions for discovery. Do not invent account facts.
-2. **Engagement:** Produce reviewable outreach, meeting-preparation, and follow-up drafts grounded in supplied evidence and approved messaging inputs. Do not send communications.
-3. **Qualification:** Produce advisory criterion-by-criterion evidence and unknowns, plus discovery questions. Use an approved B-FITT definition when supplied; otherwise require an explicitly provisional/caller-supplied definition or return the criteria as unresolved. Do not invent weights or a pass threshold.
-4. **Opportunity Strategy:** Produce an evidence-linked opportunity hypothesis, event assessment, service-fit hypothesis, remaining discovery, and next customer decision. Stage or opportunity-creation recommendations remain unavailable until their business rules are supplied; no CRM mutation is performed.
+These commands use checked-in fixtures and the deterministic fixture claim extractor. They make no
+network/model calls and do not send messages or mutate CRM state.
 
-Keep the first delivery small: reusable contracts and deterministic helpers, one end-to-end fixture-backed workflow per outcome, concise skill/workflow documentation, and targeted positive/negative/replay tests. Reuse the current evidence, gap, result, and adapter conventions rather than creating parallel envelopes or abstractions.
+| Outcome | Skill/workflow entry points | Portable command |
+|---|---|---|
+| Account Intelligence | `signal.extract`, `stakeholder.map`, `offering.match`; `prepareFirstMeetingV2` | `npm run prepare-first-meeting-v2 -- --account "Northstar Logistics" --mapping-fixture northstar-example --output json` |
+| Engagement initial | `engagement.draft`; `prepareEngagement` | `npm run prepare-engagement -- --fixture engagement-initial --mode initial --output json` |
+| Engagement follow-up | `engagement.draft`; `prepareEngagement` | `npm run prepare-engagement -- --fixture engagement-follow-up --mode follow_up --output json` |
+| Qualification | `assessQualification`; `runQualification` | `npm run qualification -- --account "Northstar Logistics" --assessment-fixture northstar-provisional --output json` |
+| Opportunity Strategy | `assessOpportunityStrategy`; `runOpportunityStrategy` | `npm run opportunity-strategy -- --fixture northstar-example --output json` |
+
+`northstar-example` and `northstar-provisional` are illustrative fixture mappings over repository
+claims. They do not prove account facts, discover source material, approve a business definition,
+or assert a service fit. A `partial` result and CLI exit code `2` are expected when gaps or
+provisional policy remain; they still produce a clearly qualified artifact.
+
+### Windows fixture smoke results (2026-11-03)
+
+The commands above were run from the repository root with JSON output. Each returned an artifact;
+the listed unique claim citations were present in that artifact and covered all result `evidence_ids`.
+Expected partial exit code `2` is a usable outcome, not a CLI failure.
+
+| Smoke case | Status / exit | Artifact and citations | Warnings / errors |
+|---|---|---|---|
+| Account Intelligence v2 | `success` / `0` | Present; 4 unique cited claims for 4 evidence IDs | `GAPS_PRESENT` ×2 / none |
+| Engagement initial | `success` / `0` | Present; 2 unique cited claims for 2 evidence IDs | none / none |
+| Engagement follow-up | `success` / `0` | Present; 2 unique cited claims for 2 evidence IDs | none / none |
+| Qualification | `partial` / `2` | Present; 1 unique cited claim for 1 evidence ID | `POLICY_UNAVAILABLE` / none |
+| Opportunity Strategy | `partial` / `2` | Present; 1 unique cited claim for 1 evidence ID | `POLICY_UNAVAILABLE`, `EVENT_FIELDS_INCOMPLETE`, `CATALOGUE_NOT_APPROVED` / none |
 
 ## Sequence and acceptance gates
 
-### Sequence
+### Completed library delivery sequence
 
-1. Complete Account Intelligence contracts and the fixture-backed first-meeting slice (this
-   library milestone is implemented; mappings remain caller-provided and business vocabularies
-   provisional).
-2. Add Engagement drafting and meeting/follow-up preparation over the same evidence boundary.
-3. Add Qualification with explicit unknowns and caller-supplied criteria until business-owned B-FITT/event rules exist.
-4. Add Opportunity Strategy with evidence-linked hypotheses; keep stage/creation rules as unresolved inputs until approved.
+1. **Account Intelligence — implemented:** explicit mapping skills plus additive v2 first-meeting workflow.
+2. **Engagement — implemented:** evidence-grounded initial and follow-up draft workflow.
+3. **Qualification — implemented:** caller-mapped criterion/event evidence inventory with no qualification decision.
+4. **Opportunity Strategy — implemented:** qualification-composed hypotheses and discovery with stage readiness unavailable.
 
-This sequence is a library delivery recommendation, not a claim that the source proposal mandates a technical order.
+The sequence records Skills Library delivery only. The four slices do not constitute a complete
+customer pilot or business approval; see the unresolved dependencies below.
 
 ### Measurable gates
 
@@ -79,6 +104,7 @@ This sequence is a library delivery recommendation, not a claim that the source 
 - Each implemented workflow has deterministic success, empty/sparse, missing-input, conflicting-evidence, and failure coverage. Fixture/replay tests make no network calls.
 - Library outputs are drafts/advice only: tests demonstrate zero actual message sends and zero live CRM mutations.
 - No stage, B-FITT score, event threshold, business approval, offering capability, or customer-specific claim is asserted without an approved definition or evidence.
+- After the Account Intelligence role-hypothesis and optional-v2-enrichment corrections, `npm test` passed **369 tests, 0 failed**. The focused command `node --test tests/account-intelligence-skills.test.js tests/prepare-first-meeting-v2.test.js tests/engagement.test.js tests/account-intelligence-contracts.test.js` passed **67 tests, 0 failed**. The Windows fixture smoke outcomes are recorded above; documentation-only edits do not change these code-test results.
 
 ## Dependencies and decisions still needed
 

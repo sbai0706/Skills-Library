@@ -1,10 +1,10 @@
 # Sales Copilot — Skills Foundation
 
-Working foundation for Sales Copilot skills with eight callable capabilities and two composed
-workflows: `account.resolve` (v0.2.0), `evidence.retrieve` (v0.2.0), `evidence.normalize` (v0.1.0),
-`gap.detect` (v0.1.0), `artifact.render` (v0.1.0), `signal.extract` (v0.1.0),
-`stakeholder.map` (v0.1.0), `offering.match` (v0.1.0), `prepare-first-meeting` (v0.1.0), and
-`prepare-first-meeting-v2` (v0.1.0).
+Working foundation for Sales Copilot with eleven callable skills and five composed workflows:
+`account.resolve`, `evidence.retrieve`, `evidence.normalize`, `gap.detect`, `artifact.render`,
+`signal.extract`, `stakeholder.map`, `offering.match`, `engagement.draft`, `qualification.assess`,
+and `opportunity.strategy`. The workflows are `prepare-first-meeting`,
+`prepare-first-meeting-v2`, `prepare-engagement`, `qualification`, and `opportunity-strategy`.
 
 The two v0.2.0 skills carry the earlier policy tightening (exact-match-only account
 resolution, fail-closed classification defaults, documented no-retry rule). `evidence.normalize`
@@ -14,20 +14,25 @@ classification ceiling, and `prepare-first-meeting` composes them in a fixed ord
 provenance verification.
 
 Architecture reference: [Sales_Skills_Library_Architecture_v2.md](Sales_Skills_Library_Architecture_v2.md).
-That document describes the eventual direction; this repository implements the shared contracts,
-the five original skills, three Account Intelligence skills, and two fixed workflows. See
-[docs/MVP_HANDOFF.md](docs/MVP_HANDOFF.md) for the
-original frozen contracts and parallel branch handoff.
+That document describes the eventual direction. The repository currently implements the shared
+evidence foundation and all four Phase 1 outcome slices as deterministic, fixture-backed library
+workflows; this is not a business-validated customer pilot or a live host integration. See the
+[Phase 1 acceptance summary](docs/PHASE1_SKILLS_PLAN.md) and
+[historical MVP handoff](docs/MVP_HANDOFF.md).
 
-The three Account Intelligence skills accept only explicit caller mappings to normalized evidence.
-They do not discover signals, infer stakeholder authority, or automatically recommend offerings.
-The default signal, persona, and offering registries remain provisional fixtures, and the sample
-offering entries are placeholders pending business review. See
+The Account Intelligence skills accept only explicit caller mappings to normalized evidence. They
+do not discover signals, infer stakeholder authority, or automatically recommend offerings. The
+Engagement, Qualification, and Opportunity Strategy slices likewise produce reviewable drafts,
+evidence inventories, and hypotheses—not business approvals or external actions. The default
+signal, persona, and offering registries remain provisional fixtures, and the sample offering
+entries are placeholders pending business review. See
 [workflows/prepare-first-meeting-v2/WORKFLOW.md](workflows/prepare-first-meeting-v2/WORKFLOW.md).
 
-The skills are plain JavaScript functions. There is no agent-platform integration, no prompt
-parsing, and no model provider dependency. `SKILL.md` is the agent-facing description;
-`index.js`, the schemas, and the adapters are the portable implementation.
+The core skills are plain JavaScript functions with no model-provider dependency. Four selected
+repo-local Claude Code wrappers live under `.claude/skills` and invoke the portable fixture CLIs;
+see the [agent skills usage guide](docs/AGENT_SKILLS.md) for installation, invocation, and limits.
+The wrappers' frontmatter and CLI paths are tested, but Claude Code runtime discovery itself has
+not been tested. There is no production agent-host integration.
 
 ## Requirements
 
@@ -143,8 +148,28 @@ does not expose withheld claim IDs.
 | `1` | Failed workflow or invalid CLI invocation. |
 
 To move toward live use, a future host can invoke `prepareFirstMeetingV2` with approved adapter and
-extractor implementations, explicit caller mappings, and the correct reference registries. Both
-CLIs remain fixture-only and do not provide live-adapter support.
+extractor implementations, explicit caller mappings, and the correct reference registries. All
+shipped CLIs remain fixture-only and do not provide live-adapter support.
+
+## Phase 1 outcome workflows
+
+The four outcomes below have portable, fixture-backed skill/workflow implementations. Every
+example uses checked-in fixtures and the deterministic claim extractor; it does not search the
+web, contact a CRM, send a message, or establish that a caller mapping is true or approved.
+
+| Outcome | Entry points and portable invocation | Current boundary |
+|---|---|---|
+| [Account Intelligence](workflows/prepare-first-meeting-v2/WORKFLOW.md) | `signal.extract`, `stakeholder.map`, `offering.match`; `npm run prepare-first-meeting-v2 -- --account "Northstar Logistics" --mapping-fixture northstar-example --output json` | Caller supplies all enrichment mappings. Stakeholder roles are explicitly unverified hypotheses; registries are provisional and unsupported coverage stays unknown. |
+| [Engagement](workflows/prepare-engagement/WORKFLOW.md) | `engagement.draft`; initial: `npm run prepare-engagement -- --fixture engagement-initial --mode initial --output json`; follow-up: `npm run prepare-engagement -- --fixture engagement-follow-up --mode follow_up --output json` | Produces reviewable drafts only. Follow-up requires cited caller-selected activity; nothing is sent. |
+| [Qualification](workflows/qualification/WORKFLOW.md) | `qualification.assess`; `npm run qualification -- --account "Northstar Logistics" --assessment-fixture northstar-provisional --output json` | Inventories evidence for supplied criteria and six event fields. Decisions remain `not_determined`; no approved B-FITT definition or threshold is embedded. |
+| [Opportunity Strategy](workflows/opportunity-strategy/WORKFLOW.md) | `opportunity.strategy`; `npm run opportunity-strategy -- --fixture northstar-example --output json` | Produces tentative evidence-linked hypotheses and discovery. Stage readiness is unavailable; no opportunity or CRM change is made. |
+
+These are Skills Library deliverables, not a complete customer pilot. `success` and `partial` are
+workflow execution/output statuses, not business approval; CLI exit code `2` means a usable partial
+artifact with explicit gaps. See the [Phase 1 plan](docs/PHASE1_SKILLS_PLAN.md) for the acceptance
+record, unresolved business rules, and external host dependencies. The four Claude Code wrappers are
+selected invocations, not wrappers for every internal skill or every workflow: Account Intelligence
+v2 currently has a portable CLI but no `/prepare-first-meeting-v2` wrapper.
 
 ## Layout
 
@@ -160,6 +185,10 @@ schemas/
   first-meeting-brief-input.schema.json   Structured renderer input (structural validation only)
   first-meeting-brief-input-v2.schema.json Additive structured renderer input
   prepare-first-meeting-v2-*.schema.json  V2 workflow and mapping contracts
+  prepare-engagement-*.schema.json       Engagement workflow contracts
+  engagement-draft-*.schema.json         Engagement skill contracts
+  qualification-*.schema.json            Qualification skill/workflow contracts
+  opportunity-strategy-*.schema.json     Opportunity Strategy contracts
   first-meeting-brief-input.example.json  Example renderer input used by tests
   workflow-input.schema.json    prepare-first-meeting input contract
   workflow-result.schema.json   prepare-first-meeting result contract
@@ -177,6 +206,9 @@ adapters/
 bin/
   prepare-first-meeting.js      Portable fixture CLI; invokes the existing workflow
   prepare-first-meeting-v2.js   Portable CLI; invokes the additive Account Intelligence workflow
+  prepare-engagement.js         Portable CLI; emits initial/follow-up drafts
+  qualification.js              Portable CLI; emits an advisory evidence assessment
+  opportunity-strategy.js       Portable CLI; emits a tentative strategy artifact
 
 skills/account-resolve/
   SKILL.md                      Agent-facing instructions
@@ -235,10 +267,33 @@ skills/stakeholder-map/
 skills/offering-match/
   SKILL.md, skill.yaml, validate-input.js, and index.js for explicit mapping skills
 
+skills/engagement/
+  SKILL.md, skill.yaml, index.js for reviewable message and meeting drafts
+
+skills/qualification-assess/
+  SKILL.md, index.js for criterion/event evidence inventory without a qualification decision
+
+skills/opportunity-strategy/
+  SKILL.md, index.js, render.js for evidence-linked hypotheses and discovery
+
 workflows/prepare-first-meeting-v2/
   WORKFLOW.md                   Account Intelligence v2 workflow contract and invocation
   workflow.yaml                 Machine-readable workflow contract
   index.js                      Additive workflow composition and v2 validation
+
+workflows/prepare-engagement/
+  WORKFLOW.md                   Initial and follow-up draft workflow contract
+  workflow.yaml                 Machine-readable workflow contract
+  index.js                      Evidence-backed draft composition; no sending
+
+workflows/qualification/
+  WORKFLOW.md                   Qualification evidence workflow contract
+  index.js                      Account/evidence normalization plus qualification.assess
+
+workflows/opportunity-strategy/
+  WORKFLOW.md                   Opportunity Strategy contract and invocation
+  workflow.yaml                 Machine-readable workflow contract
+  index.js                      Composes the actual Qualification assessor and strategy
 
 fixtures/
   clear-account/                Account fixtures: accounts.json + expected.json
@@ -258,12 +313,23 @@ fixtures/
   gap-*/                        Gap coverage, conflict, rejection, and empty-claim fixtures
   brief-*/                      Renderer golden, sparse, partial, conflict, classification, template fixtures
   workflow-first-meeting-*/     End-to-end workflow scenarios: input.json, expected.json, accounts.json, sources.json
+  engagement-*/                 Initial, follow-up, sparse, empty, and conflict draft scenarios
+  qualification-event/          Provisional criteria/event evidence mapping
+  opportunity-strategy/         Caller mapping fixture for a provisional offering hypothesis
 
 reference/
   first-meeting-questions.yaml  Draft reference questions used by gap detection and rendering
 
 docs/
+  AGENT_SKILLS.md              Repo-local Claude Code wrapper installation and usage
+  PHASE1_SKILLS_PLAN.md         Current four-outcome acceptance summary and unresolved dependencies
   MVP_HANDOFF.md                Frozen contracts and original parallel implementation handoff
+
+.claude/skills/
+  prepare-first-meeting/        Claude Code project wrapper for the v1 fixture CLI
+  prepare-engagement/           Initial/follow-up draft wrapper
+  qualification/                Advisory evidence-assessment wrapper
+  opportunity-strategy/         Tentative strategy wrapper
 
 tests/
   schemas.test.js               Envelope, evidence, source-record, and error schema tests
@@ -277,6 +343,9 @@ tests/
   integration-contracts.test.js Gap result, brief input, workflow, and timestamp schema validation
   contracts.test.js             skill.yaml/SKILL.md contract checks for every skill
   reference.test.js             Structure and integrity of the reference questions
+  engagement.test.js            Draft boundary, classification, source, and replay coverage
+  qualification.test.js         Six-field evidence assessment and safe-reference coverage
+  opportunity-strategy.test.js  Strategy composition, provenance, ceiling, and CLI coverage
 ```
 
 ## Using the skills in code
@@ -447,9 +516,9 @@ status aggregation, diagnostic handling, and provenance invariants.
 - **The workflow verifies its artifact.** It composes the skills in fixed order, stops on a
   block or failure, and checks citations and classification omissions before returning a brief.
 
-## Shared-contract change
+## Shared-contract history
 
-`schemas/error.schema.json` gained five enum members across revisions, each additive:
+The original foundation added the following error codes additively:
 
 | Code | Added for |
 | --- | --- |
@@ -458,6 +527,10 @@ status aggregation, diagnostic handling, and provenance invariants.
 | `CLASSIFICATION_RESTRICTED` | Records withheld by the access-classification policy |
 | `EXTRACTOR_UNAVAILABLE` | Claim extractor failed or threw for a record |
 | `EXTRACTOR_MALFORMED_RESPONSE` | Claim extractor returned an unusable envelope |
+
+The Account Intelligence, Engagement, Qualification, and Opportunity Strategy slices extend the
+same enum. See [`schemas/error.schema.json`](schemas/error.schema.json) for the current full set;
+the shared result envelope remains common to all skills.
 
 `schemas/evidence.schema.json` gained optional `question_ids` and `occurred_at`; source records
 gained optional `published_at` to distinguish publication time from event/occurrence time. These
@@ -525,9 +598,12 @@ The workflow has separate input and result schemas; the shared skill envelope is
     customer-facing artifact may render? Today conflicts are surfaced for a human; no skill
     adjudicates them.
 
-## Deferred work
+## Remaining work and limits
 
-Live Salesforce, web and document connectivity, additional artifact formats, B-FITT,
-qualification, CRM writeback, approvals, model-driven routing, UI, and broader orchestration
-remain deferred. Model-backed claim extraction is deferred: the interface exists
-(`adapters/claim-extractor.js`) but only the deterministic fixture extractor implements it.
+The four Phase 1 outcomes have fixture-backed library workflows, but business validation and a
+production pilot are not complete. Approved B-FITT dimensions/criteria, qualification thresholds,
+event verification and urgency rules, stage mappings/advancement gates, personas, offerings, and
+messaging guidance remain business-owned inputs; the library does not invent them. Automated
+source discovery, model-backed claim extraction, live Salesforce/web/document connectivity,
+authorization, approval UI, CRM writeback, message sending, additional artifact formats, and
+broader orchestration remain outside the current implementation.

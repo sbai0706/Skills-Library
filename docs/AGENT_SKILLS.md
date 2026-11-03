@@ -26,6 +26,10 @@ Code。只复制 `.claude/skills` 或 `skills/` 到 `.claude` 都不够；CLI �
    Claude Code 项目上下文中发现。若已打开会话未看到 skill，重新加载项目会话后再试。
 4. 可先运行 `npm test`，确认当前仓库测试状态；再运行下方 fixture 命令核对结果。
 
+测试覆盖 wrapper frontmatter、资源引用和五个 fixture CLI invocation；Claude Code 实际
+slash-command 发现/执行及模型表现尚未在 runtime 中验证。Account Intelligence v2 有单独
+的 fixture CLI，目前没有对应的 `/prepare-first-meeting-v2` wrapper。
+
 在 Claude Code 中可以输入对应的 `/skill-name`，也可以直接描述需求并点名 skill：
 
 ```text
