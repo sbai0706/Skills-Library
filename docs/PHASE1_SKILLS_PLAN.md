@@ -64,8 +64,11 @@ network/model calls and do not send messages or mutate CRM state.
 
 `northstar-example` and `northstar-provisional` are illustrative fixture mappings over repository
 claims. They do not prove account facts, discover source material, approve a business definition,
-or assert a service fit. A `partial` result and CLI exit code `2` are expected when gaps or
-provisional policy remain; they still produce a clearly qualified artifact.
+or assert a service fit. Status and exit code are workflow-specific: gaps or warnings do not
+automatically make a result `partial`. In the fixture cases below, Qualification and Opportunity
+Strategy return `partial` with exit code `2` because their advisory policy/event/catalogue gaps affect
+those outputs; Account Intelligence and Engagement return `success` with exit code `0` despite
+warnings or remaining evidence gaps. A partial result still includes a clearly qualified artifact.
 
 ### Windows fixture smoke results (2026-11-03)
 
