@@ -75,7 +75,7 @@ test("signal.extract accepts explicit category mappings and returns deterministi
   assert.equal(Object.hasOwn(first.data.signals[0], "observed_at"), false);
 });
 
-test("stakeholder.map requires a named person and exact role evidence in a cited excerpt", async () => {
+test("stakeholder.map keeps a visible person-role mapping explicitly provisional", async () => {
   const claims = await northstarClaims();
   const input = skillInput(claims, {
     annotations: [{
@@ -89,6 +89,7 @@ test("stakeholder.map requires a named person and exact role evidence in a cited
   assert.equal(mapped.status, "success");
   assert.equal(mapped.data.stakeholders[0].display_name, "Priya Raman");
   assert.equal(mapped.data.stakeholders[0].role_evidence, "Priya Raman, Director of Operations");
+  assert.equal(mapped.data.stakeholders[0].role_mapping_status, "caller_hypothesis");
   assert.deepEqual(mapped.evidence_ids, ["clm_5e66a71c957aaada"]);
 
   const unsupported = mapStakeholders({

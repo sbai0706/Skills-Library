@@ -7,6 +7,7 @@ import { createFixtureClaimExtractor } from "../adapters/fixture-claim-extractor
 import { normalizeEvidence } from "../skills/evidence-normalize/index.js";
 import { detectGaps } from "../skills/gap-detect/index.js";
 import { validate } from "../schemas/index.js";
+import { renderFirstMeetingBriefV2 } from "../skills/artifact-render/first-meeting-brief-v2.js";
 import { prepareFirstMeetingV2 } from "../workflows/prepare-first-meeting-v2/index.js";
 
 const NOW = () => new Date("2026-10-25T00:00:00.000Z");
@@ -89,15 +90,110 @@ function addQuestionConflict(normalize, claimDefinitions, conflicts) {
   };
 }
 
+function addRoleEvidence(normalize, claims, conflicts = []) {
+  return async (skillInput, deps) => {
+    const result = await normalize(skillInput, deps);
+    const addedClaims = claims.map(({ claimId, classification = "internal", text, status = "direct" }) => {
+      const source = result.data.claims[0];
+      return {
+        ...source,
+        claim_id: claimId,
+        claim: text,
+        excerpt: text,
+        access_classification: classification,
+        verification_status: status,
+        question_ids: [],
+      };
+    });
+    result.data.claims.push(...addedClaims);
+    result.data.claim_count = result.data.claims.length;
+    result.data.conflicts = [...result.data.conflicts, ...conflicts];
+    result.evidence_ids = result.data.claims.map((claim) => claim.claim_id).sort();
+    return result;
+  };
+}
+
+function stakeholderAnnotations(claimIds) {
+  return {
+    signals: [],
+    stakeholders: [{
+      display_name: "Alex Example",
+      persona_id: "per_operations_leader",
+      role_evidence: "Operations Lead",
+      claim_ids: claimIds,
+    }],
+    offerings: [],
+  };
+}
+
+function emptyBrief(enrichments = {}) {
+  const accountId = "sf_clear_001";
+  return {
+    account: { account_id: accountId, canonical_name: "Clear Example" },
+    claims: [],
+    gap_result: {
+      account_id: accountId,
+      question_set_version: "1.0.0",
+      questions: [],
+      summary_counts: { total: 0, answered: 0, partial: 0, unanswered: 0, conflicted: 0 },
+    },
+    output_template_id: "first-meeting-brief-v1",
+    audience: "internal_sales",
+    classification_ceiling: "internal",
+    ...enrichments,
+  };
+}
+
+test("the v2 renderer accepts every absent or partial optional-enrichment shape", () => {
+  const accountId = "sf_clear_001";
+  const optionalEnrichments = {
+    signals: { account_id: accountId, signals: [] },
+    stakeholder_map: { account_id: accountId, stakeholders: [] },
+    offering_matches: { account_id: accountId, matches: [] },
+  };
+  const fields = Object.keys(optionalEnrichments);
+
+  for (let mask = 0; mask < 2 ** fields.length; mask += 1) {
+    const enrichments = Object.fromEntries(fields.flatMap((field, index) =>
+      mask & (1 << index) ? [[field, optionalEnrichments[field]]] : [],
+    ));
+    const rendered = renderFirstMeetingBriefV2(emptyBrief(enrichments), {
+      baseMarkdown: "# Existing first-meeting brief",
+    });
+    assert.equal(rendered.ok, true, `failed optional subset ${Object.keys(enrichments).join(",") || "(none)"}`);
+    assert.match(rendered.markdown, /No caller-provided signal mappings/);
+    assert.match(rendered.markdown, /stakeholder coverage remains unknown/);
+    assert.match(rendered.markdown, /No caller-provided offering mappings/);
+  }
+});
+
+test("the v2 renderer fails closed for malformed or foreign optional enrichment", () => {
+  const malformed = renderFirstMeetingBriefV2(emptyBrief({ signals: null }), {
+    baseMarkdown: "# Existing first-meeting brief",
+  });
+  assert.deepEqual(malformed, { ok: false });
+
+  const foreign = renderFirstMeetingBriefV2(emptyBrief({
+    stakeholder_map: { account_id: "another-account", stakeholders: [] },
+  }), {
+    baseMarkdown: "# Existing first-meeting brief",
+  });
+  assert.deepEqual(foreign, { ok: false });
+});
+
 test("v2 workflow produces a cited end-to-end account intelligence brief from explicit mappings", async () => {
   const result = await prepareFirstMeetingV2(input(), makeDeps());
   assert.equal(result.status, "success");
   assert.equal(validate("prepareFirstMeetingV2Result", result).valid, true);
   assert.equal(result.account_intelligence.signals.signals.length, 2);
   assert.equal(result.account_intelligence.stakeholder_map.stakeholders[0].display_name, "Priya Raman");
+  assert.equal(result.account_intelligence.stakeholder_map.stakeholders[0].role_mapping_status, "caller_hypothesis");
   assert.equal(result.account_intelligence.offering_matches.matches[0].match_status, "candidate_hypothesis");
   assert.equal(result.account_intelligence.reference_status.offerings.status, "provisional");
-  assert.match(result.artifact.markdown, /caller-mapped persona hypothesis/);
+  assert.match(result.artifact.markdown, /caller-provided persona hypothesis \(unverified\)/);
+  assert.match(result.artifact.markdown, /Source excerpts \(quoted as supplied; they do not verify the mapping\)/);
+  assert.match(result.artifact.markdown, /Priya Raman, Director of Operations/);
+  assert.doesNotMatch(result.artifact.markdown, /Role evidence:/);
   assert.match(result.artifact.markdown, /Candidate hypothesis only/);
   assert.match(result.artifact.markdown, /\[`clm_5e66a71c957aaada`\]/);
   assert.ok(result.steps.findIndex((step) => step.step === "account-intelligence.validate") <
@@ -108,6 +204,52 @@ test("v2 workflow produces a cited end-to-end account intelligence brief from ex
     "clm_e5754f979c134d33",
     "clm_fd803734df7d6b56",
   ]);
+});
+
+test("a negated role excerpt remains source text, not an asserted stakeholder fact", async () => {
+  const claimId = "clm_negated_role_991";
+  const excerpt = "Alex Example is NOT Operations Lead.";
+  const result = await prepareFirstMeetingV2(input({
+    annotations: stakeholderAnnotations([claimId]),
+  }), makeDeps(NORTHSTAR, {
+    normalizeEvidence: addRoleEvidence(normalizeEvidence, [{ claimId, text: excerpt }]),
+  }));
+
+  assert.ok(result.artifact);
+  assert.equal(result.account_intelligence.stakeholder_map.stakeholders[0].role_mapping_status, "caller_hypothesis");
+  assert.equal(result.account_intelligence.stakeholder_map.stakeholders[0].role_evidence, "Operations Lead");
+  assert.ok(result.artifact.markdown.includes(excerpt));
+  assert.match(result.artifact.markdown, /caller-provided persona hypothesis \(unverified\)/);
+  assert.match(result.artifact.markdown, /No person-role relationship or authority is established/);
+  assert.doesNotMatch(result.artifact.markdown, /Role evidence:/);
+});
+
+test("conflicting role excerpts are both retained under an unverified caller mapping", async () => {
+  const positiveId = "clm_role_positive_991";
+  const negativeId = "clm_role_negative_991";
+  const positiveExcerpt = "Alex Example is Operations Lead.";
+  const negativeExcerpt = "Alex Example is not Operations Lead.";
+  const conflictId = "cfl_role_mapping_991";
+  const result = await prepareFirstMeetingV2(input({
+    annotations: stakeholderAnnotations([positiveId, negativeId]),
+  }), makeDeps(NORTHSTAR, {
+    normalizeEvidence: addRoleEvidence(normalizeEvidence, [
+      { claimId: positiveId, text: positiveExcerpt, status: "conflicting" },
+      { claimId: negativeId, text: negativeExcerpt, status: "conflicting" },
+    ], [{ conflict_id: conflictId, claim_ids: [positiveId, negativeId] }]),
+  }));
+
+  assert.ok(result.artifact);
+  assert.deepEqual(
+    result.account_intelligence.stakeholder_map.stakeholders[0].claim_ids,
+    [negativeId, positiveId],
+  );
+  assert.equal(result.account_intelligence.stakeholder_map.stakeholders[0].role_mapping_status, "caller_hypothesis");
+  assert.ok(result.artifact.markdown.includes(positiveExcerpt));
+  assert.ok(result.artifact.markdown.includes(negativeExcerpt));
+  assert.match(result.artifact.markdown, /Conflicting evidence is retained for review/);
+  assert.ok(result.warnings.some((warning) => warning.code === "CONFLICTED_EVIDENCE"));
+  assert.doesNotMatch(result.artifact.markdown, /Role evidence:/);
 });
 
 test("v2 workflow accepts no mappings and explicitly preserves unknown coverage", async () => {

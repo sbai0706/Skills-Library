@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://sales-copilot.local/schemas/stakeholder-map.schema.json",
   "title": "Account stakeholder map",
-  "description": "Evidence-linked people and recorded role/persona references. It does not infer authority or decision rights.",
+  "description": "Evidence-linked people with caller-supplied role/persona hypotheses. Cited text overlap does not verify a person-role relationship or authority.",
   "type": "object",
   "additionalProperties": false,
   "required": ["account_id", "stakeholders"],
@@ -13,11 +13,18 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["stakeholder_id", "display_name", "role_evidence", "persona_id", "claim_ids", "evidence_ids"],
+        "required": ["stakeholder_id", "display_name", "role_evidence", "role_mapping_status", "persona_id", "claim_ids", "evidence_ids"],
         "properties": {
           "stakeholder_id": { "type": "string", "pattern": "^stkh_[A-Za-z0-9_-]+$" },
           "display_name": { "type": "string", "minLength": 1, "maxLength": 200 },
-          "role_evidence": { "type": "string", "minLength": 1, "maxLength": 300 },
+          "role_evidence": {
+            "type": "string", "minLength": 1, "maxLength": 300,
+            "description": "Caller-selected text that overlaps a cited source excerpt; it is not proof of the mapped role."
+          },
+          "role_mapping_status": {
+            "const": "caller_hypothesis",
+            "description": "The mapping has not been verified as a factual person-role relationship."
+          },
           "persona_id": { "type": "string", "pattern": "^per_[A-Za-z0-9_-]+$" },
           "claim_ids": {
             "type": "array",

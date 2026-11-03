@@ -54,6 +54,11 @@ The workflow accepts `schemas/prepare-first-meeting-v2-input.schema.json`:
 }
 ```
 
+`role_evidence` is caller-selected text that must overlap a cited excerpt; this is only a mapping
+consistency check, not verification that the person holds the role. The structured result marks the
+mapping as `caller_hypothesis`, and the artifact retains cited excerpts verbatim so negation and
+conflicting statements remain visible.
+
 Each claim ID must be an actual normalized claim from the resolved account and within the workflow
 classification ceiling. Signal, persona, and offering IDs must exist in the supplied versioned
 registry. Stakeholder mappings also require the name and exact role excerpt to occur in a cited claim

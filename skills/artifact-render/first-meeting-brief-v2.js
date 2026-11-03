@@ -19,7 +19,7 @@ function statusLabel(status) {
 }
 
 function renderSignals(brief, referenceRegistry) {
-  const signals = brief.signals.signals;
+  const signals = brief.signals?.signals ?? [];
   const taxonomy = referenceEntries(referenceRegistry?.signalTaxonomy, "signals");
   if (signals.length === 0) {
     return "No caller-provided signal mappings; no event or compelling-event judgment was inferred.";
@@ -35,7 +35,7 @@ function renderSignals(brief, referenceRegistry) {
 }
 
 function renderStakeholders(brief, referenceRegistry) {
-  const stakeholders = brief.stakeholder_map.stakeholders;
+  const stakeholders = brief.stakeholder_map?.stakeholders ?? [];
   const personas = referenceEntries(referenceRegistry?.personas, "personas");
   if (stakeholders.length === 0) {
     return "No caller-provided stakeholder mappings; stakeholder coverage remains unknown and no authority is inferred.";
@@ -45,7 +45,17 @@ function renderStakeholders(brief, referenceRegistry) {
     const conflict = stakeholder.claim_ids.some((id) =>
       brief.claims.find((claim) => claim.claim_id === id)?.verification_status === "conflicting",
     );
-    return `- **${escapeMarkdown(stakeholder.display_name)}** — caller-mapped persona hypothesis: ${escapeMarkdown(persona.label)}. Role evidence: “${escapeMarkdown(stakeholder.role_evidence)}”. Titles do not imply budget authority or decision rights. Evidence: ${citations(stakeholder.claim_ids)}.${conflict ? " Conflicting evidence is retained for review." : ""}`;
+    const sourceExcerpts = stakeholder.claim_ids.map((id) => {
+      const claim = brief.claims.find((item) => item.claim_id === id);
+      return `  - “${escapeMarkdown(claim.excerpt)}” ${citations([id])}`;
+    }).join("\n");
+    return [
+      `- **${escapeMarkdown(stakeholder.display_name)}** — caller-provided persona hypothesis (unverified): ${escapeMarkdown(persona.label)}.`,
+      `Role mapping status: ${escapeMarkdown(stakeholder.role_mapping_status)}. No person-role relationship or authority is established.`,
+      "Source excerpts (quoted as supplied; they do not verify the mapping):",
+      sourceExcerpts,
+      conflict ? "Conflicting evidence is retained for review." : "",
+    ].filter(Boolean).join("\n");
   }).join("\n");
   return [
     "Coverage is limited to caller-provided mappings; other roles and decision authority remain unknown.",
@@ -54,7 +64,7 @@ function renderStakeholders(brief, referenceRegistry) {
 }
 
 function renderOfferings(brief, referenceRegistry) {
-  const matches = brief.offering_matches.matches;
+  const matches = brief.offering_matches?.matches ?? [];
   const offerings = referenceEntries(referenceRegistry?.offerings, "offerings");
   if (matches.length === 0) {
     return "No caller-provided offering mappings; no fit recommendation was generated.";
@@ -90,9 +100,9 @@ export function renderFirstMeetingBriefV2(brief, { baseMarkdown, referenceRegist
     return { ok: false };
   }
   if (
-    (brief.signals.signals.length > 0 && !referenceEntries(referenceRegistry?.signalTaxonomy, "signals").ok) ||
-    (brief.stakeholder_map.stakeholders.length > 0 && !referenceEntries(referenceRegistry?.personas, "personas").ok) ||
-    (brief.offering_matches.matches.length > 0 && !referenceEntries(referenceRegistry?.offerings, "offerings").ok)
+    ((brief.signals?.signals.length ?? 0) > 0 && !referenceEntries(referenceRegistry?.signalTaxonomy, "signals").ok) ||
+    ((brief.stakeholder_map?.stakeholders.length ?? 0) > 0 && !referenceEntries(referenceRegistry?.personas, "personas").ok) ||
+    ((brief.offering_matches?.matches.length ?? 0) > 0 && !referenceEntries(referenceRegistry?.offerings, "offerings").ok)
   ) {
     return { ok: false };
   }

@@ -5,6 +5,7 @@
       "stakeholder_id": "stkh_example_001",
       "display_name": "Alex Example",
       "role_evidence": "Director of Example",
+      "role_mapping_status": "caller_hypothesis",
       "persona_id": "per_technology_leader",
       "claim_ids": ["clm_example_002"],
       "evidence_ids": ["clm_example_002"]

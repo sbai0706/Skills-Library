@@ -48,11 +48,11 @@ export function mapStakeholders(input, deps = {}) {
     const evidence = resolveClaimIds(annotation.claim_ids, claimResult.byId, claimResult.withheldIds);
     if (!evidence.ok) return fail(started, evidence.code, evidence.message);
 
-    const evidenceSupportsMapping = evidence.ids.some((id) => {
+    const mappingTextOccursInEvidence = evidence.ids.some((id) => {
       const excerpt = claimResult.byId.get(id).excerpt;
       return excerpt.includes(annotation.display_name) && excerpt.includes(annotation.role_evidence);
     });
-    if (!evidenceSupportsMapping) {
+    if (!mappingTextOccursInEvidence) {
       return fail(started, "UNSUPPORTED_MAPPING", "A stakeholder name and role must appear in cited evidence.");
     }
 
@@ -70,6 +70,7 @@ export function mapStakeholders(input, deps = {}) {
       stakeholder_id: stableId("stkh", [value.account_id, signature]),
       display_name: annotation.display_name,
       role_evidence: annotation.role_evidence,
+      role_mapping_status: "caller_hypothesis",
       persona_id: annotation.persona_id,
       claim_ids: evidence.ids,
       evidence_ids: evidence.ids,

@@ -216,17 +216,17 @@ export function validateFirstMeetingBriefInputV2(value, { referenceRegistry } = 
         addSemanticError(errors, `${path}/persona_id`, "The persona is not in the supplied versioned reference list.");
       }
       validateEvidenceReferences(stakeholder, path, claimsById, ceilingRank, errors);
-      const supported = stakeholder.claim_ids.some((id) => {
+      const mappingTextOccursInEvidence = stakeholder.claim_ids.some((id) => {
         const excerpt = claimsById.get(id)?.excerpt;
         return typeof excerpt === "string" &&
           excerpt.includes(stakeholder.display_name) &&
           excerpt.includes(stakeholder.role_evidence);
       });
-      if (!supported) {
+      if (!mappingTextOccursInEvidence) {
         addSemanticError(
           errors,
           `${path}/role_evidence`,
-          "The mapped stakeholder name and role must occur in a cited claim excerpt.",
+          "The caller-supplied name and role text must occur in a cited claim excerpt; this does not verify their relationship.",
         );
       }
     });
