@@ -1,0 +1,20 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sales-copilot.local/schemas/stakeholder-map-input.schema.json",
+  "title": "stakeholder.map input",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["account_id", "claims", "classification_ceiling"],
+  "properties": {
+    "account_id": { "type": "string", "minLength": 1 },
+    "claims": {
+      "type": "array",
+      "items": { "$ref": "https://sales-copilot.local/schemas/evidence.schema.json" }
+    },
+    "annotations": {
+      "type": "array",
+      "items": { "$ref": "https://sales-copilot.local/schemas/account-intelligence-annotations.schema.json#/definitions/stakeholder" }
+    },
+    "classification_ceiling": { "enum": ["public", "internal", "confidential"] }
+  }
+}

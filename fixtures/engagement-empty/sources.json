@@ -1,0 +1,7 @@
+{
+  "fixture": "engagement-empty",
+  "account_id": "sf_wf_northstar",
+  "sources": {
+    "crm": { "mode": "ok", "records": [] }
+  }
+}

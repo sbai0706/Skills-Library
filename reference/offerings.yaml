@@ -1,0 +1,21 @@
+version: 0.1.0
+status: provisional
+business_owner: TBD
+approver: TBD
+approval_date: null
+source_documents: []
+effective_date: null
+change_history:
+  - version: 0.1.0
+    date: 2026-11-02
+    change: Placeholder offering areas created for contract development; descriptions require business review.
+
+offerings:
+  - id: off_placeholder_advisory
+    label: Placeholder offering area A
+    description: Placeholder only. Replace with a business-approved offering definition before use.
+    review_status: placeholder_business_review_required
+  - id: off_placeholder_delivery
+    label: Placeholder offering area B
+    description: Placeholder only. Replace with a business-approved offering definition before use.
+    review_status: placeholder_business_review_required

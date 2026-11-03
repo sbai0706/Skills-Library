@@ -1,0 +1,28 @@
+{
+  "mode": "initial",
+  "workflow_input": {
+    "account_reference": "Northstar Logistics",
+    "requested_sources": ["crm", "public_source"],
+    "audience": "internal_sales",
+    "classification_ceiling": "internal"
+  },
+  "annotations": {
+    "stakeholders": [
+      {
+        "display_name": "Priya Raman",
+        "persona_id": "per_operations_leader",
+        "role_evidence": "Priya Raman, Director of Operations",
+        "claim_ids": ["clm_dee52338538eef5a"]
+      }
+    ]
+  },
+  "outreach_claim_ids": ["clm_638e823fcdd4b4fc"],
+  "meeting_claim_ids": ["clm_638e823fcdd4b4fc"],
+  "recipient_name": "Priya Raman",
+  "messaging_guidance": {
+    "template_id": "example-neutral-outreach",
+    "version": "0.1.0",
+    "approval_status": "provisional",
+    "tone": "neutral"
+  }
+}

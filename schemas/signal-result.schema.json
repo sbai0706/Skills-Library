@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sales-copilot.local/schemas/signal-result.schema.json",
+  "title": "Account signal result",
+  "description": "Evidence-linked signal references for one account. Claim text and raw source records are intentionally excluded.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["account_id", "signals"],
+  "properties": {
+    "account_id": { "type": "string", "minLength": 1 },
+    "signals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["signal_id", "signal_type_id", "claim_ids", "evidence_ids"],
+        "properties": {
+          "signal_id": { "type": "string", "pattern": "^sig_[A-Za-z0-9_-]+$" },
+          "signal_type_id": { "type": "string", "pattern": "^sigcat_[A-Za-z0-9_-]+$" },
+          "claim_ids": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": { "type": "string", "pattern": "^clm_[A-Za-z0-9_-]+$" },
+            "description": "Normalized claim IDs used to identify the signal; each must occur in the brief claims."
+          },
+          "evidence_ids": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": { "type": "string", "pattern": "^clm_[A-Za-z0-9_-]+$" },
+            "description": "Normalized evidence IDs; the current evidence contract uses claim_id for this ID, so this set must equal claim_ids."
+          },
+          "observed_at": { "type": ["string", "null"], "format": "date-time" }
+        }
+      }
+    }
+  }
+}

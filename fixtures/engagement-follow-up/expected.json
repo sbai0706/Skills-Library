@@ -1,0 +1,17 @@
+{
+  "status": "success",
+  "mode": "follow_up",
+  "expected_citations": [
+    "clm_0c0af6c5491591ef",
+    "clm_3c274b4b6b3c911f"
+  ],
+  "expected_sections": [
+    "Follow-up draft",
+    "Proposed next actions"
+  ],
+  "must_not_contain": [
+    "We agreed",
+    "Owner: Priya Raman",
+    "Due date:"
+  ]
+}

@@ -1,0 +1,120 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sales-copilot.local/schemas/engagement-draft-input.schema.json",
+  "title": "Engagement draft skill input",
+  "description": "Draft-only initial outreach and meeting preparation, or follow-up, from explicitly selected normalized same-account evidence.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["mode", "account", "claims", "classification_ceiling"],
+  "properties": {
+    "mode": {
+      "enum": ["initial", "follow_up"]
+    },
+    "account": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["account_id", "canonical_name"],
+      "properties": {
+        "account_id": { "type": "string", "minLength": 1 },
+        "canonical_name": { "type": "string", "minLength": 1, "maxLength": 300 },
+        "identifiers": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "domain": { "type": "string", "minLength": 1 },
+            "external_id": { "type": "string", "minLength": 1 }
+          }
+        }
+      }
+    },
+    "claims": {
+      "type": "array",
+      "items": { "$ref": "https://sales-copilot.local/schemas/evidence.schema.json" }
+    },
+    "classification_ceiling": {
+      "enum": ["public", "internal", "confidential"]
+    },
+    "outreach_claim_ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/definitions/claimId" }
+    },
+    "meeting_claim_ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/definitions/claimId" }
+    },
+    "follow_up_claim_ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/definitions/claimId" }
+    },
+    "recipient_name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "description": "Optional exact name selected by the caller; must resolve to one evidence-validated stakeholder mapping."
+    },
+    "stakeholder_map": {
+      "$ref": "https://sales-copilot.local/schemas/stakeholder-map.schema.json"
+    },
+    "messaging_guidance": {
+      "$ref": "#/definitions/messagingGuidance"
+    }
+  },
+  "definitions": {
+    "claimId": {
+      "type": "string",
+      "pattern": "^clm_[A-Za-z0-9_-]+$"
+    },
+    "messagingGuidance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "template_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9._-]{1,63}$"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$"
+        },
+        "approval_status": {
+          "enum": ["unverified", "provisional", "approved"]
+        },
+        "approval_reference": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "tone": {
+          "enum": ["neutral", "concise", "formal", "warm"]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "approval_status": { "const": "approved" } },
+            "required": ["approval_status"]
+          },
+          "then": {
+            "properties": { "approval_reference": {} },
+            "required": ["approval_reference"]
+          }
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "mode": { "const": "follow_up" } },
+        "required": ["mode"]
+      },
+      "then": {
+        "properties": { "follow_up_claim_ids": {} },
+        "required": ["follow_up_claim_ids"]
+      }
+    }
+  ]
+}

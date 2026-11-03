@@ -11,7 +11,10 @@
 > behavior remains in the workflow module; the CLI adds no matching, retrieval, extraction, gap,
 > rendering, or classification policy.
 
-This is the working handoff for the next parallel skill tasks. It records current contracts and decisions; it is not a replacement for the [architecture reference](../Sales_Skills_Library_Architecture_v2.md).
+This preserves the original implementation handoff and early contracts; it is no longer the active
+task queue. See the [current Phase 1 acceptance summary](PHASE1_SKILLS_PLAN.md) and
+[Claude Code wrapper guide](AGENT_SKILLS.md) for the current four-outcome state. This history is
+not a replacement for the [architecture reference](../Sales_Skills_Library_Architecture_v2.md).
 
 ## Objective and implementation boundary
 

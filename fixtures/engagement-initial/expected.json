@@ -1,0 +1,14 @@
+{
+  "status": "success",
+  "mode": "initial",
+  "expected_citations": [
+    "clm_638e823fcdd4b4fc",
+    "clm_dee52338538eef5a"
+  ],
+  "expected_sections": [
+    "Initial outreach draft",
+    "Meeting preparation",
+    "Discovery questions",
+    "Stakeholder-specific talking points"
+  ]
+}

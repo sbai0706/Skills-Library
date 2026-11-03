@@ -1,0 +1,43 @@
+{
+  "fixture": "engagement-conflicting",
+  "account_id": "sf_wf_northstar",
+  "sources": {
+    "crm": {
+      "mode": "ok",
+      "records": [
+        {
+          "record_id": "src_eng_conflict_q2",
+          "account_id": "sf_wf_northstar",
+          "source_type": "crm_activity",
+          "title": "Illustrative meeting note A",
+          "content": "The meeting notes list the automation rollout quarter as Q2 2027.",
+          "source_uri": null,
+          "retrieved_at": "2026-10-25T10:00:00Z",
+          "access_classification": "internal",
+          "question_ids": [],
+          "metadata": {
+            "provider": "fixture-engagement",
+            "record_type": "meeting_notes",
+            "claim_candidates_json": "[{\"claim\":\"The meeting notes list the automation rollout quarter as Q2 2027.\",\"excerpt\":\"The meeting notes list the automation rollout quarter as Q2 2027.\",\"completeness\":\"complete\",\"conflict_key\":\"rollout_quarter\"}]"
+          }
+        },
+        {
+          "record_id": "src_eng_conflict_q3",
+          "account_id": "sf_wf_northstar",
+          "source_type": "crm_activity",
+          "title": "Illustrative meeting note B",
+          "content": "The meeting notes list the automation rollout quarter as Q3 2027.",
+          "source_uri": null,
+          "retrieved_at": "2026-10-25T10:00:00Z",
+          "access_classification": "internal",
+          "question_ids": [],
+          "metadata": {
+            "provider": "fixture-engagement",
+            "record_type": "meeting_notes",
+            "claim_candidates_json": "[{\"claim\":\"The meeting notes list the automation rollout quarter as Q3 2027.\",\"excerpt\":\"The meeting notes list the automation rollout quarter as Q3 2027.\",\"completeness\":\"complete\",\"conflict_key\":\"rollout_quarter\"}]"
+          }
+        }
+      ]
+    }
+  }
+}

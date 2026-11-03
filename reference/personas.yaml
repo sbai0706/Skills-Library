@@ -1,0 +1,37 @@
+version: 0.1.0
+status: provisional
+business_owner: TBD
+approver: TBD
+approval_date: null
+source_documents: []
+effective_date: null
+change_history:
+  - version: 0.1.0
+    date: 2026-11-02
+    change: Initial role/persona vocabulary for contract development; pending business review.
+
+personas:
+  - id: per_executive_leader
+    label: Executive leader
+    description: A person recorded as holding an executive leadership role.
+  - id: per_technology_leader
+    label: Technology leader
+    description: A person recorded as leading a technology function or team.
+  - id: per_operations_leader
+    label: Operations leader
+    description: A person recorded as leading an operations function or team.
+  - id: per_finance_leader
+    label: Finance leader
+    description: A person recorded as leading a finance function or team.
+  - id: per_procurement_contact
+    label: Procurement contact
+    description: A person recorded as working in procurement or sourcing.
+  - id: per_business_unit_leader
+    label: Business unit leader
+    description: A person recorded as leading a business unit or line of business.
+  - id: per_practitioner
+    label: Practitioner
+    description: A person recorded as performing work in a relevant function or domain.
+  - id: per_relationship_owner
+    label: Internal relationship owner
+    description: An internal contact recorded as owning or coordinating the account relationship.

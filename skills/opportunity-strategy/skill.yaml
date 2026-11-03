@@ -1,0 +1,15 @@
+skill: opportunity.strategy
+version: 0.1.0
+status: draft
+business_owner: TBD
+description: >
+  Build evidence-linked customer problem and value hypotheses from a same-account
+  qualification assessment and explicit offering mappings. No event verification,
+  stage recommendation, or CRM action is performed.
+inputs:
+  schema: schemas/opportunity-strategy-input.schema.json
+outputs:
+  schema: schemas/opportunity-strategy-result.schema.json
+entrypoint: skills/opportunity-strategy/index.js
+exports:
+  - assessOpportunityStrategy

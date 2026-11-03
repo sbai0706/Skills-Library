@@ -1,0 +1,8 @@
+{
+  "fixture": "engagement-sparse",
+  "account_id": "sf_wf_northstar",
+  "sources": {
+    "crm": { "mode": "ok", "records": [] },
+    "public_source": { "mode": "ok", "records": [] }
+  }
+}

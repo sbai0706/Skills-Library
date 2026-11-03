@@ -1,0 +1,72 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sales-copilot.local/schemas/account-intelligence-annotations.schema.json",
+  "title": "Explicit Account Intelligence mappings",
+  "description": "Caller-provided mappings from normalized evidence to versioned vocabularies; no mapping is inferred from source prose.",
+  "definitions": {
+    "signal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["signal_type_id", "claim_ids"],
+      "properties": {
+        "signal_type_id": { "type": "string", "pattern": "^sigcat_[A-Za-z0-9_-]+$" },
+        "claim_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^clm_[A-Za-z0-9_-]+$" }
+        },
+        "observed_at": { "type": ["string", "null"], "format": "date-time" }
+      }
+    },
+    "stakeholder": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["display_name", "persona_id", "role_evidence", "claim_ids"],
+      "properties": {
+        "display_name": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "persona_id": { "type": "string", "pattern": "^per_[A-Za-z0-9_-]+$" },
+        "role_evidence": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300,
+          "description": "Caller-selected source text used to explain a role hypothesis; text overlap does not verify the person-role relationship."
+        },
+        "claim_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^clm_[A-Za-z0-9_-]+$" }
+        }
+      }
+    },
+    "offering": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["offering_id", "claim_ids"],
+      "properties": {
+        "offering_id": { "type": "string", "pattern": "^off_[A-Za-z0-9_-]+$" },
+        "claim_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^clm_[A-Za-z0-9_-]+$" }
+        },
+        "signal_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^sig_[A-Za-z0-9_-]+$" }
+        }
+      }
+    },
+    "set": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "signals": { "type": "array", "items": { "$ref": "#/definitions/signal" } },
+        "stakeholders": { "type": "array", "items": { "$ref": "#/definitions/stakeholder" } },
+        "offerings": { "type": "array", "items": { "$ref": "#/definitions/offering" } }
+      }
+    }
+  }
+}

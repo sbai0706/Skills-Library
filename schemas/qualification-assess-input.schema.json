@@ -1,0 +1,96 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sales-copilot.local/schemas/qualification-assess-input.schema.json",
+  "title": "qualification.assess input",
+  "description": "Normalized same-account evidence plus optional caller-supplied criteria and event evidence mappings.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["account_id", "claims", "classification_ceiling"],
+  "properties": {
+    "account_id": { "type": "string", "minLength": 1 },
+    "claims": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["access_classification"],
+        "properties": {
+          "access_classification": { "enum": ["public", "internal", "confidential"] }
+        }
+      }
+    },
+    "classification_ceiling": { "enum": ["public", "internal", "confidential"] },
+    "conflicts": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/conflict" }
+    },
+    "criteria_set": { "$ref": "#/definitions/criteriaSet" },
+    "event_evidence": { "$ref": "#/definitions/eventEvidence" }
+  },
+  "definitions": {
+    "evidenceReferences": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^clm_[A-Za-z0-9_-]+$"
+      }
+    },
+    "conflict": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["conflict_id", "claim_ids"],
+      "properties": {
+        "conflict_id": {
+          "type": "string",
+          "pattern": "^cfl_[A-Za-z0-9_-]+$"
+        },
+        "claim_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^clm_[A-Za-z0-9_-]+$" }
+        }
+      }
+    },
+    "criterion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "definition"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+        },
+        "label": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "definition": { "type": "string", "minLength": 1, "maxLength": 1000 },
+        "evidence_ids": { "$ref": "#/definitions/evidenceReferences" }
+      }
+    },
+    "criteriaSet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "approval_status", "criteria"],
+      "properties": {
+        "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+        "approval_status": { "enum": ["provisional", "approved"] },
+        "criteria": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/definitions/criterion" }
+        }
+      }
+    },
+    "eventEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "event": { "$ref": "#/definitions/evidenceReferences" },
+        "deadline": { "$ref": "#/definitions/evidenceReferences" },
+        "consequence": { "$ref": "#/definitions/evidenceReferences" },
+        "accountable_owner": { "$ref": "#/definitions/evidenceReferences" },
+        "relevantz_service_need": { "$ref": "#/definitions/evidenceReferences" },
+        "next_customer_decision": { "$ref": "#/definitions/evidenceReferences" }
+      }
+    }
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "fixture": "engagement-initial",
+  "account_id": "sf_wf_northstar",
+  "sources": {
+    "crm": {
+      "mode": "ok",
+      "records": [
+        {
+          "record_id": "src_eng_crm_contact",
+          "account_id": "sf_wf_northstar",
+          "source_type": "crm_record",
+          "title": "Recorded contact",
+          "content": "Recorded contact: Priya Raman, Director of Operations.",
+          "source_uri": null,
+          "retrieved_at": "2026-10-25T10:00:00Z",
+          "access_classification": "internal",
+          "question_ids": [],
+          "metadata": {
+            "provider": "fixture-engagement",
+            "record_type": "contact",
+            "claim_candidates_json": "[{\"claim\":\"Priya Raman is Director of Operations.\",\"excerpt\":\"Priya Raman, Director of Operations\",\"completeness\":\"complete\"}]"
+          }
+        }
+      ]
+    },
+    "public_source": {
+      "mode": "ok",
+      "records": [
+        {
+          "record_id": "src_eng_public_initiative",
+          "account_id": "sf_wf_northstar",
+          "source_type": "news",
+          "title": "Illustrative public initiative note",
+          "content": "Northstar Logistics announced a depot automation initiative in 2027.",
+          "source_uri": "https://news.example/northstar-depot-automation",
+          "published_at": "2026-09-30T13:00:00Z",
+          "retrieved_at": "2026-10-25T10:00:00Z",
+          "access_classification": "public",
+          "question_ids": [],
+          "metadata": {
+            "provider": "fixture-engagement",
+            "record_type": "news_article",
+            "claim_candidates_json": "[{\"claim\":\"Northstar Logistics announced a depot automation initiative in 2027.\",\"excerpt\":\"Northstar Logistics announced a depot automation initiative in 2027.\",\"completeness\":\"complete\"}]"
+          }
+        }
+      ]
+    }
+  }
+}

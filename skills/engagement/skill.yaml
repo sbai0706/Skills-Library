@@ -1,0 +1,33 @@
+skill: engagement.draft
+version: 0.1.0
+status: draft
+business_owner: TBD
+
+intent: Draft initial outreach and meeting preparation or source-neutral follow-up from explicit normalized evidence.
+when_to_use:
+  - A caller needs an internal-review outreach draft, meeting agenda, discovery questions, or evidence-based follow-up.
+when_not_to_use:
+  - Automatic message delivery, CRM mutation, contact discovery, business scoring, or unverified policy decisions are required.
+inputs:
+  schema: ../../schemas/engagement-draft-input.schema.json
+  required: [mode, account, claims, classification_ceiling]
+  optional: [outreach_claim_ids, meeting_claim_ids, follow_up_claim_ids, stakeholder_map, recipient_name, messaging_guidance]
+outputs:
+  schema: ../../schemas/skill-result.schema.json
+  data_schema: ../../schemas/engagement-draft-data.schema.json
+  evidence_ids: sorted citations in the generated draft artifact
+dependencies:
+  skills: [evidence.normalize, stakeholder.map]
+constraints:
+  - Every fact and name resolves to visible same-account normalized evidence.
+  - Follow-up references must be caller-selected crm_activity or internal_document claims.
+  - Visible conflicts remain explicit and no winner is selected.
+  - Caller-reported approval is never represented as library-verified approval.
+  - No external message is sent and no CRM record is mutated.
+gates:
+  - input_schema_valid
+  - same_account_evidence_and_classification_ceiling
+  - recipient_matches_unique_evidence_backed_stakeholder
+  - follow_up_has_meeting_evidence
+  - citations_match_visible_claims
+  - no_artifact_on_block_or_failure

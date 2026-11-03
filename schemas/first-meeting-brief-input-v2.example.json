@@ -1,0 +1,20 @@
+{
+  "account": {
+    "account_id": "sf_clear_001",
+    "canonical_name": "Northstar Logistics",
+    "identifiers": { "domain": "northstar-logistics.example" }
+  },
+  "claims": [],
+  "gap_result": {
+    "account_id": "sf_clear_001",
+    "question_set_version": "0.1.0",
+    "questions": [],
+    "summary_counts": { "total": 0, "answered": 0, "partial": 0, "unanswered": 0, "conflicted": 0 }
+  },
+  "output_template_id": "first-meeting-v1",
+  "audience": "internal_sales",
+  "classification_ceiling": "internal",
+  "signals": { "account_id": "sf_clear_001", "signals": [] },
+  "stakeholder_map": { "account_id": "sf_clear_001", "stakeholders": [] },
+  "offering_matches": { "account_id": "sf_clear_001", "matches": [] }
+}

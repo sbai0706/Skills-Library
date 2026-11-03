@@ -1,0 +1,117 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sales-copilot.local/schemas/opportunity-strategy-workflow-result.schema.json",
+  "title": "opportunity-strategy workflow result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "workflow",
+    "workflow_version",
+    "status",
+    "account",
+    "strategy",
+    "artifact",
+    "evidence_ids",
+    "warnings",
+    "errors",
+    "steps",
+    "trace_id",
+    "started_at",
+    "finished_at"
+  ],
+  "properties": {
+    "workflow": { "const": "opportunity-strategy" },
+    "workflow_version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "status": { "enum": ["success", "partial", "blocked", "failed"] },
+    "account": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["account_id", "canonical_name"],
+      "properties": {
+        "account_id": { "type": "string", "minLength": 1 },
+        "canonical_name": { "type": "string", "minLength": 1 },
+        "identifiers": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": { "domain": { "type": "string", "minLength": 1 } }
+        }
+      }
+    },
+    "strategy": {
+      "oneOf": [
+        { "$ref": "https://sales-copilot.local/schemas/opportunity-strategy-result.schema.json" },
+        { "type": "null" }
+      ]
+    },
+    "artifact": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["format", "template_id", "classification", "markdown"],
+      "properties": {
+        "format": { "const": "markdown" },
+        "template_id": { "const": "opportunity-strategy-v1" },
+        "classification": { "enum": ["public", "internal", "confidential"] },
+        "markdown": { "type": "string", "minLength": 1 }
+      }
+    },
+    "evidence_ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^clm_[A-Za-z0-9_-]+$" }
+    },
+    "warnings": { "type": "array", "items": { "$ref": "#/definitions/diagnostic" } },
+    "errors": { "type": "array", "items": { "$ref": "#/definitions/diagnostic" } },
+    "steps": { "type": "array", "items": { "$ref": "#/definitions/step" } },
+    "trace_id": { "type": "string", "pattern": "^trace_" },
+    "started_at": { "type": "string", "format": "date-time" },
+    "finished_at": { "type": "string", "format": "date-time" }
+  },
+  "definitions": {
+    "diagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["step", "skill", "code", "message"],
+      "properties": {
+        "step": { "type": "string", "pattern": "^[a-z][a-z0-9.-]*$" },
+        "skill": { "type": "string", "pattern": "^[a-z][a-z0-9.-]*$" },
+        "code": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+        "message": { "type": "string", "minLength": 1 },
+        "retryable": { "type": "boolean" }
+      }
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["step", "skill", "status"],
+      "properties": {
+        "step": { "type": "string", "pattern": "^[a-z][a-z0-9.-]*$" },
+        "skill": { "type": "string", "pattern": "^[a-z][a-z0-9.-]*$" },
+        "status": { "enum": ["success", "partial", "blocked", "failed"] }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "status": { "enum": ["failed", "blocked"] } }, "required": ["status"] },
+      "then": {
+        "properties": {
+          "artifact": { "type": "null" },
+          "strategy": { "type": "null" },
+          "errors": { "type": "array", "minItems": 1 },
+          "evidence_ids": { "type": "array", "maxItems": 0 }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "status": { "enum": ["success", "partial"] } }, "required": ["status"] },
+      "then": {
+        "properties": {
+          "artifact": { "type": "object" },
+          "strategy": { "type": "object" },
+          "account": { "type": "object" },
+          "errors": { "type": "array", "maxItems": 0 }
+        }
+      }
+    }
+  ]
+}

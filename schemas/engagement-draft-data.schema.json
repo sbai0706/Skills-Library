@@ -1,0 +1,192 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sales-copilot.local/schemas/engagement-draft-data.schema.json",
+  "title": "Engagement draft skill output",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "mode",
+    "draft_only",
+    "messaging_guidance",
+    "outreach_draft",
+    "meeting_prep",
+    "follow_up_draft",
+    "next_actions",
+    "warnings",
+    "markdown"
+  ],
+  "properties": {
+    "mode": { "enum": ["initial", "follow_up"] },
+    "draft_only": { "const": true },
+    "messaging_guidance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["template_id", "version", "approval_status", "approval_reference_provided", "tone"],
+      "properties": {
+        "template_id": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+        "approval_status": {
+          "enum": ["unverified", "provisional", "caller_reported_approved"]
+        },
+        "approval_reference_provided": { "type": "boolean" },
+        "tone": { "enum": ["neutral", "concise", "formal", "warm"] }
+      }
+    },
+    "outreach_draft": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["subject", "body", "claim_ids"],
+          "properties": {
+            "subject": { "type": "string", "minLength": 1 },
+            "body": { "type": "string", "minLength": 1 },
+            "claim_ids": { "$ref": "#/definitions/claimIds" }
+          }
+        }
+      ]
+    },
+    "meeting_prep": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["agenda", "discovery_questions", "stakeholder_talking_points", "evidence_notes"],
+          "properties": {
+            "agenda": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "type": "string", "minLength": 1 }
+            },
+            "discovery_questions": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "$ref": "#/definitions/question" }
+            },
+            "stakeholder_talking_points": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/talkingPoint" }
+            },
+            "evidence_notes": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/evidenceNote" }
+            }
+          }
+        }
+      ]
+    },
+    "follow_up_draft": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["body", "claim_ids"],
+          "properties": {
+            "body": { "type": "string", "minLength": 1 },
+            "claim_ids": { "$ref": "#/definitions/claimIds" }
+          }
+        }
+      ]
+    },
+    "next_actions": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/question" }
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "message"],
+        "properties": {
+          "code": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+          "message": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "evidence_notes": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/evidenceNote" }
+    },
+    "markdown": { "type": "string", "minLength": 1 }
+  },
+  "definitions": {
+    "claimIds": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^clm_[A-Za-z0-9_-]+$" }
+    },
+    "question": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["claim_ids"],
+      "properties": {
+        "action": { "type": "string", "minLength": 1 },
+        "question": { "type": "string", "minLength": 1 },
+        "claim_ids": { "$ref": "#/definitions/claimIds" }
+      },
+      "anyOf": [
+        {
+          "properties": { "action": { "type": "string" } },
+          "required": ["action"]
+        },
+        {
+          "properties": { "question": { "type": "string" } },
+          "required": ["question"]
+        }
+      ]
+    },
+    "talkingPoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name_hypothesis", "role_hypothesis", "claim_ids", "prompt"],
+      "properties": {
+        "name_hypothesis": { "type": "string", "minLength": 1 },
+        "role_hypothesis": { "type": "string", "minLength": 1 },
+        "claim_ids": { "$ref": "#/definitions/claimIds" },
+        "prompt": { "type": "string", "minLength": 1 }
+      }
+    },
+    "evidenceNote": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["claim", "claim_ids", "verification_status"],
+      "properties": {
+        "claim": { "type": "string", "minLength": 1 },
+        "claim_ids": { "$ref": "#/definitions/claimIds" },
+        "verification_status": { "enum": ["direct", "corroborated", "inferred", "conflicting"] }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "mode": { "const": "initial" } },
+        "required": ["mode"]
+      },
+      "then": {
+        "properties": {
+          "outreach_draft": { "type": "object" },
+          "meeting_prep": { "type": "object" },
+          "follow_up_draft": { "type": "null" }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "mode": { "const": "follow_up" } },
+        "required": ["mode"]
+      },
+      "then": {
+        "properties": {
+          "outreach_draft": { "type": "null" },
+          "meeting_prep": { "type": "null" },
+          "follow_up_draft": { "type": "object" }
+        }
+      }
+    }
+  ]
+}

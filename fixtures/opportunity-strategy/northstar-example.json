@@ -1,0 +1,18 @@
+{
+  "workflow_input": {
+    "account_reference": "Northstar Logistics",
+    "requested_sources": ["crm", "public_source"],
+    "classification_ceiling": "internal"
+  },
+  "qualification": {
+    "event_evidence": {
+      "event": ["clm_e5754f979c134d33"]
+    }
+  },
+  "offering_annotations": [
+    {
+      "offering_id": "off_placeholder_advisory",
+      "claim_ids": ["clm_e5754f979c134d33"]
+    }
+  ]
+}

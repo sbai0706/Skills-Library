@@ -1,0 +1,42 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sales-copilot.local/schemas/opportunity-strategy-input.schema.json",
+  "title": "opportunity.strategy input",
+  "description": "Normalized evidence and a qualification skill result, with optional explicit offering mappings.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["account_id", "claims", "classification_ceiling", "qualification_result"],
+  "properties": {
+    "account_id": { "type": "string", "minLength": 1 },
+    "claims": {
+      "type": "array",
+      "items": { "$ref": "https://sales-copilot.local/schemas/evidence.schema.json" }
+    },
+    "classification_ceiling": { "enum": ["public", "internal", "confidential"] },
+    "qualification_result": {
+      "$ref": "https://sales-copilot.local/schemas/skill-result.schema.json"
+    },
+    "offering_annotations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/offeringMapping"
+      }
+    }
+  },
+  "definitions": {
+    "offeringMapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["offering_id", "claim_ids"],
+      "properties": {
+        "offering_id": { "type": "string", "pattern": "^off_[A-Za-z0-9_-]+$" },
+        "claim_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^clm_[A-Za-z0-9_-]+$" }
+        }
+      }
+    }
+  }
+}

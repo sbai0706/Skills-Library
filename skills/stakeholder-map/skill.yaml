@@ -1,0 +1,34 @@
+skill: stakeholder.map
+version: 0.1.0
+status: draft
+business_owner: TBD
+
+intent: Validate caller-mapped named stakeholders and persona hypotheses against normalized same-account evidence.
+when_to_use:
+  - A caller supplies a person, persona reference, exact role excerpt, and claim IDs.
+when_not_to_use:
+  - A contact must be discovered, authority inferred, or an account map generated from titles or source prose.
+inputs:
+  schema: ../../schemas/stakeholder-map-input.schema.json
+  required: [account_id, claims, classification_ceiling]
+  optional: [annotations]
+outputs:
+  schema: ../../schemas/skill-result.schema.json
+  data_schema: ../../schemas/stakeholder-map.schema.json
+  evidence_ids: sorted union of referenced normalized claim IDs
+dependencies:
+  reference: [../../reference/personas.yaml]
+  skills: [evidence.normalize]
+constraints:
+  - Name and role_evidence must occur in a cited claim excerpt.
+  - Persona mapping is a caller hypothesis and does not establish authority or decision rights.
+  - Evidence references must resolve to the same account and be within the classification ceiling.
+  - Unknown references and safe diagnostics never echo claim IDs or source text.
+  - Conflicting evidence is retained and never resolved.
+gates:
+  - input_schema_valid
+  - versioned_persona_id_exists
+  - cited_name_and_role_supported
+  - same_account_visible_claim_references
+  - safe_diagnostics
+  - deterministic_ids_and_order

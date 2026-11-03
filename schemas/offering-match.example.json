@@ -1,0 +1,15 @@
+{
+  "account_id": "sf_clear_001",
+  "matches": [
+    {
+      "offering_id": "off_placeholder_advisory",
+      "match_status": "candidate_hypothesis",
+      "rationale": "Caller-supplied mapping only; cited evidence records account activity, not offering fit.",
+      "uncertainties": ["The offering vocabulary or entry is provisional and requires business review."],
+      "discovery_questions": ["What outcome and constraints should be used to assess fit?"],
+      "claim_ids": ["clm_example_001"],
+      "evidence_ids": ["clm_example_001"],
+      "signal_ids": ["sig_northstar_001"]
+    }
+  ]
+}

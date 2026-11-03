@@ -1,0 +1,31 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sales-copilot.local/schemas/opportunity-strategy-workflow-input.schema.json",
+  "title": "opportunity-strategy workflow input",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["workflow_input"],
+  "properties": {
+    "workflow_input": {
+      "$ref": "https://sales-copilot.local/schemas/workflow-input.schema.json"
+    },
+    "qualification": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "criteria_set": {
+          "$ref": "https://sales-copilot.local/schemas/qualification-assess-input.schema.json#/definitions/criteriaSet"
+        },
+        "event_evidence": {
+          "$ref": "https://sales-copilot.local/schemas/qualification-assess-input.schema.json#/definitions/eventEvidence"
+        }
+      }
+    },
+    "offering_annotations": {
+      "type": "array",
+      "items": {
+        "$ref": "https://sales-copilot.local/schemas/opportunity-strategy-input.schema.json#/definitions/offeringMapping"
+      }
+    }
+  }
+}

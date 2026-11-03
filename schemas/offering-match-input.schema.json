@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sales-copilot.local/schemas/offering-match-input.schema.json",
+  "title": "offering.match input",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["account_id", "claims", "classification_ceiling"],
+  "properties": {
+    "account_id": { "type": "string", "minLength": 1 },
+    "claims": {
+      "type": "array",
+      "items": { "$ref": "https://sales-copilot.local/schemas/evidence.schema.json" }
+    },
+    "annotations": {
+      "type": "array",
+      "items": { "$ref": "https://sales-copilot.local/schemas/account-intelligence-annotations.schema.json#/definitions/offering" }
+    },
+    "signals": { "$ref": "https://sales-copilot.local/schemas/signal-result.schema.json" },
+    "classification_ceiling": { "enum": ["public", "internal", "confidential"] }
+  }
+}

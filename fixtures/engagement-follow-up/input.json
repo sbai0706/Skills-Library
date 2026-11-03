@@ -1,0 +1,19 @@
+{
+  "mode": "follow_up",
+  "workflow_input": {
+    "account_reference": "Northstar Logistics",
+    "requested_sources": ["crm"],
+    "audience": "internal_sales",
+    "classification_ceiling": "internal"
+  },
+  "follow_up_claim_ids": [
+    "clm_0c0af6c5491591ef",
+    "clm_3c274b4b6b3c911f"
+  ],
+  "messaging_guidance": {
+    "template_id": "example-follow-up",
+    "version": "0.1.0",
+    "approval_status": "unverified",
+    "tone": "concise"
+  }
+}

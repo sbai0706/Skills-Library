@@ -1,0 +1,31 @@
+version: 0.1.0
+status: provisional
+business_owner: TBD
+approver: TBD
+approval_date: null
+source_documents: []
+effective_date: null
+change_history:
+  - version: 0.1.0
+    date: 2026-11-02
+    change: Initial neutral signal categories for contract development; pending business review.
+
+signals:
+  - id: sigcat_org_change
+    label: Organizational change
+    description: Publicly or internally recorded change in an organization's structure, leadership, or operating model.
+  - id: sigcat_operating_change
+    label: Operating model or process change
+    description: Recorded change to a business process, service model, or operating practice.
+  - id: sigcat_technology_change
+    label: Technology change
+    description: Recorded technology deployment, migration, evaluation, or modernization activity.
+  - id: sigcat_financial_disclosure
+    label: Financial disclosure
+    description: A dated financial statement, target, investment, or other reported financial information.
+  - id: sigcat_market_activity
+    label: Market or partnership activity
+    description: Recorded partnership, acquisition, product, or market activity involving the organization.
+  - id: sigcat_capability_activity
+    label: Capability or hiring activity
+    description: Recorded hiring, skills, or capability-building activity.

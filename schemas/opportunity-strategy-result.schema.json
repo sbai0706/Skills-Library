@@ -1,0 +1,215 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sales-copilot.local/schemas/opportunity-strategy-result.schema.json",
+  "title": "Opportunity strategy hypotheses",
+  "description": "Evidence-linked opportunity hypotheses; event verification and stage decisions remain unavailable.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "account_id",
+    "event_assessment",
+    "customer_problem_hypothesis",
+    "offering_catalogue",
+    "offering_candidates",
+    "value_hypotheses",
+    "discovery_questions",
+    "proposed_next_actions",
+    "stage_readiness"
+  ],
+  "properties": {
+    "account_id": { "type": "string", "minLength": 1 },
+    "event_assessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "fields"],
+      "properties": {
+        "status": { "const": "unverified" },
+        "fields": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "event",
+            "deadline",
+            "consequence",
+            "accountable_owner",
+            "relevantz_service_need",
+            "next_customer_decision"
+          ],
+          "properties": {
+            "event": { "$ref": "#/definitions/eventField" },
+            "deadline": { "$ref": "#/definitions/eventField" },
+            "consequence": { "$ref": "#/definitions/eventField" },
+            "accountable_owner": { "$ref": "#/definitions/eventField" },
+            "relevantz_service_need": { "$ref": "#/definitions/eventField" },
+            "next_customer_decision": { "$ref": "#/definitions/eventField" }
+          }
+        }
+      }
+    },
+    "customer_problem_hypothesis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "statement", "claim_ids", "evidence_ids"],
+      "properties": {
+        "status": { "enum": ["needs_discovery", "tentative", "conflicted_hypothesis"] },
+        "statement": { "type": "string", "minLength": 1 },
+        "claim_ids": { "$ref": "#/definitions/claimIds" },
+        "evidence_ids": { "$ref": "#/definitions/claimIds" }
+      }
+    },
+    "offering_catalogue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "status"],
+      "properties": {
+        "version": { "type": ["string", "null"] },
+        "status": { "enum": ["approved", "provisional", "unknown"] }
+      }
+    },
+    "offering_candidates": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/offeringCandidate" }
+    },
+    "value_hypotheses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["offering_id", "status", "statement", "claim_ids", "evidence_ids"],
+        "properties": {
+          "offering_id": { "type": "string", "pattern": "^off_[A-Za-z0-9_-]+$" },
+          "status": { "const": "tentative" },
+          "statement": {
+            "const": "If the cited initiative or service need is confirmed, evaluate whether this caller-mapped candidate could address it; no fit, outcome, or delivery capability is established."
+          },
+          "claim_ids": { "$ref": "#/definitions/claimIds" },
+          "evidence_ids": { "$ref": "#/definitions/claimIds" }
+        }
+      }
+    },
+    "discovery_questions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "question", "evidence_state"],
+        "properties": {
+          "id": {
+            "enum": [
+              "event",
+              "deadline",
+              "consequence",
+              "accountable_owner",
+              "relevantz_service_need",
+              "next_customer_decision"
+            ]
+          },
+          "question": { "type": "string", "minLength": 1 },
+          "evidence_state": { "$ref": "#/definitions/evidenceState" },
+          "evidence_ids": { "$ref": "#/definitions/claimIds" }
+        }
+      }
+    },
+    "proposed_next_actions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "text", "provenance"],
+        "properties": {
+          "id": {
+            "enum": [
+              "confirm_customer_need",
+              "validate_event_and_decision",
+              "review_candidate_fit",
+              "no_stage_action"
+            ]
+          },
+          "text": { "type": "string", "minLength": 1 },
+          "provenance": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["kind", "evidence_ids"],
+            "properties": {
+              "kind": {
+                "enum": ["visible_evidence", "open_evidence_gap", "unapproved_stage_rules"]
+              },
+              "evidence_ids": { "$ref": "#/definitions/claimIds" }
+            }
+          }
+        }
+      }
+    },
+    "stage_readiness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "reason"],
+      "properties": {
+        "status": { "const": "unavailable" },
+        "reason": { "const": "NO_APPROVED_STAGE_RULES" }
+      }
+    }
+  },
+  "definitions": {
+    "claimIds": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^clm_[A-Za-z0-9_-]+$" }
+    },
+    "evidenceState": {
+      "enum": ["missing", "linked", "uncertain", "conflicting"]
+    },
+    "eventEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["claim_id", "excerpt"],
+      "properties": {
+        "claim_id": { "type": "string", "pattern": "^clm_[A-Za-z0-9_-]+$" },
+        "excerpt": { "type": "string", "minLength": 1 }
+      }
+    },
+    "eventField": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidence_state", "evidence"],
+      "properties": {
+        "evidence_state": { "$ref": "#/definitions/evidenceState" },
+        "evidence": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/definitions/eventEvidence" }
+        }
+      }
+    },
+    "offeringCandidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "offering_id",
+        "label",
+        "catalogue_status",
+        "fit_basis",
+        "match_status",
+        "rationale",
+        "uncertainties",
+        "discovery_questions",
+        "claim_ids",
+        "evidence_ids"
+      ],
+      "properties": {
+        "offering_id": { "type": "string", "pattern": "^off_[A-Za-z0-9_-]+$" },
+        "label": { "type": "string", "minLength": 1 },
+        "catalogue_status": { "enum": ["approved", "provisional", "unknown"] },
+        "fit_basis": {
+          "enum": ["caller_mapping_overlaps_problem_evidence", "not_linked_to_problem_evidence"]
+        },
+        "match_status": { "const": "candidate_hypothesis" },
+        "rationale": { "type": "string", "minLength": 1 },
+        "uncertainties": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string" } },
+        "discovery_questions": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string" } },
+        "claim_ids": { "$ref": "#/definitions/claimIds" },
+        "evidence_ids": { "$ref": "#/definitions/claimIds" }
+      }
+    }
+  }
+}
