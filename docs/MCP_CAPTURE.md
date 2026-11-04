@@ -29,15 +29,27 @@ never commit them. Committed fixtures must be synthetic and clearly fictional
 }
 ```
 
-Each entry has exactly one of `result` (raw MCP tool result or connector payload) or `error`
-(for example `{error_code: "API_ERROR", status_code, body}`). Entries are in call order.
+Each entry has exactly one of `result` (any JSON value: raw MCP tool result or connector payload)
+or `error` (an object, for example `{error_code: "API_ERROR", status_code, body}`). Entries are in
+call order.
+
+A connector result is an error only when `status_code >= 400` or `error_code` is a non-empty
+string. A 2xx envelope such as `{status_code: 200, body: {totalSize, done, records}, url}` is a
+success: `unwrapToolResult` returns `{ok: true, payload: body, meta: {status_code, url}}`.
 
 ## Replay semantics
 
 Calls match on tool name plus canonicalized args (object keys sorted recursively; array order is
-significant). Repeated identical calls consume matching entries in capture order and reuse the last
-one afterwards. No match raises `McpClientError` `REPLAY_UNMATCHED`; an unknown tool raises
-`TOOL_NOT_FOUND`; a captured `error` raises `TOOL_ERROR` carrying the raw `payload`.
+significant). Repeated identical calls consume matching entries in capture order. Replay is strict
+by default: once the entries for a key are consumed, the next call raises `REPLAY_UNMATCHED` with
+reason `replay_exhausted` (pass `{ reuseLast: true }` to keep serving the last entry).
+`client.unconsumed()` lists entries never served (`{index, tool}`, no payloads). No match raises
+`McpClientError` `REPLAY_UNMATCHED` (reason `replay_unmatched`); an unknown tool raises
+`TOOL_NOT_FOUND`; a captured `error` raises `TOOL_ERROR` carrying its (redacted) `payload`.
+
+Retries: the library never retries. Some failures are marked `retryable: true` (for example a 401
+with `INVALID_AUTH_HEADER` or `INVALID_SCOPES`, which are transient); in Mode A retrying is the
+host's job at capture time, so a good capture should contain the successful retry.
 `mapMcpError` / `unwrapToolResult` convert these and isError results into the existing `ADAPTER_*`
 codes (see `adapters/mcp/errors.js` for the table). No new error codes were added.
 
@@ -58,8 +70,18 @@ codes (see `adapters/mcp/errors.js` for the table). No new error codes were adde
 entry's `result` and `error` before use (args are left intact so matching still works). A pattern
 without `.` matches that key at any depth (`"Email"`); a dotted pattern is a path from the
 result/error root with `*` wildcards (`"structuredContent.records.*.Email"`). JSON embedded in MCP
-text content blocks is redacted too. Redaction is in-memory only: the capture file is not rewritten,
-so the raw file still contains the original data.
+text content blocks is redacted too, as is any JSON-string value under any key (for example the
+double-encoded Salesforce error `body`). With `redactErrorMessages` (default `true`) all `message`
+fields in `error` entries and error-shaped results are replaced as well, and plain-text `isError`
+content is replaced wholesale. Consequence: a transient-auth hint that appears only in a message
+(`INVALID_SCOPES`) is not detectable after redaction; `INVALID_AUTH_HEADER` is read from `errorCode`
+and still works. `McpClientError.payload` holds the redacted payload.
+
+Redaction is in-memory only. The capture file on disk stays raw, and `ReplayMcpClient.calls`
+records the unredacted call arguments, so do not log or persist `calls` from live captures.
+
+`loadCapture` options: `limits` values must be positive finite numbers; non-serializable input
+(circular references, BigInt) raises `CAPTURE_INVALID`.
 
 ## Usage
 

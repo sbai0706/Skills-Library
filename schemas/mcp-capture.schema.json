@@ -42,7 +42,7 @@
         "properties": {
           "tool": { "type": "string", "minLength": 1, "maxLength": 200 },
           "args": { "type": "object", "description": "Arguments exactly as sent to the tool." },
-          "result": { "type": "object", "description": "Raw MCP tool result (content/structuredContent/isError) or raw connector payload." },
+          "result": { "description": "Raw MCP tool result (content/structuredContent/isError) or raw connector payload; any JSON value." },
           "error": { "type": "object", "description": "Transport or connector error, for example {error_code, status_code, body} or {code, message}." },
           "captured_at": { "type": "string", "format": "date-time" }
         },

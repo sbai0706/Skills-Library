@@ -58,7 +58,7 @@ function build({ account, evidence = {}, claims = {} }) {
   const entries = [{ tool: "search_accounts", args: {}, ...account }];
   for (const source of EVIDENCE_SOURCE_IDS) entries.push({ tool: "retrieve_evidence", args: { source }, ...(evidence[source] ?? evidence.default) });
   for (const [sourceRecordId, r] of Object.entries(claims)) entries.push({ tool: "extract_claim_candidates", args: { sourceRecordId }, result: result(r) });
-  return new ProjectedReplayClient({ entries });
+  return new ProjectedReplayClient({ entries, reuseLast: true });
 }
 
 export class ReplayMcpAccountAdapter {

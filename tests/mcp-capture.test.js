@@ -124,3 +124,71 @@ test("redaction replaces keys at any depth, wildcard paths, and JSON inside text
   // no redaction list: unchanged
   assert.equal((await loadCapture(d).callTool("t", { Email: "lookup@fictional.example" })).structuredContent.Phone, "000");
 });
+
+test("redaction parses JSON strings under any key, incl. double-encoded error bodies; messages redacted by default", async () => {
+  const body = JSON.stringify([{ errorCode: "INVALID_TYPE", message: "fictional secret detail", Email: "x@fictional.example" }]);
+  const d = doc([
+    { tool: "t", args: { n: 1 }, error: { error_code: "API_ERROR", status_code: 400, body, message: "outer detail" }, captured_at: "2026-11-01T09:00:00Z" },
+    { tool: "t", args: { n: 2 }, result: { isError: true, content: [{ type: "text", text: "failed with fictional customer name" }] }, captured_at: "2026-11-01T09:00:00Z" },
+    { tool: "t", args: { n: 3 }, result: { note: "fine", message: "ordinary success field" }, captured_at: "2026-11-01T09:00:00Z" },
+  ]);
+  const c = loadCapture(d, { redact: ["Email"] });
+  const cause = await c.callTool("t", { n: 1 }).catch((e) => e);
+  const decoded = JSON.parse(cause.payload.body);
+  assert.equal(decoded[0].Email, REDACTION_MARKER);
+  assert.equal(decoded[0].message, REDACTION_MARKER);
+  assert.equal(decoded[0].errorCode, "INVALID_TYPE");
+  assert.equal(cause.payload.message, REDACTION_MARKER);
+  assert.equal(mapMcpError(cause).details.reason, "INVALID_TYPE");
+  assert.equal(JSON.stringify(cause.payload).includes("fictional secret"), false);
+  assert.equal((await c.callTool("t", { n: 2 })).content[0].text, REDACTION_MARKER);
+  assert.equal((await c.callTool("t", { n: 3 })).message, "ordinary success field");
+  assert.deepEqual(c.calls[0].args, { n: 1 }); // calls keep raw args
+
+  const keep = loadCapture(d, { redactErrorMessages: false });
+  const raw = await keep.callTool("t", { n: 1 }).catch((e) => e);
+  assert.equal(raw.payload.message, "outer detail");
+  assert.equal(JSON.parse(raw.payload.body)[0].message, "fictional secret detail");
+  assert.equal(d.entries[0].error.message, "outer detail"); // source untouched
+});
+
+test("transient INVALID_SCOPES message is only detectable when error messages are not redacted", async () => {
+  const d = doc([{ tool: "t", args: {}, error: { error_code: "API_ERROR", status_code: 401, body: JSON.stringify([{ errorCode: "OTHER", message: "INVALID_SCOPES" }]) }, captured_at: "2026-11-01T09:00:00Z" }]);
+  const kept = await loadCapture(d, { redactErrorMessages: false }).callTool("t", {}).catch((e) => e);
+  assert.equal(mapMcpError(kept).retryable, true);
+  const redacted = await loadCapture(d).callTool("t", {}).catch((e) => e);
+  assert.equal(mapMcpError(redacted).retryable, false);
+});
+
+test("result may be any JSON value; error must be an object; exactly one of them", async () => {
+  for (const result of ["text", 5, true, null, [1, 2], {}]) {
+    const d = doc([{ tool: "t", args: {}, result, captured_at: "2026-11-01T09:00:00Z" }]);
+    assert.equal(validate("mcpCapture", d).valid, true, JSON.stringify(result));
+    assert.deepEqual(await loadCapture(d).callTool("t", {}), result);
+  }
+  assert.equal(validate("mcpCapture", doc([{ tool: "t", args: {}, error: "str", captured_at: "2026-11-01T09:00:00Z" }])).valid, false);
+  assert.equal(validate("mcpCapture", doc([{ tool: "t", args: {}, result: null, error: {}, captured_at: "2026-11-01T09:00:00Z" }])).valid, false);
+});
+
+test("loader hardening: invalid limits and unserializable input raise CaptureError", () => {
+  const d = doc([entry(1)]);
+  for (const bad of [0, -1, NaN, Infinity, "10", null]) {
+    assert.equal(code(() => loadCapture(d, { limits: { maxEntries: bad } })), "CAPTURE_INVALID", String(bad));
+  }
+  assert.equal(code(() => loadCapture(d, { limits: { bogus: 5 } })), "CAPTURE_INVALID");
+  assert.equal(code(() => loadCapture(d, { limits: 5 })), "CAPTURE_INVALID");
+  const circular = doc([entry(1)]);
+  circular.entries[0].result.self = circular.entries[0].result;
+  assert.equal(code(() => loadCapture(circular)), "CAPTURE_INVALID");
+  assert.equal(code(() => loadCapture(doc([entry(1, { n: 10n })]))), "CAPTURE_INVALID");
+});
+
+test("loadCapture passes reuseLast to the replay client (strict by default)", async () => {
+  const d = doc([entry(1)]);
+  const strict = loadCapture(d);
+  await strict.callTool("read_resource", { n: 1 });
+  await assert.rejects(strict.callTool("read_resource", { n: 1 }), (e) => e.reason === "replay_exhausted");
+  const reuse = loadCapture(d, { reuseLast: true });
+  await reuse.callTool("read_resource", { n: 1 });
+  assert.deepEqual(await reuse.callTool("read_resource", { n: 1 }), { ok: true });
+});

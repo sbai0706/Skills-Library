@@ -1,10 +1,12 @@
 import { readFileSync, statSync } from "node:fs";
 import { validate } from "../../schemas/index.js";
 import { ReplayMcpClient } from "./replay-client.js";
+import { isErrorResult } from "./errors.js";
 
 /**
  * Capture loader. Raw captures may contain real customer data: keep them under
- * the git-ignored .captures/ directory and never commit them.
+ * the git-ignored .captures/ directory and never commit them. The capture file on
+ * disk stays raw; redaction applies in memory only.
  */
 export const CAPTURE_LIMITS = Object.freeze({
   maxEntries: 1000,
@@ -23,7 +25,11 @@ export class CaptureError extends Error {
   }
 }
 
-const bytes = (value) => Buffer.byteLength(JSON.stringify(value), "utf8");
+function bytes(value) {
+  try { return Buffer.byteLength(JSON.stringify(value), "utf8"); } catch {
+    throw new CaptureError("CAPTURE_INVALID", "Capture is not JSON-serializable (circular reference or unsupported value)");
+  }
+}
 
 function matches(pattern, key, trail) {
   if (!pattern.includes(".")) return pattern === key;
@@ -31,20 +37,25 @@ function matches(pattern, key, trail) {
   return parts.length === trail.length && parts.every((p, i) => p === "*" || p === trail[i]);
 }
 
-function redactValue(value, patterns, trail = []) {
-  if (Array.isArray(value)) return value.map((v, i) => redactValue(v, patterns, [...trail, String(i)]));
+/**
+ * Redact patterns and (when `messages`) `message` fields. Strings under ANY key that look like
+ * JSON ('{' or '[' after trim) are parsed, redacted from their own root, and re-serialized.
+ */
+function redactValue(value, patterns, messages, trail = []) {
+  if (Array.isArray(value)) return value.map((v, i) => redactValue(v, patterns, messages, [...trail, String(i)]));
   if (value && typeof value === "object") {
     const out = {};
     for (const [key, v] of Object.entries(value)) {
       const here = [...trail, key];
-      out[key] = patterns.some((p) => matches(p, key, here)) ? REDACTION_MARKER : redactValue(v, patterns, here);
+      const hit = patterns.some((p) => matches(p, key, here)) || (messages && key === "message");
+      out[key] = hit ? REDACTION_MARKER : redactValue(v, patterns, messages, here);
     }
     return out;
   }
-  if (typeof value === "string" && trail.at(-1) === "text") {
+  if (typeof value === "string") {
     const t = value.trim();
     if (t.startsWith("{") || t.startsWith("[")) {
-      try { return JSON.stringify(redactValue(JSON.parse(t), patterns, [])); } catch { /* not JSON */ }
+      try { return JSON.stringify(redactValue(JSON.parse(t), patterns, messages, [])); } catch { /* not JSON */ }
     }
   }
   return value;
@@ -55,29 +66,56 @@ function redactValue(value, patterns, trail = []) {
  * error (args are left intact so call matching is unaffected). A pattern without
  * "." matches that key at any depth; a dotted pattern is a path from the result/error
  * root where "*" matches any key or array index (e.g. "structuredContent.records.*.Email").
- * JSON embedded in MCP text content blocks is redacted too (patterns apply from its root).
+ * JSON-string values under any key (MCP text blocks, double-encoded connector bodies) are
+ * parsed, redacted (patterns apply from their root) and re-serialized.
+ * With `redactErrorMessages` (default true) every `message` field inside `error` entries and
+ * error-shaped results (isError / connector error bodies) is replaced too.
+ * @param {object[]} entries
+ * @param {string[]} [paths]
+ * @param {{redactErrorMessages?: boolean}} [options]
  */
-export function redactEntries(entries, paths) {
+export function redactEntries(entries, paths, { redactErrorMessages = true } = {}) {
   const patterns = (paths ?? []).filter((p) => typeof p === "string" && p !== "");
-  if (patterns.length === 0) return entries;
-  return entries.map((e) => ({
-    ...e,
-    ...(e.result !== undefined ? { result: redactValue(e.result, patterns) } : {}),
-    ...(e.error !== undefined ? { error: redactValue(e.error, patterns) } : {}),
-  }));
+  if (patterns.length === 0 && !redactErrorMessages) return entries;
+  return entries.map((e) => {
+    const out = { ...e };
+    if (e.result !== undefined) {
+      const errorLike = redactErrorMessages && isErrorResult(e.result);
+      out.result = redactValue(e.result, patterns, errorLike);
+      if (errorLike && e.result?.isError === true && Array.isArray(out.result.content)) {
+        // plain-text (non-JSON) isError messages are replaced wholesale
+        out.result.content = out.result.content.map((c) =>
+          (c?.type === "text" && typeof c.text === "string" && !/^\s*[{[]/.test(c.text) ? { ...c, text: REDACTION_MARKER } : c));
+      }
+    }
+    if (e.error !== undefined) out.error = redactValue(e.error, patterns, redactErrorMessages);
+    return out;
+  });
+}
+
+function resolveLimits(requested) {
+  const limits = { ...CAPTURE_LIMITS };
+  if (requested === undefined) return limits;
+  if (typeof requested !== "object" || requested === null) throw new CaptureError("CAPTURE_INVALID", "limits must be an object");
+  for (const [k, v] of Object.entries(requested)) {
+    if (!(k in CAPTURE_LIMITS)) throw new CaptureError("CAPTURE_INVALID", `Unknown limit: ${k}`);
+    if (typeof v !== "number" || !Number.isFinite(v) || v <= 0) throw new CaptureError("CAPTURE_INVALID", `limit ${k} must be a positive finite number`);
+    limits[k] = Math.min(v, CAPTURE_LIMITS[k]);
+  }
+  return limits;
 }
 
 /**
  * Load, validate (schema + limits), optionally redact, and return a replay client.
  * @param {string|object} source  Path to a capture JSON file, or an already parsed document.
- * @param {{redact?: string[], limits?: Partial<typeof CAPTURE_LIMITS>}} [options]
- *   `limits` may only tighten the defaults.
+ * @param {{redact?: string[], redactErrorMessages?: boolean, limits?: Partial<typeof CAPTURE_LIMITS>, reuseLast?: boolean}} [options]
+ *   `limits` may only tighten the defaults and must be positive finite numbers.
+ *   `redactErrorMessages` defaults to true. `reuseLast` is passed to the replay client.
  * @returns {ReplayMcpClient}  with `.capture` (metadata) attached.
  * @throws {CaptureError}
  */
 export function loadCapture(source, options = {}) {
-  const limits = {};
-  for (const k of Object.keys(CAPTURE_LIMITS)) limits[k] = Math.min(options.limits?.[k] ?? CAPTURE_LIMITS[k], CAPTURE_LIMITS[k]);
+  const limits = resolveLimits(options.limits);
   let doc = source;
   if (typeof source === "string") {
     try {
@@ -103,7 +141,8 @@ export function loadCapture(source, options = {}) {
     const size = bytes(entry);
     if (size > limits.maxEntryBytes) throw new CaptureError("CAPTURE_TOO_LARGE", `Entry ${index} exceeds ${limits.maxEntryBytes} bytes`, { index, bytes: size });
   });
-  const client = new ReplayMcpClient({ entries: redactEntries(doc.entries, options.redact) });
+  const entries = redactEntries(doc.entries, options.redact, { redactErrorMessages: options.redactErrorMessages ?? true });
+  const client = new ReplayMcpClient({ entries, reuseLast: options.reuseLast === true });
   client.capture = { ...doc.capture };
   return client;
 }
