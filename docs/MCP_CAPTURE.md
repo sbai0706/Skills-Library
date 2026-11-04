@@ -89,3 +89,58 @@ records the unredacted call arguments, so do not log or persist `calls` from liv
 import { loadCapture } from "../adapters/mcp/index.js";
 const client = loadCapture(".captures/sf-2026-11-01.json", { redact: ["Email", "Phone"] });
 ```
+
+## End-to-end host procedure (Salesforce, CLI capture mode)
+
+The CLIs `prepare-first-meeting`, `prepare-first-meeting-v2`, `qualification`, `prepare-engagement`
+(initial) and `opportunity-strategy` accept `--source capture --capture <path>` (default
+`--source fixture`; no fallback between the two). `bin/salesforce-capture-plan.js` prints the exact
+calls; it makes no network call.
+
+1. `npm run salesforce-capture-plan -- --init-capture .captures/<slug>.json --source-system salesforce`
+   writes an empty valid skeleton. The target must be a file under `<repo root>/.captures/`
+   (anything else, including a directory, is refused with exit 1; there is no override flag), and
+   an existing file is never overwritten.
+2. Phase 1: `npm run salesforce-capture-plan -- --account "<name or sf_<Id>>"`. Output is JSON:
+   `calls` is a list of `{step, tool:"dispatch_readonly", args}` (some with a `condition`), plus
+   `pagination` and `host_rules` text. Call the Salesforce connector tool `dispatch_readonly` with
+   exactly each `args` (never `dispatch`/`describe`/`discover`, never hand-written SOQL) and append
+   `{"tool":"dispatch_readonly","args":<args>,"result":<raw result>,"captured_at":"<ISO>"}` (or
+   `"error"`) to `entries` in call order. Retry a 401 `INVALID_AUTH_HEADER` once and record only the
+   final attempt; follow and record `nextRecordsUrl` pages (validation fails on a missing page).
+3. Choose the account: take the Id directly only when exactly one row matched AND its `Name`
+   equals the term case-insensitively (after the adapter's trimming). Otherwise run the CLI once
+   after Phase 1 as an ambiguity/confirmation check only: exit 3 with `CONFIRMATION_REQUIRED` or
+   candidates present means the user must choose an Id; then re-run Phase 1 with
+   `--account sf_<Id>` and record that ID query. A `REPLAY_INCOMPLETE` failure at that point is
+   expected when the account resolves, because Phase 2 is not captured yet.
+4. Phase 2: `npm run salesforce-capture-plan -- --account-id sf_<Id>`: five calls (Account,
+   Opportunity, Contact, Task, Event) recorded the same way. One capture file holds Phase 1 and
+   Phase 2 entries, so both `--account "<name>"` and `--account sf_<Id>` replay from it.
+5. `npm run salesforce-capture-plan -- --validate .captures/<slug>.json --account "<ref>" --account-id sf_<Id>`
+   runs `loadCapture` and prints a payload-free summary (entry counts, recorded error count,
+   problems); exit 1 on any problem: missing planned calls, a tool other than `dispatch_readonly`
+   or a non-GET method, a successful `done:false` result without a recorded later
+   `{url: nextRecordsUrl, method: "GET"}` page (`entry N: missing pagination page`; a recorded
+   error is not a page), or `capture.source_system` other than `salesforce`.
+6. `npm run <workflow> -- --account "<ref>" --source capture --capture .captures/<slug>.json --output json`.
+   Exit codes are unchanged (0 success, 2 partial, 3 blocked, 1 failed or invalid usage). Exit 3 is
+   "blocked": read `status` and `errors`; only `CONFIRMATION_REQUIRED` or ambiguity (candidates)
+   means the user picks an Id, while evidence/authorization errors (`NO_RECORDS_RETRIEVED`,
+   `PARTIAL_SOURCES`, `ADAPTER_UNAUTHORIZED`, `EVIDENCE_RETRIEVAL_BLOCKED`) are reported as they
+   are. A call the capture does not cover (`replay_unmatched` / `replay_exhausted`) forces exit 1
+   and prints `REPLAY_INCOMPLETE` on stderr only. The JSON result is not modified (it typically
+   shows a generic code such as `ADAPTER_UNAVAILABLE`): adding a `REPLAY_INCOMPLETE` entry would
+   alter the status/artifact consistency of the workflow result contracts, and a stdout line would
+   break `--output json`. Report "failed: incomplete capture" and ignore the stdout status and
+   artifact. A capture whose `source_system` is not `salesforce` is rejected (exit 1).
+
+Capture mode only serves the `crm` source (`--sources` other than `crm` is invalid usage) and uses
+the no-mapping paths; options that reference fixture evidence IDs (`--fixture`, `--mapping-fixture`,
+`--assessment-fixture`, `--mode follow_up`) are rejected. Keep captures under `.captures/`
+(git-ignored); `--init-capture` enforces it, and `--validate` and every capture-mode run print a
+stderr WARNING (no payload content, exit code unchanged) when the capture file is not git-ignored
+(`git check-ignore`; skipped silently if git is unavailable). Workflow artifact content may be
+shown to the user (citations are the bracketed `[clm_...]` markers in `artifact.markdown` plus
+`evidence_ids`; there is no separate list), but raw captures, connector payloads and Salesforce
+records must never be pasted or committed.
