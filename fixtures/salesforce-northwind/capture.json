@@ -1,0 +1,189 @@
+{
+  "format_version": "mcp-capture/1",
+  "capture": {
+    "created_at": "2026-11-04T10:00:00Z",
+    "source_system": "salesforce",
+    "connector": "synthetic-salesforce-connector",
+    "note": "Entirely fictional fixture; unique match then CRM evidence."
+  },
+  "entries": [
+    {
+      "tool": "dispatch_readonly",
+      "args": {
+        "url": "/services/data/v66.0/query",
+        "method": "GET",
+        "queryParams": {
+          "q": "SELECT Id, Name, Website, BillingCity, BillingState, BillingCountry, Owner.Name FROM Account WHERE Name = 'Northwind Traders' OR Name LIKE '%Northwind%' OR Name LIKE '%Traders%' ORDER BY Name ASC, Id ASC LIMIT 50"
+        }
+      },
+      "result": {
+        "status_code": 200,
+        "body": {
+          "totalSize": 1,
+          "done": true,
+          "records": [
+            {
+              "attributes": {
+                "type": "Account",
+                "url": "/services/data/v66.0/sobjects/Account/001SYN0000000001AA"
+              },
+              "Id": "001SYN0000000001AA",
+              "Name": "Northwind Traders",
+              "Website": "https://www.northwind-traders.example",
+              "BillingCity": "Columbus",
+              "BillingState": "OH",
+              "BillingCountry": "USA",
+              "Owner": {
+                "attributes": {
+                  "type": "User"
+                },
+                "Name": "Avery Example"
+              }
+            }
+          ]
+        },
+        "url": "/services/data/v66.0/query"
+      },
+      "captured_at": "2026-11-04T10:00:01Z"
+    },
+    {
+      "tool": "dispatch_readonly",
+      "args": {
+        "url": "/services/data/v66.0/query",
+        "method": "GET",
+        "queryParams": {
+          "q": "SELECT Id, Name, Industry, Type, Website, NumberOfEmployees, AnnualRevenue, BillingCity, BillingState, BillingCountry, Owner.Name, CreatedDate, LastModifiedDate FROM Account WHERE Id = '001SYN0000000001AA' LIMIT 1"
+        }
+      },
+      "result": {
+        "status_code": 200,
+        "body": {
+          "totalSize": 1,
+          "done": true,
+          "records": [
+            {
+              "attributes": {
+                "type": "Account",
+                "url": "/services/data/v66.0/sobjects/Account/001SYN0000000001AA"
+              },
+              "Id": "001SYN0000000001AA",
+              "Name": "Northwind Traders",
+              "Industry": "Logistics",
+              "Type": "Customer",
+              "Website": "https://www.northwind-traders.example",
+              "NumberOfEmployees": 250,
+              "AnnualRevenue": 12000000,
+              "BillingCity": "Columbus",
+              "BillingState": "OH",
+              "BillingCountry": "USA",
+              "Owner": {
+                "attributes": {
+                  "type": "User"
+                },
+                "Name": "Avery Example"
+              },
+              "CreatedDate": "2026-01-05T09:00:00.000+0000",
+              "LastModifiedDate": "2026-10-20T12:30:00.000+0000"
+            }
+          ]
+        },
+        "url": "/services/data/v66.0/query"
+      },
+      "captured_at": "2026-11-04T10:00:02Z"
+    },
+    {
+      "tool": "dispatch_readonly",
+      "args": {
+        "url": "/services/data/v66.0/query",
+        "method": "GET",
+        "queryParams": {
+          "q": "SELECT Id, Name, AccountId, StageName, Amount, CloseDate, Probability, ForecastCategoryName, Type, LeadSource, Owner.Name, Cluster__c, Qualification_Score__c, Budget_Status__c, Primary_Buyer_Authority__c, Awareness_of_Pain__c, What_s_the_Trigger_and_why_now__c, Cost_of_Inaction__c, Buying_Path__c, CreatedDate, LastModifiedDate FROM Opportunity WHERE AccountId = '001SYN0000000001AA' ORDER BY CloseDate DESC, Id ASC LIMIT 201"
+        }
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"status_code\":200,\"body\":{\"totalSize\":2,\"done\":true,\"records\":[{\"attributes\":{\"type\":\"Opportunity\",\"url\":\"/services/data/v66.0/sobjects/Opportunity/006SYN0000000001AA\"},\"Id\":\"006SYN0000000001AA\",\"Name\":\"Phoenix Upgrade\",\"AccountId\":\"001SYN0000000001AA\",\"StageName\":\"Awareness\",\"Amount\":50000,\"CloseDate\":\"2026-12-15\",\"Probability\":10,\"ForecastCategoryName\":\"Pipeline\",\"Type\":\"New Business\",\"LeadSource\":\"Referral\",\"Owner\":{\"attributes\":{\"type\":\"User\"},\"Name\":\"Avery Example\"},\"Cluster__c\":\"Cluster East\",\"Qualification_Score__c\":42,\"Budget_Status__c\":\"Approved\",\"Primary_Buyer_Authority__c\":null,\"Awareness_of_Pain__c\":null,\"What_s_the_Trigger_and_why_now__c\":null,\"Cost_of_Inaction__c\":null,\"Buying_Path__c\":null,\"CreatedDate\":\"2026-01-05T09:00:00.000+0000\",\"LastModifiedDate\":\"2026-10-20T12:30:00.000+0000\"},{\"attributes\":{\"type\":\"Opportunity\",\"url\":\"/services/data/v66.0/sobjects/Opportunity/006SYN0000000002AA\"},\"Id\":\"006SYN0000000002AA\",\"Name\":\"Fleet Review\",\"AccountId\":\"001SYN0000000001AA\",\"StageName\":\"Prospecting\",\"Amount\":null,\"CloseDate\":\"2027-01-31\",\"Probability\":null,\"ForecastCategoryName\":null,\"Type\":null,\"LeadSource\":null,\"Owner\":null,\"Cluster__c\":null,\"Qualification_Score__c\":null,\"Budget_Status__c\":null,\"CreatedDate\":\"2026-01-05T09:00:00.000+0000\",\"LastModifiedDate\":\"2026-10-20T12:30:00.000+0000\"}]},\"url\":\"/services/data/v66.0/query\"}"
+          }
+        ]
+      },
+      "captured_at": "2026-11-04T10:00:02Z"
+    },
+    {
+      "tool": "dispatch_readonly",
+      "args": {
+        "url": "/services/data/v66.0/query",
+        "method": "GET",
+        "queryParams": {
+          "q": "SELECT Id, Name, AccountId, Title, Department, CreatedDate, LastModifiedDate FROM Contact WHERE AccountId = '001SYN0000000001AA' ORDER BY Name ASC, Id ASC LIMIT 101"
+        }
+      },
+      "result": {
+        "status_code": 200,
+        "body": {
+          "totalSize": 1,
+          "done": true,
+          "records": [
+            {
+              "attributes": {
+                "type": "Contact",
+                "url": "/services/data/v66.0/sobjects/Contact/003SYN0000000001AA"
+              },
+              "Id": "003SYN0000000001AA",
+              "Name": "Jordan Sample",
+              "AccountId": "001SYN0000000001AA",
+              "Title": "VP Operations",
+              "Department": "Operations",
+              "Email": "jordan.sample@northwind-traders.example",
+              "Phone": "+1 555 0100",
+              "CreatedDate": "2026-01-05T09:00:00.000+0000",
+              "LastModifiedDate": "2026-10-20T12:30:00.000+0000"
+            }
+          ]
+        },
+        "url": "/services/data/v66.0/query"
+      },
+      "captured_at": "2026-11-04T10:00:02Z"
+    },
+    {
+      "tool": "dispatch_readonly",
+      "args": {
+        "url": "/services/data/v66.0/query",
+        "method": "GET",
+        "queryParams": {
+          "q": "SELECT Id, Subject, AccountId, Status, Priority, Type, ActivityDate, Owner.Name, WhatId, WhoId, CompletedDateTime, CreatedDate, LastModifiedDate FROM Task WHERE AccountId = '001SYN0000000001AA' ORDER BY ActivityDate DESC NULLS LAST, Id ASC LIMIT 101"
+        }
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"status_code\":200,\"body\":{\"totalSize\":1,\"done\":true,\"records\":[{\"attributes\":{\"type\":\"Task\",\"url\":\"/services/data/v66.0/sobjects/Task/00TSYN0000000001AA\"},\"Id\":\"00TSYN0000000001AA\",\"Subject\":\"Follow up call\",\"AccountId\":\"001SYN0000000001AA\",\"Status\":\"Completed\",\"Priority\":\"Normal\",\"Type\":\"Call\",\"ActivityDate\":\"2026-10-01\",\"Owner\":{\"attributes\":{\"type\":\"User\"},\"Name\":\"Avery Example\"},\"WhatId\":\"006SYN0000000001AA\",\"WhoId\":\"003SYN0000000001AA\",\"CompletedDateTime\":\"2026-10-01T15:00:00.000+0000\",\"CreatedDate\":\"2026-01-05T09:00:00.000+0000\",\"LastModifiedDate\":\"2026-10-20T12:30:00.000+0000\"}]},\"url\":\"/services/data/v66.0/query\"}"
+          }
+        ]
+      },
+      "captured_at": "2026-11-04T10:00:02Z"
+    },
+    {
+      "tool": "dispatch_readonly",
+      "args": {
+        "url": "/services/data/v66.0/query",
+        "method": "GET",
+        "queryParams": {
+          "q": "SELECT Id, Subject, AccountId, StartDateTime, EndDateTime, Location, Type, Owner.Name, WhatId, WhoId, CreatedDate, LastModifiedDate FROM Event WHERE AccountId = '001SYN0000000001AA' ORDER BY StartDateTime DESC NULLS LAST, Id ASC LIMIT 51"
+        }
+      },
+      "result": {
+        "status_code": 200,
+        "body": {
+          "totalSize": 0,
+          "done": true,
+          "records": []
+        },
+        "url": "/services/data/v66.0/query"
+      },
+      "captured_at": "2026-11-04T10:00:02Z"
+    }
+  ]
+}

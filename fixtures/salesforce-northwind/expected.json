@@ -1,0 +1,37 @@
+{
+  "description": "Synthetic Salesforce replay: unique account match, five CRM objects, structured claims.",
+  "expected": {
+    "status": "success",
+    "account_id": "sf_001SYN0000000001AA",
+    "steps": [
+      [
+        "account.resolve",
+        "success"
+      ],
+      [
+        "evidence.retrieve",
+        "success"
+      ],
+      [
+        "evidence.normalize",
+        "success"
+      ],
+      [
+        "gap.detect",
+        "success"
+      ],
+      [
+        "artifact.render",
+        "partial"
+      ]
+    ],
+    "claim_count": 33,
+    "markdown_includes": [
+      "# First-meeting brief — Northwind Traders",
+      "Account \"Northwind Traders\" Industry: Logistics",
+      "Opportunity \"Phoenix Upgrade\" Stage: Awareness",
+      "Contact \"Jordan Sample\" Title: VP Operations",
+      "Task \"Follow up call\" Status: Completed"
+    ]
+  }
+}
