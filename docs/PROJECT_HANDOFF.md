@@ -155,8 +155,8 @@ integrations above; the current result should not be described as a pilot or pro
    [the Claude wrapper guide](AGENT_SKILLS.md). Treat [the MVP handoff](MVP_HANDOFF.md) as
    historical context, not an active task list.
 2. Run `git status --short`, inspect the current branch/log, and then run tests before editing.
-   The verified starting snapshot for this handoff was `main` at `92da676`; the handoff work is on
-   a dedicated local worktree branch based on that snapshot.
+   The verified starting snapshot for this handoff was `main` at `92da676`; this document has since
+   been integrated on `main`. Recheck the present branch and worktree state before resuming.
 3. Preserve the two user-owned original input files named above and do not replace original
    customer/demo presentation materials. Other task worktrees were intentionally preserved; do
    not assume every local branch is merged or clean.
