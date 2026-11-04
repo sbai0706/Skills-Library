@@ -84,10 +84,13 @@ input) reference evidence IDs and remain caller-supplied; first live runs use th
 - P1 done: `adapters/mcp/` merged (8649b22). See [MCP_CAPTURE.md](MCP_CAPTURE.md).
 - P2 done: `adapters/salesforce/` merged (f95673b); suite 466/466. All generated SOQL verified
   live (read-only) in the sandbox; Task `Owner.attributes.type` is `"Name"` (polymorphic).
-- P3 done (local commit on its branch): `--source fixture|capture` + `--capture <path>` on the five
-  workflow CLIs (fixture default unchanged; prepare-engagement initial only), `bin/salesforce-capture-plan.js`
-  (`--account`, `--account-id`, `--init-capture`, `--validate`), wrapper "Live Salesforce (capture)
-  mode" sections, `docs/MCP_CAPTURE.md` host procedure. Needs a live end-to-end run (P5).
+- P3 done: merged (b0212b4); suite 515/515. Five workflow CLIs take `--source capture --capture`
+  (prepare-engagement initial only); `bin/salesforce-capture-plan.js` (plan, `--init-capture` restricted
+  to `.captures/`, `--validate` gate); wrapper capture sections. Live smoke (one sandbox account, 6
+  calls): first-meeting v1/v2 success/0, qualification/engagement/opportunity-strategy partial/2,
+  missing-entry capture failed/1 (REPLAY_INCOMPLETE on stderr only).
+- Open design issue: one account with 38 Opportunities gives ~350 citations / ~69k-char brief
+  (every field line is a claim). Needs a user decision before P5.
 - Next: P4 (M365), P5 (live acceptance; Event shape still unverified — 0 rows).
 - Agent worktrees kept under `.claude/worktrees/` (locally excluded via `.git/info/exclude`).
 
@@ -106,3 +109,4 @@ input) reference evidence IDs and remain caller-supplied; first live runs use th
   these notes.
 - 2026-11-04 (Claude Code): baseline 369/369; connectors and subagent connector access verified.
   P1 and P2 implemented, reviewed, fixed and merged locally (466/466). Nothing pushed.
+- 2026-11-04: P3 implemented, reviewed, live-smoked, fixed and merged (515/515). Nothing pushed.
