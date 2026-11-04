@@ -89,3 +89,37 @@ records the unredacted call arguments, so do not log or persist `calls` from liv
 import { loadCapture } from "../adapters/mcp/index.js";
 const client = loadCapture(".captures/sf-2026-11-01.json", { redact: ["Email", "Phone"] });
 ```
+
+## End-to-end host procedure (Salesforce, CLI capture mode)
+
+The CLIs `prepare-first-meeting`, `prepare-first-meeting-v2`, `qualification`, `prepare-engagement`
+(initial) and `opportunity-strategy` accept `--source capture --capture <path>` (default
+`--source fixture`; no fallback between the two). `bin/salesforce-capture-plan.js` prints the exact
+calls; it makes no network call.
+
+1. `npm run salesforce-capture-plan -- --init-capture .captures/<slug>.json --source-system salesforce`
+   writes an empty valid skeleton (refuses to overwrite).
+2. Phase 1: `npm run salesforce-capture-plan -- --account "<name or sf_<Id>>"`. Output is JSON:
+   `calls` is a list of `{step, tool:"dispatch_readonly", args}` (some with a `condition`), plus
+   `pagination` and `host_rules` text. Call the Salesforce connector tool `dispatch_readonly` with
+   exactly each `args` (never `dispatch`/`describe`/`discover`, never hand-written SOQL) and append
+   `{"tool":"dispatch_readonly","args":<args>,"result":<raw result>,"captured_at":"<ISO>"}` (or
+   `"error"`) to `entries` in call order. Retry a 401 `INVALID_AUTH_HEADER` once and record only the
+   final attempt; follow and record `nextRecordsUrl` pages.
+3. Choose the account: one matching row gives `sf_<Id>`; otherwise run the CLI (exit 3 lists
+   candidates), let the user choose an Id, and record the Phase 1 ID query via `--account sf_<Id>`.
+4. Phase 2: `npm run salesforce-capture-plan -- --account-id sf_<Id>`: five calls (Account,
+   Opportunity, Contact, Task, Event) recorded the same way. One capture file holds Phase 1 and
+   Phase 2 entries, so both `--account "<name>"` and `--account sf_<Id>` replay from it.
+5. `npm run salesforce-capture-plan -- --validate .captures/<slug>.json --account "<ref>" --account-id sf_<Id>`
+   runs `loadCapture` and prints a payload-free summary (entry counts, recorded error count, missing
+   planned calls); exit 1 on any problem.
+6. `npm run <workflow> -- --account "<ref>" --source capture --capture .captures/<slug>.json --output json`.
+   Exit codes are unchanged (0 success, 2 partial, 3 blocked, 1 failed or invalid usage); a call the
+   capture does not cover (`replay_unmatched` / `replay_exhausted`) is exit 1 with a
+   `REPLAY_INCOMPLETE` message asking for a re-capture.
+
+Capture mode only serves the `crm` source (`--sources` other than `crm` is invalid usage) and uses
+the no-mapping paths; options that reference fixture evidence IDs (`--fixture`, `--mapping-fixture`,
+`--assessment-fixture`, `--mode follow_up`) are rejected. `.captures/` is recommended and
+git-ignored but any existing path works. Never commit or paste raw captures.

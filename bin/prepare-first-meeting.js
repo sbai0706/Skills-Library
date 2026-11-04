@@ -4,6 +4,9 @@ import { prepareFirstMeeting } from "../workflows/prepare-first-meeting/index.js
 import { createFixtureAccountAdapter } from "../adapters/fixture-account-adapter.js";
 import { createFixtureEvidenceAdapter } from "../adapters/fixture-evidence-adapter.js";
 import { createFixtureClaimExtractor } from "../adapters/fixture-claim-extractor.js";
+import {
+  assertCaptureSources, captureExitCode, createCaptureSession, resolveSourceOptions,
+} from "../cli/capture-mode.js";
 
 const DEFAULT_FIXTURE = "workflow-first-meeting-success";
 const FIXTURES = new Set([
@@ -22,8 +25,11 @@ const FIXTURES = new Set([
 
 const HELP = `Usage: npm run prepare-first-meeting -- --account NAME [options]
 
-Development and demonstration interface. This CLI uses local fixture adapters
+Development and demonstration interface. By default this CLI uses local fixture adapters
 and a deterministic fixture claim extractor; it does not connect to live systems.
+With --source capture it replays a host-recorded Salesforce capture (read-only CRM data,
+structured-field claims) instead; it never queries Salesforce itself and never falls back
+to fixtures.
 
 Options:
   --account VALUE          Required account reference
@@ -32,6 +38,9 @@ Options:
   --template VALUE        Renderer template (default: first-meeting-brief-v1)
   --audience VALUE        internal_sales, executive, or customer (default: internal_sales)
   --fixture NAME          workflow-first-meeting-* fixture (default: ${DEFAULT_FIXTURE}, safe demo)
+  --source MODE           fixture (default) or capture
+  --capture PATH          Salesforce capture file (required with, and only valid with,
+                          --source capture; keep raw captures under .captures/)
   --output FORMAT         json or markdown (default: json)
   --help                   Show this help
 
@@ -48,6 +57,8 @@ function parseArgs(argv) {
     "--audience",
     "--fixture",
     "--output",
+    "--source",
+    "--capture",
   ]);
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -81,8 +92,14 @@ function parseArgs(argv) {
     }
   }
 
+  const sourceOptions = resolveSourceOptions(parsed, {
+    incompatible: [["--fixture", "capture mode reads the account and evidence from the capture, not a bundled fixture"]],
+  });
+  if (sourceOptions.source === "capture") assertCaptureSources(sources);
+
   return {
     help: false,
+    ...sourceOptions,
     account: parsed["--account"].trim(),
     ...(sources ? { sources } : {}),
     ...(parsed["--classification"] !== undefined
@@ -132,13 +149,29 @@ async function main() {
     ...(Object.hasOwn(options, "audience") ? { audience: options.audience } : {}),
   };
 
-  let result;
-  try {
-    result = await prepareFirstMeeting(input, {
+  let session;
+  let deps;
+  if (options.source === "capture") {
+    try {
+      session = createCaptureSession(options.capturePath);
+    } catch (error) {
+      process.stderr.write(`${error.message}\n`);
+      process.exitCode = 1;
+      return;
+    }
+    deps = session.deps;
+    input.requested_sources ??= ["crm"];
+  } else {
+    deps = {
       accountAdapter: createFixtureAccountAdapter({ fixture: options.fixture }),
       evidenceAdapter: createFixtureEvidenceAdapter({ fixture: options.fixture }),
       claimExtractor: createFixtureClaimExtractor(),
-    });
+    };
+  }
+
+  let result;
+  try {
+    result = await prepareFirstMeeting(input, deps);
   } catch {
     process.stderr.write("Workflow failed before producing a valid result.\n");
     process.exitCode = 1;
@@ -157,7 +190,7 @@ async function main() {
     emitDiagnostics(result);
   }
 
-  process.exitCode = exitCode(result.status);
+  process.exitCode = captureExitCode(exitCode(result.status), session);
 }
 
 await main();

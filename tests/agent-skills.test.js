@@ -13,28 +13,28 @@ const SPECS = [
     name: "prepare-first-meeting",
     script: "prepare-first-meeting",
     executable: "prepare-first-meeting.js",
-    options: ["--account", "--sources", "--classification", "--template", "--audience", "--fixture", "--output"],
+    options: ["--account", "--sources", "--classification", "--template", "--audience", "--fixture", "--output", "--source", "--capture"],
     fixtures: ["workflow-first-meeting-success"],
   },
   {
     name: "prepare-engagement",
     script: "prepare-engagement",
     executable: "prepare-engagement.js",
-    options: ["--fixture", "--account", "--mode", "--classification", "--tone", "--output"],
+    options: ["--fixture", "--account", "--mode", "--classification", "--tone", "--output", "--source", "--capture"],
     fixtures: ["engagement-initial", "engagement-follow-up"],
   },
   {
     name: "qualification",
     script: "qualification",
     executable: "qualification.js",
-    options: ["--account", "--sources", "--classification", "--fixture", "--assessment-fixture", "--output"],
+    options: ["--account", "--sources", "--classification", "--fixture", "--assessment-fixture", "--output", "--source", "--capture"],
     fixtures: ["workflow-first-meeting-success"],
   },
   {
     name: "opportunity-strategy",
     script: "opportunity-strategy",
     executable: "opportunity-strategy.js",
-    options: ["--fixture", "--output", "northstar-example"],
+    options: ["--fixture", "--output", "northstar-example", "--account", "--source", "--capture"],
     fixtures: [],
   },
 ];
@@ -200,4 +200,47 @@ test("opportunity-strategy fixture CLI returns a cited partial artifact", () => 
   const workflow = workflowResult(result, 2, "partial");
   assert.equal(workflow.workflow, "opportunity-strategy");
   assert.ok(workflow.evidence_ids.length > 0);
+});
+
+test("every wrapper has a separate Live Salesforce (capture) mode section that keeps the fixture instructions", () => {
+  for (const spec of SPECS) {
+    const { text } = readSkill(spec);
+    const heading = text.indexOf("## Live Salesforce (capture) mode");
+    assert.ok(heading > 0, `${spec.name} needs a Live Salesforce (capture) mode section`);
+    assert.ok(text.indexOf(`npm run ${spec.script}`) < heading, `${spec.name} keeps fixture instructions before the capture section`);
+    const section = text.slice(heading);
+    for (const required of [
+      "npm run salesforce-capture-plan -- --init-capture .captures/",
+      "npm run salesforce-capture-plan -- --account",
+      "npm run salesforce-capture-plan -- --account-id",
+      "npm run salesforce-capture-plan -- --validate",
+      "dispatch_readonly",
+      "Never call `dispatch`",
+      "INVALID_AUTH_HEADER",
+      "retry the identical call once",
+      "nextRecordsUrl",
+      "git-ignored",
+      "never commit",
+      `npm run ${spec.script} -- `,
+      "--source capture --capture .captures/",
+      "REPLAY_INCOMPLETE",
+    ]) {
+      assert.ok(section.includes(required), `${spec.name} capture section is missing: ${required}`);
+    }
+  }
+  const guide = readFileSync(resolve(ROOT, "docs", "AGENT_SKILLS.md"), "utf8");
+  assert.ok(guide.includes("## Live Salesforce (capture) mode"));
+  for (const required of ["salesforce-capture-plan", "--source capture", "dispatch_readonly", "REPLAY_INCOMPLETE", ".captures/"]) {
+    assert.ok(guide.includes(required), `guide is missing ${required}`);
+  }
+});
+
+test("the capture plan CLI is a documented package script with help", () => {
+  const packageJson = JSON.parse(readFileSync(resolve(ROOT, "package.json"), "utf8"));
+  assert.equal(packageJson.scripts["salesforce-capture-plan"], "node bin/salesforce-capture-plan.js");
+  const help = spawnSync(process.execPath, [resolve(ROOT, "bin", "salesforce-capture-plan.js"), "--help"], { cwd: ROOT, encoding: "utf8" });
+  assert.equal(help.status, 0, help.stderr);
+  for (const option of ["--account", "--account-id", "--init-capture", "--validate", "--source-system"]) {
+    assert.ok(help.stdout.includes(option), `help is missing ${option}`);
+  }
 });

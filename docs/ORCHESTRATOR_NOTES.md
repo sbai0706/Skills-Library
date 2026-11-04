@@ -84,8 +84,11 @@ input) reference evidence IDs and remain caller-supplied; first live runs use th
 - P1 done: `adapters/mcp/` merged (8649b22). See [MCP_CAPTURE.md](MCP_CAPTURE.md).
 - P2 done: `adapters/salesforce/` merged (f95673b); suite 466/466. All generated SOQL verified
   live (read-only) in the sandbox; Task `Owner.attributes.type` is `"Name"` (polymorphic).
-- Next: P3 (CLI `--source capture`, plan-printing subcommand, wrapper instructions), then P4 (M365),
-  P5 (live acceptance; Event shape still unverified — 0 rows).
+- P3 done (local commit on its branch): `--source fixture|capture` + `--capture <path>` on the five
+  workflow CLIs (fixture default unchanged; prepare-engagement initial only), `bin/salesforce-capture-plan.js`
+  (`--account`, `--account-id`, `--init-capture`, `--validate`), wrapper "Live Salesforce (capture)
+  mode" sections, `docs/MCP_CAPTURE.md` host procedure. Needs a live end-to-end run (P5).
+- Next: P4 (M365), P5 (live acceptance; Event shape still unverified — 0 rows).
 - Agent worktrees kept under `.claude/worktrees/` (locally excluded via `.git/info/exclude`).
 
 ## Environment notes
