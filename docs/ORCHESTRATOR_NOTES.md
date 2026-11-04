@@ -69,11 +69,24 @@ Expect sparse live results (few descriptions, 2 Tasks): many gaps are correct be
 assessment inputs (v2 mappings, qualification assessment, opportunity-strategy qualification
 input) reference evidence IDs and remain caller-supplied; first live runs use the no-mapping paths.
 
-## Open decisions (ask the user before implementing)
+## Decisions (2026-11-04)
 
-1. Approve the plan above (Mode A first, phases P1–P5).
-2. Free-text claim extraction: first version structured fields only (recommended), or host
-   (Claude)-proposed candidates validated verbatim by `evidence.normalize`?
+1. Plan approved: Mode A, phases P1–P5.
+2. Claim extraction v1: structured fields only (composite extractor kept as extension point).
+3. P2 details (user): Contacts `internal`, Name/Title/Department only; no free text in v1 (incl.
+   Task/Event Subject, Event Location) pending privacy review; `Qualification_Score__c` + six
+   qualification-like picklists kept as raw record lines but excluded from claims/brief
+   (`CLAIM_EXCLUDED_FIELDS`) pending approved B-FITT. Full list: §10 of
+   [design/P2_SALESFORCE_ADAPTERS.md](design/P2_SALESFORCE_ADAPTERS.md).
+
+## Progress
+
+- P1 done: `adapters/mcp/` merged (8649b22). See [MCP_CAPTURE.md](MCP_CAPTURE.md).
+- P2 done: `adapters/salesforce/` merged (f95673b); suite 466/466. All generated SOQL verified
+  live (read-only) in the sandbox; Task `Owner.attributes.type` is `"Name"` (polymorphic).
+- Next: P3 (CLI `--source capture`, plan-printing subcommand, wrapper instructions), then P4 (M365),
+  P5 (live acceptance; Event shape still unverified — 0 rows).
+- Agent worktrees kept under `.claude/worktrees/` (locally excluded via `.git/info/exclude`).
 
 ## Environment notes
 
@@ -88,3 +101,5 @@ input) reference evidence IDs and remain caller-supplied; first live runs use th
 - 2026-11-04: Orchestrator setup; baseline 369/369. Verified Salesforce UAT + M365 connectors.
   Proposed Mode A integration plan. Moved orchestration to Claude Code; added `CLAUDE.md` and
   these notes.
+- 2026-11-04 (Claude Code): baseline 369/369; connectors and subagent connector access verified.
+  P1 and P2 implemented, reviewed, fixed and merged locally (466/466). Nothing pushed.
