@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 
-import { mkdirSync, writeFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
-import { loadCapture, canonicalize } from "../adapters/mcp/index.js";
-import { accountSearchPlan, evidencePlan, parseSfAccountId, SF_TOOL } from "../adapters/salesforce/index.js";
+import { mkdirSync, realpathSync, statSync, writeFileSync } from "node:fs";
+import { dirname, isAbsolute, relative, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { loadCapture, canonicalize, unwrapToolResult } from "../adapters/mcp/index.js";
+import { warnIfNotGitIgnored } from "../cli/capture-mode.js";
+import { accountSearchPlan, evidencePlan, nextPageArgs, parseSfAccountId, SF_TOOL } from "../adapters/salesforce/index.js";
 import { toSearchTerm } from "../skills/account-resolve/search.js";
 
 const HELP = `Usage: npm run salesforce-capture-plan -- <mode> [options]
@@ -17,7 +19,8 @@ Modes:
   --account VALUE          Phase 1: account search calls for a name, domain or sf_<Id> reference
   --account-id sf_<Id>     Phase 2: evidence calls for a resolved Salesforce Account Id
   --init-capture PATH      Write an empty valid capture skeleton (needs --source-system salesforce;
-                           refuses to overwrite; keep it under .captures/, which is git-ignored)
+                           PATH must be a file under the repository .captures/ directory, which is
+                           git-ignored; refuses to overwrite)
   --validate PATH          Validate a finished capture (schema, limits, read-only tools only) and
                            print a payload-free summary; add --account and/or --account-id to also
                            check that the planned calls are present
@@ -34,6 +37,9 @@ const HOST_RULES = [
   "If a result has done:false, immediately also call {url: <nextRecordsUrl>, method: \"GET\"} and record that page; repeat until done.",
   "Raw captures may contain real customer data: keep them under .captures/ (git-ignored), never commit them and never paste raw content into chat.",
 ];
+
+const REPO_ROOT = resolve(fileURLToPath(new URL("..", import.meta.url)));
+const CAPTURES_DIR = resolve(REPO_ROOT, ".captures");
 
 const MODES = ["--account", "--account-id", "--init-capture", "--validate"];
 
@@ -109,8 +115,23 @@ function buildPhase2(accountId) {
   };
 }
 
+class UsageError extends Error {}
+
+const underCaptures = (target) => {
+  const rel = relative(CAPTURES_DIR, target);
+  return rel !== "" && !rel.startsWith("..") && !isAbsolute(rel);
+};
+
+/** Writes only inside <repo root>/.captures/ (git-ignored); there is deliberately no override. */
 function initCapture(path) {
   const target = resolve(path);
+  const isDirectory = /[\\/]$/.test(path) || target === CAPTURES_DIR || (() => {
+    try { return statSync(target).isDirectory(); } catch { return false; }
+  })();
+  if (isDirectory) throw new UsageError("--init-capture needs a file path such as .captures/<slug>.json, not a directory.");
+  if (!underCaptures(target)) {
+    throw new UsageError("--init-capture refuses any target outside the repository's .captures/ directory.");
+  }
   const doc = {
     format_version: "mcp-capture/1",
     capture: {
@@ -121,6 +142,10 @@ function initCapture(path) {
     entries: [],
   };
   mkdirSync(dirname(target), { recursive: true });
+  const realRel = relative(realpathSync(CAPTURES_DIR), realpathSync(dirname(target)));
+  if (realRel.startsWith("..") || isAbsolute(realRel)) {
+    throw new UsageError("--init-capture refuses any target outside the repository's .captures/ directory.");
+  }
   writeFileSync(target, `${JSON.stringify(doc, null, 2)}\n`, { flag: "wx" });
   return { initialized: target, entries: 0, note: "Append one entry per recorded call, in call order, then run --validate." };
 }
@@ -131,16 +156,29 @@ function queryObject(args) {
   return match ? match[1] : args?.queryParams === undefined ? "page" : "other";
 }
 
+/** `nextRecordsUrl` of a successful result whose body says done:false, else null. */
+function nextRecordsUrlOf(result) {
+  const unwrapped = unwrapToolResult(result);
+  if (!unwrapped.ok) return null;
+  let body = unwrapped.payload;
+  if (typeof body === "string") {
+    try { body = JSON.parse(body); } catch { return null; }
+  }
+  return body && typeof body === "object" && body.done === false && typeof body.nextRecordsUrl === "string" ? body.nextRecordsUrl : null;
+}
+
 /** Payload-free summary. Never prints SOQL, args or results. */
 function validateCapture(path, { account, accountId }) {
   const problems = [];
   let client;
   try {
     client = loadCapture(resolve(path));
+    warnIfNotGitIgnored(resolve(path));
   } catch (cause) {
     return { valid: false, problems: [`${cause?.code ?? "CAPTURE_UNREADABLE"}: ${cause?.message ?? "capture could not be loaded"}`] };
   }
   const entries = client.entries;
+  if (client.capture.source_system !== "salesforce") problems.push("capture.source_system must be salesforce.");
   const byTool = {};
   const byObject = {};
   let recordedErrors = 0;
@@ -151,6 +189,13 @@ function validateCapture(path, { account, accountId }) {
     const object = queryObject(entry.args);
     byObject[object] = (byObject[object] ?? 0) + 1;
     if (entry.error !== undefined) recordedErrors += 1;
+    const nextUrl = entry.result === undefined ? null : nextRecordsUrlOf(entry.result);
+    if (nextUrl !== null) {
+      const wanted = canonicalize(nextPageArgs(nextUrl));
+      const hasPage = entries.slice(index + 1).some((later) =>
+        later.tool === SF_TOOL && later.error === undefined && later.result !== undefined && canonicalize(later.args) === wanted);
+      if (!hasPage) problems.push(`entry ${index}: missing pagination page.`);
+    }
   });
   const planned = [];
   if (account !== undefined) planned.push(...accountSearchPlan(toSearchTerm(account)).calls.filter((call) => call.step === "search").map((call) => ({ phase: "account_search", step: call.step, args: call.args })));
@@ -200,9 +245,10 @@ function main() {
     try {
       print(initCapture(parsed["--init-capture"]));
     } catch (error) {
-      process.stderr.write(error?.code === "EEXIST"
-        ? "The capture file already exists; refusing to overwrite it.\n"
-        : "The capture skeleton could not be written.\n");
+      process.stderr.write(error instanceof UsageError ? `${error.message}\n`
+        : error?.code === "EEXIST"
+          ? "The capture file already exists; refusing to overwrite it.\n"
+          : "The capture skeleton could not be written.\n");
       process.exitCode = 1;
     }
     return;

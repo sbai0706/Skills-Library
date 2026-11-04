@@ -356,9 +356,11 @@ test("plan CLI never prints tool names other than dispatch_readonly", () => {
   }
 });
 
-test("--init-capture writes a valid empty skeleton and refuses to overwrite", () => {
-  const path = join(tmp, "nested", ".captures", "skeleton.json");
-  const created = planCli(["--init-capture", path, "--source-system", "salesforce"]);
+test("--init-capture writes a valid empty skeleton under .captures/ and refuses to overwrite", () => {
+  const dir = `.captures/test-init-${process.pid}-${Date.now()}`;
+  const path = join(root, dir, "skeleton.json");
+  test.after(() => rmSync(join(root, dir), { recursive: true, force: true }));
+  const created = planCli(["--init-capture", `${dir}/skeleton.json`, "--source-system", "salesforce"]);
   assert.equal(created.status, 0, created.stderr);
   const doc = JSON.parse(readFileSync(path, "utf8"));
   assert.equal(doc.format_version, "mcp-capture/1");
@@ -368,6 +370,7 @@ test("--init-capture writes a valid empty skeleton and refuses to overwrite", ()
   const checked = planCli(["--validate", path]);
   assert.equal(checked.status, 0, checked.stderr);
   assert.equal(json(checked).entries, 0);
+  assert.ok(!checked.stderr.includes("WARNING"), "a file under .captures/ is git-ignored");
 
   const again = planCli(["--init-capture", path, "--source-system", "salesforce"]);
   assert.equal(again.status, 1);

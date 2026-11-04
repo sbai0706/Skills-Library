@@ -209,6 +209,8 @@ test("every wrapper has a separate Live Salesforce (capture) mode section that k
     assert.ok(heading > 0, `${spec.name} needs a Live Salesforce (capture) mode section`);
     assert.ok(text.indexOf(`npm run ${spec.script}`) < heading, `${spec.name} keeps fixture instructions before the capture section`);
     const section = text.slice(heading);
+    assert.ok(readSkill(spec).metadata.description.includes("recorded by the host from the read-only connector"), `${spec.name} description wording`);
+    assert.ok(!/live Salesforce capture/i.test(readSkill(spec).metadata.description));
     for (const required of [
       "npm run salesforce-capture-plan -- --init-capture .captures/",
       "npm run salesforce-capture-plan -- --account",
@@ -224,13 +226,26 @@ test("every wrapper has a separate Live Salesforce (capture) mode section that k
       `npm run ${spec.script} -- `,
       "--source capture --capture .captures/",
       "REPLAY_INCOMPLETE",
+      "failed: incomplete capture",
+      "CONFIRMATION_REQUIRED",
+      "account_candidates",
+      "EVIDENCE_RETRIEVAL_BLOCKED",
+      "never loop into candidate selection",
+      "case-insensitively",
+      "ambiguity/confirmation check",
+      "is expected at this",
+      "[clm_...]",
+      "evidence_ids",
+      "Never paste raw capture content",
+      "missing pagination page",
+      "under the repository's git-ignored `.captures/`",
     ]) {
       assert.ok(section.includes(required), `${spec.name} capture section is missing: ${required}`);
     }
   }
   const guide = readFileSync(resolve(ROOT, "docs", "AGENT_SKILLS.md"), "utf8");
   assert.ok(guide.includes("## Live Salesforce (capture) mode"));
-  for (const required of ["salesforce-capture-plan", "--source capture", "dispatch_readonly", "REPLAY_INCOMPLETE", ".captures/"]) {
+  for (const required of ["salesforce-capture-plan", "--source capture", "dispatch_readonly", "REPLAY_INCOMPLETE", ".captures/", "failed: incomplete capture", "CONFIRMATION_REQUIRED", "EVIDENCE_RETRIEVAL_BLOCKED", "[clm_...]", "evidence_ids", "不是账号研究"]) {
     assert.ok(guide.includes(required), `guide is missing ${required}`);
   }
 });
