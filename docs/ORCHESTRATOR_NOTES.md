@@ -111,3 +111,4 @@ input) reference evidence IDs and remain caller-supplied; first live runs use th
 - 2026-11-04 (Claude Code): baseline 369/369; connectors and subagent connector access verified.
   P1 and P2 implemented, reviewed, fixed and merged locally (466/466). Nothing pushed.
 - 2026-11-04: P3 implemented, reviewed, live-smoked, fixed and merged (515/515). Nothing pushed.
+- 2026-11-04: Brief-size trimming merged (520/520); live smoke brief 350 -> 80 citations, ~69k -> ~17.5k chars.
