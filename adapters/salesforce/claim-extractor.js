@@ -2,6 +2,21 @@ import { fieldClaim, fieldLine, headerLine } from "./format.js";
 
 const MAX_CANDIDATES = 100;
 
+/**
+ * Fields kept in record content as raw CRM facts but never turned into claims (so they never
+ * reach the brief under any question), pending approved B-FITT policy (user decision 2026-11-04).
+ * Explicit list on purpose: no name-pattern filtering.
+ */
+export const CLAIM_EXCLUDED_FIELDS = Object.freeze([
+  "Qualification_Score__c",
+  "Budget_Status__c",
+  "Primary_Buyer_Authority__c",
+  "Awareness_of_Pain__c",
+  "What_s_the_Trigger_and_why_now__c",
+  "Cost_of_Inaction__c",
+  "Buying_Path__c",
+]);
+
 const fail = (code, message) => ({ ok: false, error: { code, message, retryable: false } });
 const malformed = (message) => fail("EXTRACTOR_MALFORMED_RESPONSE", message);
 
@@ -36,6 +51,7 @@ export function createSalesforceStructuredClaimExtractor() {
         candidates.push({ claim: header, excerpt: header, completeness: "complete" });
       }
       for (const fact of facts) {
+        if (CLAIM_EXCLUDED_FIELDS.includes(fact.api)) continue;
         candidates.push({
           claim: fieldClaim(objectName, recordName, fact),
           excerpt: fieldLine(objectName, recordName, fact),

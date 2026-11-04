@@ -1,7 +1,8 @@
 import { assertMcpToolClient } from "../mcp/index.js";
 import {
-  API_VERSION_PATTERN, CLASSIFICATIONS, DEFAULT_API_VERSION, DEFAULT_OBJECT_LIMITS, OBJECT_ORDER,
+  API_VERSION_PATTERN, DEFAULT_API_VERSION, OBJECT_ORDER,
 } from "./constants.js";
+import { resolveLimits } from "./limits.js";
 import { adapterError, toAdapterError } from "./errors.js";
 import { OBJECTS } from "./fields.js";
 import { mapRecord } from "./record-mapper.js";
@@ -11,8 +12,11 @@ import { runQuery } from "./transport.js";
 
 const RANK = Object.freeze({ public: 0, internal: 1, confidential: 2 });
 
+/** CRM records are never `public`: only internal or confidential may be configured. */
+const CRM_CLASSIFICATIONS = Object.freeze(["internal", "confidential"]);
+
 function validateClassification(value, label) {
-  if (!CLASSIFICATIONS.includes(value)) throw new TypeError(`${label} must be one of: ${CLASSIFICATIONS.join(", ")}`);
+  if (!CRM_CLASSIFICATIONS.includes(value)) throw new TypeError(`${label} must be one of: ${CRM_CLASSIFICATIONS.join(", ")}`);
 }
 
 function normalizeInstanceUrl(instanceUrl) {
@@ -50,14 +54,7 @@ export function createSalesforceEvidenceAdapter({
     validateClassification(level, `objectClassification.${objectName}`);
     if (RANK[level] < RANK[classification]) throw new TypeError(`objectClassification.${objectName} may not be lower than classification`);
   }
-  const effectiveLimits = { ...DEFAULT_OBJECT_LIMITS };
-  for (const [objectName, value] of Object.entries(limits)) {
-    if (!OBJECTS[objectName]) throw new TypeError(`limits: unknown object ${objectName}`);
-    if (!Number.isInteger(value) || value < 1 || value > DEFAULT_OBJECT_LIMITS[objectName]) {
-      throw new TypeError(`limits.${objectName} must be an integer between 1 and ${DEFAULT_OBJECT_LIMITS[objectName]}`);
-    }
-    effectiveLimits[objectName] = value;
-  }
+  const effectiveLimits = resolveLimits(limits);
   const baseUrl = normalizeInstanceUrl(instanceUrl);
   const routingDoc = routing ?? loadSalesforceRouting();
 

@@ -66,7 +66,7 @@ export const OBJECTS = Object.freeze({
   Task: Object.freeze({
     name: "Task",
     prefix: ID_PREFIX.Task,
-    nameField: "Subject",
+    nameField: null,
     sourceType: "crm_activity",
     fields: Object.freeze([
       f("Status", "Status", "picklist"),
@@ -80,12 +80,11 @@ export const OBJECTS = Object.freeze({
   Event: Object.freeze({
     name: "Event",
     prefix: ID_PREFIX.Event,
-    nameField: "Subject",
+    nameField: null,
     sourceType: "crm_activity",
     fields: Object.freeze([
       f("StartDateTime", "Start", "datetime"),
       f("EndDateTime", "End", "datetime"),
-      f("Location", "Location", "string"),
       f("Type", "Event Type", "picklist"),
       f("Owner.Name", "Assigned To", "string"),
     ]),
@@ -99,7 +98,7 @@ export function selectList(objectName) {
   if (!def) throw new TypeError(`Unknown Salesforce object: ${objectName}`);
   return [
     "Id",
-    def.nameField,
+    ...(def.nameField ? [def.nameField] : []),
     ...(objectName === "Account" ? [] : ["AccountId"]),
     ...def.fields.map((field) => field.api),
     ...def.extra,

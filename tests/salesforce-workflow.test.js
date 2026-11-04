@@ -56,6 +56,7 @@ test("prepareFirstMeeting end to end on replay: cited claims, deterministic, ful
   assert.ok(cited.length > 0);
   assert.ok(cited.every((id) => result.evidence_ids.includes(id)), "every citation is a normalized claim");
   for (const fragment of expected.markdown_includes) assert.ok(markdown.includes(fragment), fragment);
+  for (const name of expected.markdown_excludes) assert.ok(!markdown.includes(name), `brief must not contain ${name}`);
   assert.equal(result.artifact.classification, "internal");
 
   const second = await run();

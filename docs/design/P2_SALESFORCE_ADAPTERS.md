@@ -96,7 +96,7 @@ on the caller; the adapter returns at most 50 (the contract cap). Term preparati
 | Case (checked in order) | SOQL `WHERE` clause |
 |---|---|
 | Term matches `^sf_(001[A-Za-z0-9]{15})$` (exact account ID) | `Id = '<id>'` with `LIMIT 1` |
-| `looksLikeDomain(term)` | `Website LIKE '%<escapeSoqlLike(normalizeDomain(term))>%'` |
+| `looksLikeDomain(term)` | `Name = '<escapeSoqlLiteral(term)>' OR Website LIKE '%<escapeSoqlLike(normalizeDomain(term))>%'` (§10 item 8) |
 | Otherwise | `Name = '<escapeSoqlLiteral(term)>'` followed by ` OR Name LIKE '%<escapeSoqlLike(tok)>%'` for each search token |
 
 `searchTokens(term)`: split on `/[^\p{L}\p{N}]+/u`; drop tokens shorter than 2 characters; drop
@@ -483,7 +483,9 @@ were not exercised live; if any is rejected, adjust the builder and capture plan
    (user decision). `objectClassification` override stays available.
 3. **Raw qualification-like fields** (`Qualification_Score__c` + six picklists): **included as raw
    facts only** (user decision) — never routed, never mapped to B-FITT/qualification/event/stage;
-   tests enforce this.
+   tests enforce this. Final (M1, 2026-11-04): raw facts in record content only; excluded from
+   claims and the brief (explicit `CLAIM_EXCLUDED_FIELDS` list in the claim extractor, pending
+   approved B-FITT policy).
 4. **Free text excluded in v1** (user decision, pending privacy review): do NOT select or emit
    `Description` (Account, Opportunity, Contact, Task "Comments", Event), `NextStep`,
    `Lead_Source_Notes__c`, `Comments__c`, or any other textarea/long-text field. The free-text
@@ -497,3 +499,15 @@ were not exercised live; if any is rejected, adjust the builder and capture plan
    longer holds. T1 maps 401 `INVALID_AUTH_HEADER` to `ADAPTER_UNAUTHORIZED`, `retryable:true`;
    the Salesforce layer follows T1 for that row (reason `transient_auth`) instead of §6.2's
    `ADAPTER_UNAVAILABLE`. Recorded error messages are redacted by default in replay.
+7. **Short free text (v1 privacy mitigation, pending privacy review):** `Task.Subject`,
+   `Event.Subject` and `Event.Location` are not selected. Task record name is
+   `<Type or "Activity"> / <Status or "(no status)">`; Event record name is
+   `<Type or "Event"> / <StartDateTime date or "(no date)">`. `Opportunity.Name` stays.
+8. **Review follow-ups:** select lists are pinned by golden SELECT tests; `Owner.Name` is read by
+   path (polymorphic `Owner.attributes.type` may be `Name`); `classification` is `internal` or
+   `confidential` only; a domain-shaped term also ORs `Name = '<term>'`; name tokens split on
+   `[^\p{L}\p{N}\p{M}]+`; `evidencePlan` shares the adapter's limits validation; a malformed
+   `sf_...` reference is a no-match with no call (account.resolve then reports `not_found`); the
+   term is trimmed after the 255-code-point cut. The AccountAdapter contract has no warning
+   field, so hitting the 50-row cap without an exact name (even after the supplementary query)
+   is not surfaced; account.resolve still scores only what is returned.

@@ -12,12 +12,28 @@ function idOrNull(value, reason) {
 }
 
 /** Record name (Name or Subject) as cleaned text with a fallback. */
-export function recordNameOf(def, row) {
-  const raw = row[def.nameField];
+function plainText(raw) {
   if (raw !== null && raw !== undefined && typeof raw !== "string") throw new SfAdapterError(malformed("value_type_mismatch"));
-  const text = cleanText(raw ?? "");
-  const fallback = def.nameField === "Subject" ? "(no subject)" : "(no name)";
-  return [...(text === "" ? fallback : text)].slice(0, 300).join("");
+  return cleanText(raw ?? "");
+}
+
+/**
+ * Record name. Opportunity/Account/Contact use Name. Task and Event do not select Subject
+ * (v1 privacy mitigation: short free text excluded pending review); their name is a fixed-label
+ * composite of picklist/date values: `<Type or "Activity"> / <Status or "(no status)">` for Task,
+ * `<Type or "Event"> / <start date or "(no date)">` for Event.
+ */
+export function recordNameOf(def, row) {
+  let text;
+  if (def.name === "Task") {
+    text = `${plainText(row.Type) || "Activity"} / ${plainText(row.Status) || "(no status)"}`;
+  } else if (def.name === "Event") {
+    const start = optionalDateTime(row.StartDateTime);
+    text = `${plainText(row.Type) || "Event"} / ${start ? start.slice(0, 10) : "(no date)"}`;
+  } else {
+    text = plainText(row[def.nameField]) || "(no name)";
+  }
+  return [...text].slice(0, 300).join("");
 }
 
 /**

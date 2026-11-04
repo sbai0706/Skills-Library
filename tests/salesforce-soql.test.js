@@ -4,6 +4,7 @@ import {
   escapeSoqlLiteral, escapeSoqlLike, searchTokens, buildAccountSearchSoql, buildAccountExactSoql,
   buildAccountByIdSoql, buildObjectSoql, parseSfAccountId, prepareTerm,
 } from "../adapters/salesforce/soql.js";
+import { OBJECTS } from "../adapters/salesforce/fields.js";
 import { accountSearchPlan, evidencePlan, queryArgs, nextPageArgs } from "../adapters/salesforce/capture-plan.js";
 import { createSalesforceAccountAdapter } from "../adapters/salesforce/account-adapter.js";
 import { createSalesforceEvidenceAdapter } from "../adapters/salesforce/evidence-adapter.js";
@@ -41,7 +42,7 @@ test("exact account SOQL strings: name, ID, domain, supplementary", () => {
   assert.equal(buildAccountByIdSoql(ID), `${SEL} WHERE Id = '${ID}' LIMIT 1`);
   assert.equal(
     buildAccountSearchSoql("https://www.Northwind-Traders.example/about"),
-    `${SEL} WHERE Website LIKE '%northwind-traders.example%' ORDER BY Name ASC, Id ASC LIMIT 50`,
+    `${SEL} WHERE Name = 'https://www.Northwind-Traders.example/about' OR Website LIKE '%northwind-traders.example%' ORDER BY Name ASC, Id ASC LIMIT 50`,
   );
   assert.equal(buildAccountExactSoql("O'Brien"), `${SEL} WHERE Name = 'O\\'Brien' ORDER BY Name ASC, Id ASC LIMIT 50`);
   assert.throws(() => buildAccountByIdSoql("001'; DROP"), TypeError);

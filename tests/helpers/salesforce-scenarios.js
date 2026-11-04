@@ -43,8 +43,8 @@ export const northwindRows = {
     Email: "jordan.sample@northwind-traders.example", Phone: "+1 555 0100", ...audit,
   }],
   Task: [{
-    Id: sid("00T", 1), Subject: "Follow up call", AccountId: NORTHWIND_ID, Status: "Completed", Priority: "Normal",
-    Type: "Call", ActivityDate: "2026-10-01", Owner: owner, WhatId: sid("006", 1), WhoId: sid("003", 1),
+    Id: sid("00T", 1), AccountId: NORTHWIND_ID, Status: "Completed", Priority: "Normal",
+    Type: "Call", ActivityDate: "2026-10-01", Owner: { attributes: { type: "Name", url: "/services/data/v66.0/sobjects/User/005SYN0000000001AA" }, Name: "Avery Example" }, WhatId: sid("006", 1), WhoId: sid("003", 1),
     CompletedDateTime: "2026-10-01T15:00:00.000+0000", ...audit,
   }],
   Event: [],

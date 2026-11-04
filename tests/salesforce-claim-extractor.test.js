@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createSalesforceEvidenceAdapter } from "../adapters/salesforce/evidence-adapter.js";
-import { createSalesforceStructuredClaimExtractor, createCompositeClaimExtractor } from "../adapters/salesforce/claim-extractor.js";
+import { createSalesforceStructuredClaimExtractor, createCompositeClaimExtractor, CLAIM_EXCLUDED_FIELDS } from "../adapters/salesforce/claim-extractor.js";
 import { normalizeEvidence } from "../skills/evidence-normalize/index.js";
 import { replay, sid } from "./helpers/salesforce-capture.js";
 import { NORTHWIND_ACCOUNT_ID, NORTHWIND_ID, evidenceEntries, northwindRows } from "./helpers/salesforce-scenarios.js";
@@ -25,9 +25,9 @@ test("golden claim and excerpt strings across value types", async () => {
   assert.deepEqual(opp[2], ['Opportunity "Phoenix Upgrade" Amount: 50000', 'Opportunity "Phoenix Upgrade" - Amount: 50000']); // currency
   assert.deepEqual(opp[3], ['Opportunity "Phoenix Upgrade" Close Date: 2026-12-15', 'Opportunity "Phoenix Upgrade" - Close Date [CloseDate]: 2026-12-15']); // date
   assert.deepEqual(opp[4], ['Opportunity "Phoenix Upgrade" Probability: 10%', 'Opportunity "Phoenix Upgrade" - Probability: 10%']); // percent
-  assert.ok(opp.some(([claim]) => claim === 'Opportunity "Phoenix Upgrade" Budget_Status__c: Approved')); // custom field
+  assert.ok(opp.some(([claim]) => claim === 'Opportunity "Phoenix Upgrade" Cluster__c: Cluster East')); // custom field
   const task = pairs(find(all, `src_sf_${sid("00T", 1)}`));
-  assert.ok(task.some(([claim]) => claim === 'Task "Follow up call" Due Date: 2026-10-01'));
+  assert.ok(task.some(([claim]) => claim === 'Task "Call / Completed" Due Date: 2026-10-01'));
   const account = extractor.extract(find(all, `src_sf_${NORTHWIND_ID}`)).candidates;
   assert.ok(!account.some((c) => c.claim.startsWith("Salesforce Account"))); // no existence candidate for Account
   assert.ok(account.every((c) => c.completeness === "complete" && c.conflict_key === undefined && c.access_classification === undefined));
@@ -35,11 +35,11 @@ test("golden claim and excerpt strings across value types", async () => {
 
 test("datetime fields use normalized UTC text", async () => {
   const rows = structuredClone(northwindRows);
-  rows.Event = [{ Id: sid("00U", 1), Subject: "Kickoff", AccountId: NORTHWIND_ID, StartDateTime: "2026-03-01T10:00:00.000+0000", EndDateTime: "2026-03-01T11:00:00.000+0000", Location: "Room 1", Type: "Meeting", Owner: null, WhatId: null, WhoId: null }];
+  rows.Event = [{ Id: sid("00U", 1), AccountId: NORTHWIND_ID, StartDateTime: "2026-03-01T10:00:00.000+0000", EndDateTime: "2026-03-01T11:00:00.000+0000", Type: "Meeting", Owner: null, WhatId: null, WhoId: null }];
   const event = find(await records(rows), `src_sf_${sid("00U", 1)}`);
   assert.equal(event.occurred_at, "2026-03-01T10:00:00.000Z");
   const claims = extractor.extract(event).candidates.map((c) => c.claim);
-  assert.ok(claims.includes('Event "Kickoff" Start: 2026-03-01T10:00:00.000Z'));
+  assert.ok(claims.includes('Event "Meeting / 2026-03-01" Start: 2026-03-01T10:00:00.000Z'));
 });
 
 test("every candidate passes evidence.normalize with zero rejections", async () => {

@@ -1,4 +1,5 @@
 import { API_VERSION_PATTERN, DEFAULT_API_VERSION, OBJECT_ORDER, SF_TOOL } from "./constants.js";
+import { resolveLimits } from "./limits.js";
 import {
   accountSearchKind, buildAccountExactSoql, buildAccountSearchSoql, buildObjectSoql, parseSfAccountId, prepareTerm,
 } from "./soql.js";
@@ -32,8 +33,11 @@ export function nextPageArgs(url) {
 export function accountSearchPlan(term, { apiVersion = DEFAULT_API_VERSION } = {}) {
   const prepared = prepareTerm(term);
   const kind = accountSearchKind(prepared);
-  const calls = [{ step: "search", kind, args: queryArgs(apiVersion, buildAccountSearchSoql(prepared)) }];
-  if (kind === "name") {
+  // Empty terms and malformed `sf_...` references make no call (the adapter returns no match).
+  const calls = prepared === "" || kind === "invalid_id"
+    ? []
+    : [{ step: "search", kind, args: queryArgs(apiVersion, buildAccountSearchSoql(prepared)) }];
+  if (calls.length > 0 && kind === "name") {
     calls.push({
       step: "exact_name_guard",
       condition: "only when the search returned exactly 50 rows and none has a trimmed, case-insensitive Name equal to the term",
@@ -57,13 +61,14 @@ export function accountSearchPlan(term, { apiVersion = DEFAULT_API_VERSION } = {
 export function evidencePlan(accountId, { apiVersion = DEFAULT_API_VERSION, limits = {} } = {}) {
   const sfId = parseSfAccountId(accountId);
   if (!sfId) throw new TypeError("accountId must be sf_<18-character Salesforce Account Id>");
+  const effectiveLimits = resolveLimits(limits);
   return {
     phase: "evidence",
     tool: SF_TOOL,
     account_id: accountId,
     calls: OBJECT_ORDER.map((objectName) => ({
       step: objectName,
-      args: queryArgs(apiVersion, buildObjectSoql(objectName, sfId, { limits })),
+      args: queryArgs(apiVersion, buildObjectSoql(objectName, sfId, { limits: effectiveLimits })),
     })),
     pagination: "After any call that returns done:false, also record the call {url: nextRecordsUrl, method: \"GET\"}.",
   };

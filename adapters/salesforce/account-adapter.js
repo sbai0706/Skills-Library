@@ -48,6 +48,11 @@ export function createSalesforceAccountAdapter({ client, apiVersion = DEFAULT_AP
         const term = prepareTerm(query);
         if (term === "") return { ok: true, accounts: [] };
         const kind = accountSearchKind(term);
+        // A malformed `sf_...` reference is a no-match (empty list, no call), never a broad name search.
+        if (kind === "invalid_id") return { ok: true, accounts: [] };
+        // Known limitation: if the 50-row cap is hit without an exact name even after the
+        // supplementary query, the AccountAdapter contract has no warning/flag field, so the
+        // truncation is not surfaced (documented in the P2 design, section 10).
         const first = await search(buildAccountSearchSoql(term), kind === "id" ? 1 : ACCOUNT_SEARCH_LIMIT);
         if (!first.ok) return { ok: false, error: first.error };
         let rows = first.records;

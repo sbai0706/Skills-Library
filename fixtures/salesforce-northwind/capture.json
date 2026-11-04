@@ -152,14 +152,14 @@
         "url": "/services/data/v66.0/query",
         "method": "GET",
         "queryParams": {
-          "q": "SELECT Id, Subject, AccountId, Status, Priority, Type, ActivityDate, Owner.Name, WhatId, WhoId, CompletedDateTime, CreatedDate, LastModifiedDate FROM Task WHERE AccountId = '001SYN0000000001AA' ORDER BY ActivityDate DESC NULLS LAST, Id ASC LIMIT 101"
+          "q": "SELECT Id, AccountId, Status, Priority, Type, ActivityDate, Owner.Name, WhatId, WhoId, CompletedDateTime, CreatedDate, LastModifiedDate FROM Task WHERE AccountId = '001SYN0000000001AA' ORDER BY ActivityDate DESC NULLS LAST, Id ASC LIMIT 101"
         }
       },
       "result": {
         "content": [
           {
             "type": "text",
-            "text": "{\"status_code\":200,\"body\":{\"totalSize\":1,\"done\":true,\"records\":[{\"attributes\":{\"type\":\"Task\",\"url\":\"/services/data/v66.0/sobjects/Task/00TSYN0000000001AA\"},\"Id\":\"00TSYN0000000001AA\",\"Subject\":\"Follow up call\",\"AccountId\":\"001SYN0000000001AA\",\"Status\":\"Completed\",\"Priority\":\"Normal\",\"Type\":\"Call\",\"ActivityDate\":\"2026-10-01\",\"Owner\":{\"attributes\":{\"type\":\"User\"},\"Name\":\"Avery Example\"},\"WhatId\":\"006SYN0000000001AA\",\"WhoId\":\"003SYN0000000001AA\",\"CompletedDateTime\":\"2026-10-01T15:00:00.000+0000\",\"CreatedDate\":\"2026-01-05T09:00:00.000+0000\",\"LastModifiedDate\":\"2026-10-20T12:30:00.000+0000\"}]},\"url\":\"/services/data/v66.0/query\"}"
+            "text": "{\"status_code\":200,\"body\":{\"totalSize\":1,\"done\":true,\"records\":[{\"attributes\":{\"type\":\"Task\",\"url\":\"/services/data/v66.0/sobjects/Task/00TSYN0000000001AA\"},\"Id\":\"00TSYN0000000001AA\",\"AccountId\":\"001SYN0000000001AA\",\"Status\":\"Completed\",\"Priority\":\"Normal\",\"Type\":\"Call\",\"ActivityDate\":\"2026-10-01\",\"Owner\":{\"attributes\":{\"type\":\"Name\",\"url\":\"/services/data/v66.0/sobjects/User/005SYN0000000001AA\"},\"Name\":\"Avery Example\"},\"WhatId\":\"006SYN0000000001AA\",\"WhoId\":\"003SYN0000000001AA\",\"CompletedDateTime\":\"2026-10-01T15:00:00.000+0000\",\"CreatedDate\":\"2026-01-05T09:00:00.000+0000\",\"LastModifiedDate\":\"2026-10-20T12:30:00.000+0000\"}]},\"url\":\"/services/data/v66.0/query\"}"
           }
         ]
       },
@@ -171,7 +171,7 @@
         "url": "/services/data/v66.0/query",
         "method": "GET",
         "queryParams": {
-          "q": "SELECT Id, Subject, AccountId, StartDateTime, EndDateTime, Location, Type, Owner.Name, WhatId, WhoId, CreatedDate, LastModifiedDate FROM Event WHERE AccountId = '001SYN0000000001AA' ORDER BY StartDateTime DESC NULLS LAST, Id ASC LIMIT 51"
+          "q": "SELECT Id, AccountId, StartDateTime, EndDateTime, Type, Owner.Name, WhatId, WhoId, CreatedDate, LastModifiedDate FROM Event WHERE AccountId = '001SYN0000000001AA' ORDER BY StartDateTime DESC NULLS LAST, Id ASC LIMIT 51"
         }
       },
       "result": {
