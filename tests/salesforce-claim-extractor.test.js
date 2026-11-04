@@ -24,8 +24,8 @@ test("golden claim and excerpt strings across value types", async () => {
   assert.deepEqual(opp[1], ['Opportunity "Phoenix Upgrade" Stage: Awareness', 'Opportunity "Phoenix Upgrade" - Stage [StageName]: Awareness']); // picklist
   assert.deepEqual(opp[2], ['Opportunity "Phoenix Upgrade" Amount: 50000', 'Opportunity "Phoenix Upgrade" - Amount: 50000']); // currency
   assert.deepEqual(opp[3], ['Opportunity "Phoenix Upgrade" Close Date: 2026-12-15', 'Opportunity "Phoenix Upgrade" - Close Date [CloseDate]: 2026-12-15']); // date
-  assert.deepEqual(opp[4], ['Opportunity "Phoenix Upgrade" Probability: 10%', 'Opportunity "Phoenix Upgrade" - Probability: 10%']); // percent
-  assert.ok(opp.some(([claim]) => claim === 'Opportunity "Phoenix Upgrade" Cluster__c: Cluster East')); // custom field
+  assert.equal(opp.length, 4); // header + StageName/Amount/CloseDate only
+  assert.ok(!opp.some(([claim]) => /Probability|Cluster__c|Forecast|Lead Source|Owner/.test(claim)));
   const task = pairs(find(all, `src_sf_${sid("00T", 1)}`));
   assert.ok(task.some(([claim]) => claim === 'Task "Call / Completed" Due Date: 2026-10-01'));
   const account = extractor.extract(find(all, `src_sf_${NORTHWIND_ID}`)).candidates;

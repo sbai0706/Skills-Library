@@ -29,3 +29,13 @@ export const ID_PREFIX = Object.freeze({
 });
 
 export const CLASSIFICATIONS = Object.freeze(["public", "internal", "confidential"]);
+
+/**
+ * Per-object caps on how many records may produce claims, and the Opportunity fields that may.
+ * Brief-size limits; user decision 2026-11-04; selection is ordering only, not prioritisation
+ * policy. Account claims are not capped. Records beyond a cap keep their full content.
+ */
+export const DEFAULT_CLAIM_LIMITS = Object.freeze({ Opportunity: 10, Contact: 20, Task: 10, Event: 10 });
+
+/** Opportunity fields that produce claims; every other Opportunity field stays content-only. */
+export const OPPORTUNITY_CLAIM_FIELDS = Object.freeze(["StageName", "Amount", "CloseDate"]);

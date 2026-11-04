@@ -511,3 +511,13 @@ were not exercised live; if any is rejected, adjust the builder and capture plan
    term is trimmed after the 255-code-point cut. The AccountAdapter contract has no warning
    field, so hitting the 50-row cap without an exact name (even after the supplementary query)
    is not surfaced; account.resolve still scores only what is returned.
+9. **Brief-size claim limits (user decision 2026-11-04; selection is ordering only, not
+   prioritisation policy):** Opportunity claims are limited to `StageName`, `Amount`, `CloseDate`
+   (other fields stay in content); claims are capped per object at Opportunity 10, Contact 20,
+   Task 10, Event 10 (Account unchanged). Order: primary date desc, nulls last (Opportunity
+   `CloseDate`, Task `ActivityDate`, Event `StartDateTime`, Contact none), then `LastModifiedDate`
+   desc, then `Id` asc; no stage/status interpretation. The extractor sees one record per call, so
+   `createSalesforceEvidenceAdapter` ranks all rows of an object and stamps over-cap records with
+   `metadata.sf_claim_excluded: true`; the extractor then returns no candidates for them. Limits
+   are `DEFAULT_CLAIM_LIMITS` (constants.js, re-exported by the extractor) and the adapter option
+   `claimLimits` (lowering only). No SOQL, select list or contract change.
