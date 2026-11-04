@@ -89,8 +89,9 @@ input) reference evidence IDs and remain caller-supplied; first live runs use th
   to `.captures/`, `--validate` gate); wrapper capture sections. Live smoke (one sandbox account, 6
   calls): first-meeting v1/v2 success/0, qualification/engagement/opportunity-strategy partial/2,
   missing-entry capture failed/1 (REPLAY_INCOMPLETE on stderr only).
-- Open design issue: one account with 38 Opportunities gives ~350 citations / ~69k-char brief
-  (every field line is a claim). Needs a user decision before P5.
+- Design issue RESOLVED (2026-11-04): one account with 38 Opportunities gave ~350 citations /
+  ~69k-char brief. Now Opportunity claims = StageName/Amount/CloseDate only, capped per object
+  (Opp 10, Contact 20, Task 10, Event 10) by deterministic ordering; see P2 design section 10.9.
 - Next: P4 (M365), P5 (live acceptance; Event shape still unverified — 0 rows).
 - Agent worktrees kept under `.claude/worktrees/` (locally excluded via `.git/info/exclude`).
 

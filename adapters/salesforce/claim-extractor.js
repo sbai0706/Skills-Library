@@ -1,3 +1,5 @@
+import { OPPORTUNITY_CLAIM_FIELDS } from "./constants.js";
+export { DEFAULT_CLAIM_LIMITS, OPPORTUNITY_CLAIM_FIELDS } from "./constants.js";
 import { fieldClaim, fieldLine, headerLine } from "./format.js";
 
 const MAX_CANDIDATES = 100;
@@ -45,6 +47,8 @@ export function createSalesforceStructuredClaimExtractor() {
         ["api", "label", "value"].every((key) => typeof fact[key] === "string" && fact[key] !== ""))) {
         return malformed("sf_fields_json must be an array of {api, label, value} strings.");
       }
+      // Over-cap records (stamped by the evidence adapter) keep their content but yield no claims.
+      if (metadata.sf_claim_excluded === true) return { ok: true, candidates: [] };
       const candidates = [];
       if (objectName !== "Account") {
         const header = headerLine(objectName, recordName);
@@ -52,6 +56,7 @@ export function createSalesforceStructuredClaimExtractor() {
       }
       for (const fact of facts) {
         if (CLAIM_EXCLUDED_FIELDS.includes(fact.api)) continue;
+        if (objectName === "Opportunity" && !OPPORTUNITY_CLAIM_FIELDS.includes(fact.api)) continue;
         candidates.push({
           claim: fieldClaim(objectName, recordName, fact),
           excerpt: fieldLine(objectName, recordName, fact),

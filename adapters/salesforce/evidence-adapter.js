@@ -3,6 +3,7 @@ import {
   API_VERSION_PATTERN, DEFAULT_API_VERSION, OBJECT_ORDER,
 } from "./constants.js";
 import { resolveLimits } from "./limits.js";
+import { resolveClaimLimits, selectClaimRowIds } from "./claim-selection.js";
 import { adapterError, toAdapterError } from "./errors.js";
 import { OBJECTS } from "./fields.js";
 import { mapRecord } from "./record-mapper.js";
@@ -38,6 +39,7 @@ export function createSalesforceEvidenceAdapter({
   apiVersion = DEFAULT_API_VERSION,
   now = () => new Date(),
   limits = {},
+  claimLimits = {},
   classification = "internal",
   objectClassification = {},
   instanceUrl = null,
@@ -55,6 +57,7 @@ export function createSalesforceEvidenceAdapter({
     if (RANK[level] < RANK[classification]) throw new TypeError(`objectClassification.${objectName} may not be lower than classification`);
   }
   const effectiveLimits = resolveLimits(limits);
+  const effectiveClaimLimits = resolveClaimLimits(claimLimits);
   const baseUrl = normalizeInstanceUrl(instanceUrl);
   const routingDoc = routing ?? loadSalesforceRouting();
 
@@ -92,7 +95,15 @@ export function createSalesforceEvidenceAdapter({
             requestedIds,
             truncated,
           };
-          for (const row of queried.records.slice(0, keep)) records.push(mapRecord(def, row, ctx));
+          const kept = queried.records.slice(0, keep);
+          const mapped = kept.map((row) => mapRecord(def, row, ctx));
+          // Brief-size limits; user decision 2026-11-04; selection is ordering only. The extractor
+          // sees one record per call, so the cross-record selection is stamped here as metadata.
+          const claimIds = selectClaimRowIds(objectName, kept, effectiveClaimLimits[objectName]);
+          mapped.forEach((record, index) => {
+            if (!claimIds.has(kept[index].Id)) record.metadata.sf_claim_excluded = true;
+          });
+          records.push(...mapped);
         }
         return { ok: true, records };
       } catch (thrown) {

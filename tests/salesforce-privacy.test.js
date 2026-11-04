@@ -30,7 +30,8 @@ test("raw qualification-like facts stay in record content but never become claim
     assert.ok(!candidates.some((c) => c.claim.includes(api) || c.excerpt.includes(api)), `${api} yields no candidate`);
   }
   assert.ok(candidates.some((c) => c.claim === 'Opportunity "Phoenix Upgrade" Stage: Awareness'));
-  assert.ok(candidates.some((c) => c.claim.includes("Cluster__c")));
+  assert.ok(opp.content.includes("- Cluster__c: ")); // content-only now; not a claim (brief-size decision)
+  assert.ok(!candidates.some((c) => c.claim.includes("Cluster__c")));
 });
 
 test("Task and Event names are fixed-label composites; Subject and Location are never selected or mapped", async () => {
