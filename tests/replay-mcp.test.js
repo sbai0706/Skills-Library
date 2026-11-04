@@ -5,6 +5,7 @@ import { prepareFirstMeeting } from "../workflows/prepare-first-meeting/index.js
 import { normalizeEvidence } from "../skills/evidence-normalize/index.js";
 import { validate } from "../schemas/index.js";
 import { EVIDENCE_SOURCE_IDS } from "../adapters/evidence-adapter.js";
+import { ReplayMcpClient, mapMcpError } from "../adapters/mcp/index.js";
 
 const ACCOUNT_ID = "sf_replay_northstar";
 const QUESTION = { id: "FM-CTX-001", text: "What does the company do?" };
@@ -30,27 +31,35 @@ const CLAIMS = {
   }],
 };
 
-/** In-memory transport envelope: deliberately shaped like tool protocol data. */
-export class MemoryMcpReplayClient {
-  constructor({ tools, responses }) {
-    this.tools = tools;
-    this.responses = responses;
-    this.calls = [];
-  }
-  async listTools() { return { tools: this.tools.map(({ name, description }) => ({ name, description })) }; }
+/**
+ * Replay client from the promoted module. Tool arguments are projected onto the
+ * fields that identify a call in these tests (query text and question IDs are
+ * irrelevant to the recorded responses); raw args are still kept in `calls`.
+ */
+const PROJECTIONS = {
+  search_accounts: () => ({}),
+  retrieve_evidence: ({ source }) => ({ source }),
+  extract_claim_candidates: ({ sourceRecordId }) => ({ sourceRecordId }),
+};
+class ProjectedReplayClient extends ReplayMcpClient {
   async callTool(name, args) {
-    this.calls.push({ name, args });
-    const handler = this.responses[name];
-    if (typeof handler !== "function") throw Object.assign(new Error("Tool unavailable"), { code: "UNAVAILABLE" });
-    return handler(args);
+    try { return await super.callTool(name, PROJECTIONS[name]?.(args) ?? args); }
+    finally { this.calls[this.calls.length - 1] = { name, args }; }
   }
 }
+const STATUS = { UNAUTHORIZED: 401, UNAVAILABLE: 503 };
+const apiError = (code) => ({ error_code: "API_ERROR", status_code: STATUS[code], body: "[{\"errorCode\":\"SYNTHETIC\"}]" });
 
 const result = (structuredContent) => ({
   content: [{ type: "text", text: JSON.stringify(structuredContent) }],
   structuredContent,
 });
-const error = (code) => Object.assign(new Error("replay tool failed"), { code });
+function build({ account, evidence = {}, claims = {} }) {
+  const entries = [{ tool: "search_accounts", args: {}, ...account }];
+  for (const source of EVIDENCE_SOURCE_IDS) entries.push({ tool: "retrieve_evidence", args: { source }, ...(evidence[source] ?? evidence.default) });
+  for (const [sourceRecordId, r] of Object.entries(claims)) entries.push({ tool: "extract_claim_candidates", args: { sourceRecordId }, result: result(r) });
+  return new ProjectedReplayClient({ entries, reuseLast: true });
+}
 
 export class ReplayMcpAccountAdapter {
   constructor(client) { this.client = client; this.name = "replay-mcp-account"; }
@@ -65,7 +74,8 @@ export class ReplayMcpAccountAdapter {
         account_id: item.id, name: item.displayName, ...(item.domain ? { domain: item.domain } : {}),
       })) };
     } catch (cause) {
-      return this.failure(cause.code === "UNAUTHORIZED" ? "ADAPTER_UNAUTHORIZED" : "ADAPTER_UNAVAILABLE", cause.code !== "UNAUTHORIZED");
+      const mapped = mapMcpError(cause);
+      return this.failure(mapped.code, mapped.retryable);
     }
   }
   failure(code, retryable) { return { ok: false, error: { code, message: "Replay account tool failed.", retryable } }; }
@@ -98,8 +108,8 @@ export class ReplayMcpEvidenceAdapter {
         metadata: { ...item.attributes, provider: "mcp-replay" },
       })) };
     } catch (cause) {
-      const code = cause.code === "UNAUTHORIZED" ? "ADAPTER_UNAUTHORIZED" : "ADAPTER_UNAVAILABLE";
-      return this.failure(code, code === "ADAPTER_UNAVAILABLE");
+      const { code, retryable } = mapMcpError(cause);
+      return this.failure(code, retryable);
     }
   }
   failure(code, retryable) { return { ok: false, error: { code, message: "Replay evidence tool failed.", retryable } }; }
@@ -121,12 +131,14 @@ export class ReplayMcpClaimExtractor {
 function client({ matches = [{ id: ACCOUNT_ID, displayName: "Northstar Logistics", domain: "northstar.example" }],
   items = [SOURCE_RECORD], accountPayload, evidencePayload, accountError, evidenceError, extractorCandidates = CLAIMS,
   extractorError } = {}) {
-  const tools = ["search_accounts", "retrieve_evidence", "extract_claim_candidates"].map((name) => ({ name }));
-  return new MemoryMcpReplayClient({ tools, responses: {
-    search_accounts: async () => { if (accountError) throw error(accountError); return result(accountPayload ?? { matches }); },
-    retrieve_evidence: async () => { if (evidenceError) throw error(evidenceError); return result(evidencePayload ?? { items }); },
-    extract_claim_candidates: async ({ sourceRecordId }) => { if (extractorError) throw error(extractorError); return result({ candidates: extractorCandidates[sourceRecordId] ?? [] }); },
-  } });
+  const claims = Object.fromEntries(items.map((i) => [i.recordId, { candidates: [] }]));
+  for (const [id, list] of Object.entries(extractorCandidates)) claims[id] = { candidates: list };
+  const fail = (code) => ({ error: apiError(code) });
+  return build({
+    account: accountError ? fail(accountError) : { result: result(accountPayload ?? { matches }) },
+    evidence: { default: evidenceError ? fail(evidenceError) : { result: result(evidencePayload ?? { items }) } },
+    claims: extractorError ? {} : claims,
+  });
 }
 function input(overrides = {}) {
   return { account_reference: "Northstar Logistics", requested_sources: ["public_source"], context: { permitted_classifications: ["public", "internal"] }, ...overrides };
@@ -232,11 +244,11 @@ test("malformed responses and unsupported claims never trigger fixture fallback"
 });
 
 test("partial source failure retains successful source records and citations", async () => {
-  const c = new MemoryMcpReplayClient({ tools: [{ name: "search_accounts" }, { name: "retrieve_evidence" }, { name: "extract_claim_candidates" }], responses: {
-    search_accounts: async () => result({ matches: [{ id: ACCOUNT_ID, displayName: "Northstar Logistics" }] }),
-    retrieve_evidence: async ({ source }) => source === "crm" ? (() => { throw error("UNAVAILABLE"); })() : result({ items: [SOURCE_RECORD] }),
-    extract_claim_candidates: async ({ sourceRecordId }) => result({ candidates: CLAIMS[sourceRecordId] ?? [] }),
-  } });
+  const c = build({
+    account: { result: result({ matches: [{ id: ACCOUNT_ID, displayName: "Northstar Logistics" }] }) },
+    evidence: { crm: { error: apiError("UNAVAILABLE") }, default: { result: result({ items: [SOURCE_RECORD] }) } },
+    claims: { [SOURCE_RECORD.recordId]: { candidates: CLAIMS[SOURCE_RECORD.recordId] } },
+  });
   const workflow = await prepareFirstMeeting(input({ requested_sources: ["crm", "public_source"] }), deps(c));
   assert.equal(workflow.status, "partial");
   assert.ok(workflow.evidence_ids.length > 0);
@@ -245,13 +257,15 @@ test("partial source failure retains successful source records and citations", a
 
 test("replay claims retain conflicts and classification filtering", async () => {
   const second = { ...SOURCE_RECORD, recordId: "src_replay_985", body: "Northstar Logistics provides dedicated fleet services across the central United States." };
-  const c = new MemoryMcpReplayClient({ tools: [{ name: "search_accounts" }, { name: "retrieve_evidence" }, { name: "extract_claim_candidates" }], responses: {
-    search_accounts: async () => result({ matches: [{ id: ACCOUNT_ID, displayName: "Northstar Logistics" }] }),
-    retrieve_evidence: async () => result({ items: [SOURCE_RECORD, second] }),
-    extract_claim_candidates: async ({ sourceRecordId }) => result({ candidates: sourceRecordId === SOURCE_RECORD.recordId
-      ? [{ claim: "Northstar Logistics provides freight brokerage services.", excerpt: "Northstar Logistics provides freight brokerage services", completeness: "complete", conflict_key: "business-model" }]
-      : [{ claim: "Northstar Logistics provides dedicated fleet services.", excerpt: "Northstar Logistics provides dedicated fleet services", completeness: "complete", conflict_key: "business-model" }] }),
-  } });
+  const conflictClaims = (claim, excerpt) => ({ candidates: [{ claim, excerpt, completeness: "complete", conflict_key: "business-model" }] });
+  const c = build({
+    account: { result: result({ matches: [{ id: ACCOUNT_ID, displayName: "Northstar Logistics" }] }) },
+    evidence: { default: { result: result({ items: [SOURCE_RECORD, second] }) } },
+    claims: {
+      [SOURCE_RECORD.recordId]: conflictClaims("Northstar Logistics provides freight brokerage services.", "Northstar Logistics provides freight brokerage services"),
+      [second.recordId]: conflictClaims("Northstar Logistics provides dedicated fleet services.", "Northstar Logistics provides dedicated fleet services"),
+    },
+  });
   const conflict = await prepareFirstMeeting(input(), deps(c));
   assert.ok(conflict.warnings.some((entry) => entry.code === "CONFLICTS_PRESENT"));
   assert.equal(conflict.evidence_ids.length, 2);

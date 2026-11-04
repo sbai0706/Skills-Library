@@ -1,0 +1,26 @@
+{
+  "format_version": "mcp-capture/1",
+  "capture": {
+    "created_at": "2026-11-01T09:00:00Z",
+    "source_system": "salesforce",
+    "connector": "synthetic-salesforce-connector",
+    "note": "Entirely fictional fixture; no real customer data."
+  },
+  "entries": [
+    {
+      "tool": "dispatch_readonly",
+      "args": { "path": "/services/data/v66.0/query", "q": "SELECT Id, Name FROM Account WHERE Name LIKE 'Fictional%'" },
+      "result": {
+        "content": [{ "type": "text", "text": "{\"records\":[{\"Id\":\"001FICTIONAL0001\",\"Name\":\"Fictional Freight Co\",\"Email\":\"ops@fictional-freight.example\"}]}" }],
+        "structuredContent": { "records": [{ "Id": "001FICTIONAL0001", "Name": "Fictional Freight Co", "Email": "ops@fictional-freight.example" }] }
+      },
+      "captured_at": "2026-11-01T09:00:01Z"
+    },
+    {
+      "tool": "dispatch_readonly",
+      "args": { "path": "/services/data/v66.0/query", "q": "SELECT Id FROM NoSuchObject__c" },
+      "error": { "error_code": "API_ERROR", "status_code": 400, "body": "[{\"errorCode\":\"INVALID_TYPE\",\"message\":\"sObject type 'NoSuchObject__c' is not supported\"}]" },
+      "captured_at": "2026-11-01T09:00:02Z"
+    }
+  ]
+}
