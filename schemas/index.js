@@ -40,6 +40,7 @@ const SCHEMA_FILES = {
   prepareEngagementResult: "prepare-engagement-result.schema.json",
   workflowInput: "workflow-input.schema.json",
   workflowResult: "workflow-result.schema.json",
+  mcpCapture: "mcp-capture.schema.json",
 };
 
 const ajv = new Ajv({ allErrors: true, strict: true });
