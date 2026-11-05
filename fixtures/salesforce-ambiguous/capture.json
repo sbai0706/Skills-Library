@@ -1,0 +1,68 @@
+{
+  "format_version": "mcp-capture/1",
+  "capture": {
+    "created_at": "2026-11-04T10:00:00Z",
+    "source_system": "salesforce",
+    "connector": "synthetic-salesforce-connector",
+    "note": "Entirely fictional fixture; two plausible accounts."
+  },
+  "entries": [
+    {
+      "tool": "dispatch_readonly",
+      "args": {
+        "url": "/services/data/v66.0/query",
+        "method": "GET",
+        "queryParams": {
+          "q": "SELECT Id, Name, Website, BillingCity, BillingState, BillingCountry, Owner.Name FROM Account WHERE Name = 'Northwind' OR Name LIKE '%Northwind%' ORDER BY Name ASC, Id ASC LIMIT 50"
+        }
+      },
+      "result": {
+        "status_code": 200,
+        "body": {
+          "totalSize": 2,
+          "done": true,
+          "records": [
+            {
+              "attributes": {
+                "type": "Account",
+                "url": "/services/data/v66.0/sobjects/Account/001SYN0000000002AA"
+              },
+              "Id": "001SYN0000000002AA",
+              "Name": "Northwind Logistics",
+              "Website": "https://www.northwind-traders.example",
+              "BillingCity": "Columbus",
+              "BillingState": "OH",
+              "BillingCountry": "USA",
+              "Owner": {
+                "attributes": {
+                  "type": "User"
+                },
+                "Name": "Avery Example"
+              }
+            },
+            {
+              "attributes": {
+                "type": "Account",
+                "url": "/services/data/v66.0/sobjects/Account/001SYN0000000001AA"
+              },
+              "Id": "001SYN0000000001AA",
+              "Name": "Northwind Traders",
+              "Website": "https://www.northwind-traders.example",
+              "BillingCity": "Columbus",
+              "BillingState": "OH",
+              "BillingCountry": "USA",
+              "Owner": {
+                "attributes": {
+                  "type": "User"
+                },
+                "Name": "Avery Example"
+              }
+            }
+          ]
+        },
+        "url": "/services/data/v66.0/query"
+      },
+      "captured_at": "2026-11-04T10:00:01Z"
+    }
+  ]
+}

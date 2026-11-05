@@ -5,6 +5,9 @@ import { runQualification } from "../workflows/qualification/index.js";
 import { createFixtureAccountAdapter } from "../adapters/fixture-account-adapter.js";
 import { createFixtureEvidenceAdapter } from "../adapters/fixture-evidence-adapter.js";
 import { createFixtureClaimExtractor } from "../adapters/fixture-claim-extractor.js";
+import {
+  assertCaptureSources, captureExitCode, createCaptureSession, resolveSourceOptions,
+} from "../cli/capture-mode.js";
 
 const DEFAULT_FIXTURE = "workflow-first-meeting-success";
 const WORKFLOW_FIXTURES = new Set([
@@ -24,7 +27,9 @@ const ASSESSMENT_FIXTURES = new Set(["none", "northstar-provisional"]);
 
 const HELP = `Usage: npm run qualification -- --account NAME [options]
 
-Deterministic fixture-only workflow. No model, network, or CRM actions.
+Deterministic workflow. No model, network, or CRM actions. By default it runs on local
+fixtures; with --source capture it replays a host-recorded Salesforce capture (CRM data,
+structured-field claims, no assessment mapping) and never falls back to fixtures.
 
 Options:
   --account VALUE             Required account reference
@@ -32,6 +37,9 @@ Options:
   --classification VALUE      Output ceiling: public, internal, confidential (default: internal)
   --fixture NAME              workflow-first-meeting-* fixture (default: ${DEFAULT_FIXTURE})
   --assessment-fixture NAME   none or northstar-provisional (default: none)
+  --source MODE               fixture (default) or capture
+  --capture PATH              Salesforce capture file (required with, and only valid with,
+                              --source capture; keep raw captures under .captures/)
   --output FORMAT             json or markdown (default: json)
   --help                      Show this help
 
@@ -47,6 +55,8 @@ function parseArgs(argv) {
     "--fixture",
     "--assessment-fixture",
     "--output",
+    "--source",
+    "--capture",
   ]);
   for (let index = 0; index < argv.length; index += 1) {
     const option = argv[index];
@@ -79,8 +89,17 @@ function parseArgs(argv) {
     }
   }
 
+  const sourceOptions = resolveSourceOptions(parsed, {
+    incompatible: [
+      ["--fixture", "capture mode reads the account and evidence from the capture, not a bundled fixture"],
+      ["--assessment-fixture", "assessment fixtures reference fixture evidence IDs; capture mode uses the no-assessment path"],
+    ],
+  });
+  if (sourceOptions.source === "capture") assertCaptureSources(sources);
+
   return {
     help: false,
+    ...sourceOptions,
     account: parsed["--account"].trim(),
     ...(sources ? { sources } : {}),
     ...(Object.hasOwn(parsed, "--classification") ? { classification: parsed["--classification"] } : {}),
@@ -127,16 +146,29 @@ async function main() {
     }
   }
 
+  let session;
+  let deps;
+  if (options.source === "capture") {
+    try {
+      session = createCaptureSession(options.capturePath);
+    } catch (error) {
+      process.stderr.write(`${error.message}\n`);
+      process.exitCode = 1;
+      return;
+    }
+    deps = session.deps;
+    workflowInput.requested_sources ??= ["crm"];
+  } else {
+    deps = {
+      accountAdapter: createFixtureAccountAdapter({ fixture: options.fixture }),
+      evidenceAdapter: createFixtureEvidenceAdapter({ fixture: options.fixture }),
+      claimExtractor: createFixtureClaimExtractor(),
+    };
+  }
+
   let result;
   try {
-    result = await runQualification(
-      { workflow_input: workflowInput, ...assessmentMapping },
-      {
-        accountAdapter: createFixtureAccountAdapter({ fixture: options.fixture }),
-        evidenceAdapter: createFixtureEvidenceAdapter({ fixture: options.fixture }),
-        claimExtractor: createFixtureClaimExtractor(),
-      },
-    );
+    result = await runQualification({ workflow_input: workflowInput, ...assessmentMapping }, deps);
   } catch {
     process.stderr.write("Qualification workflow failed before producing a valid result.\n");
     process.exitCode = 1;
@@ -153,7 +185,7 @@ async function main() {
   for (const diagnostic of [...result.warnings, ...result.errors]) {
     process.stderr.write(`${diagnostic.step}: ${diagnostic.code}: ${diagnostic.message}\n`);
   }
-  process.exitCode = exitCode(result.status);
+  process.exitCode = captureExitCode(exitCode(result.status), session);
 }
 
 await main();

@@ -13,28 +13,28 @@ const SPECS = [
     name: "prepare-first-meeting",
     script: "prepare-first-meeting",
     executable: "prepare-first-meeting.js",
-    options: ["--account", "--sources", "--classification", "--template", "--audience", "--fixture", "--output"],
+    options: ["--account", "--sources", "--classification", "--template", "--audience", "--fixture", "--output", "--source", "--capture"],
     fixtures: ["workflow-first-meeting-success"],
   },
   {
     name: "prepare-engagement",
     script: "prepare-engagement",
     executable: "prepare-engagement.js",
-    options: ["--fixture", "--account", "--mode", "--classification", "--tone", "--output"],
+    options: ["--fixture", "--account", "--mode", "--classification", "--tone", "--output", "--source", "--capture"],
     fixtures: ["engagement-initial", "engagement-follow-up"],
   },
   {
     name: "qualification",
     script: "qualification",
     executable: "qualification.js",
-    options: ["--account", "--sources", "--classification", "--fixture", "--assessment-fixture", "--output"],
+    options: ["--account", "--sources", "--classification", "--fixture", "--assessment-fixture", "--output", "--source", "--capture"],
     fixtures: ["workflow-first-meeting-success"],
   },
   {
     name: "opportunity-strategy",
     script: "opportunity-strategy",
     executable: "opportunity-strategy.js",
-    options: ["--fixture", "--output", "northstar-example"],
+    options: ["--fixture", "--output", "northstar-example", "--account", "--source", "--capture"],
     fixtures: [],
   },
   {
@@ -223,5 +223,63 @@ test("source-rank fixture CLI returns its recency-only partial ranking", () => {
   assert.ok(skill.data.sources.length > 0);
   for (const diagnostic of [...skill.warnings, ...skill.errors]) {
     assert.ok(result.stderr.includes(diagnostic.code), `stderr omitted ${diagnostic.code}`);
+  }
+});
+
+test("every wrapper has a separate Live Salesforce (capture) mode section that keeps the fixture instructions", () => {
+  for (const spec of SPECS.filter((s) => s.name !== "source-rank")) {
+    const { text } = readSkill(spec);
+    const heading = text.indexOf("## Live Salesforce (capture) mode");
+    assert.ok(heading > 0, `${spec.name} needs a Live Salesforce (capture) mode section`);
+    assert.ok(text.indexOf(`npm run ${spec.script}`) < heading, `${spec.name} keeps fixture instructions before the capture section`);
+    const section = text.slice(heading);
+    assert.ok(readSkill(spec).metadata.description.includes("recorded by the host from the read-only connector"), `${spec.name} description wording`);
+    assert.ok(!/live Salesforce capture/i.test(readSkill(spec).metadata.description));
+    for (const required of [
+      "npm run salesforce-capture-plan -- --init-capture .captures/",
+      "npm run salesforce-capture-plan -- --account",
+      "npm run salesforce-capture-plan -- --account-id",
+      "npm run salesforce-capture-plan -- --validate",
+      "dispatch_readonly",
+      "Never call `dispatch`",
+      "INVALID_AUTH_HEADER",
+      "retry the identical call once",
+      "nextRecordsUrl",
+      "git-ignored",
+      "never commit",
+      `npm run ${spec.script} -- `,
+      "--source capture --capture .captures/",
+      "REPLAY_INCOMPLETE",
+      "failed: incomplete capture",
+      "CONFIRMATION_REQUIRED",
+      "account_candidates",
+      "EVIDENCE_RETRIEVAL_BLOCKED",
+      "never loop into candidate selection",
+      "case-insensitively",
+      "ambiguity/confirmation check",
+      "is expected at this",
+      "[clm_...]",
+      "evidence_ids",
+      "Never paste raw capture content",
+      "missing pagination page",
+      "under the repository's git-ignored `.captures/`",
+    ]) {
+      assert.ok(section.includes(required), `${spec.name} capture section is missing: ${required}`);
+    }
+  }
+  const guide = readFileSync(resolve(ROOT, "docs", "AGENT_SKILLS.md"), "utf8");
+  assert.ok(guide.includes("## Live Salesforce (capture) mode"));
+  for (const required of ["salesforce-capture-plan", "--source capture", "dispatch_readonly", "REPLAY_INCOMPLETE", ".captures/", "failed: incomplete capture", "CONFIRMATION_REQUIRED", "EVIDENCE_RETRIEVAL_BLOCKED", "[clm_...]", "evidence_ids", "不是账号研究"]) {
+    assert.ok(guide.includes(required), `guide is missing ${required}`);
+  }
+});
+
+test("the capture plan CLI is a documented package script with help", () => {
+  const packageJson = JSON.parse(readFileSync(resolve(ROOT, "package.json"), "utf8"));
+  assert.equal(packageJson.scripts["salesforce-capture-plan"], "node bin/salesforce-capture-plan.js");
+  const help = spawnSync(process.execPath, [resolve(ROOT, "bin", "salesforce-capture-plan.js"), "--help"], { cwd: ROOT, encoding: "utf8" });
+  assert.equal(help.status, 0, help.stderr);
+  for (const option of ["--account", "--account-id", "--init-capture", "--validate", "--source-system"]) {
+    assert.ok(help.stdout.includes(option), `help is missing ${option}`);
   }
 });

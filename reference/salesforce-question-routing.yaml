@@ -1,0 +1,41 @@
+# Provisional routing of Salesforce objects/fields to first-meeting reference questions.
+# Relevance hints only: a route is not an answer, a finding, or business policy.
+# Routes never reference StageName, Qualification_Score__c or the six qualification-like picklists.
+version: 0.1.0
+status: provisional
+business_owner: TBD
+approver: TBD
+approval_date: null
+source_documents: []
+effective_date: null
+question_set: first-meeting-questions@0.1.0
+source_system: salesforce
+change_history:
+  - version: 0.1.0
+    date: 2026-11-04
+    change: Initial provisional routing for the P2 Salesforce adapters; pending business review.
+routes:
+  - question_id: FM-CTX-001
+    object: Account
+    when: any_populated
+    fields: [Industry, Website, BillingCity, BillingState, BillingCountry]
+  - question_id: FM-CTX-002
+    object: Account
+    when: any_populated
+    fields: [NumberOfEmployees, AnnualRevenue]
+  - question_id: FM-STK-002
+    object: Account
+    when: any_populated
+    fields: [Owner.Name]
+  - question_id: FM-REL-001
+    object: Opportunity
+    when: record_exists
+  - question_id: FM-REL-001
+    object: Task
+    when: record_exists
+  - question_id: FM-REL-001
+    object: Event
+    when: record_exists
+  - question_id: FM-STK-001
+    object: Contact
+    when: record_exists

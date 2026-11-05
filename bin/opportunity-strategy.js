@@ -5,15 +5,23 @@ import { runOpportunityStrategy } from "../workflows/opportunity-strategy/index.
 import { createFixtureAccountAdapter } from "../adapters/fixture-account-adapter.js";
 import { createFixtureEvidenceAdapter } from "../adapters/fixture-evidence-adapter.js";
 import { createFixtureClaimExtractor } from "../adapters/fixture-claim-extractor.js";
+import { captureExitCode, createCaptureSession, resolveSourceOptions } from "../cli/capture-mode.js";
 
 const FIXTURES = new Set(["northstar-example"]);
 const HELP = `Usage: npm run opportunity-strategy -- --fixture northstar-example [options]
 
-Development and demonstration interface. Uses local fixture adapters and a caller-supplied
-qualification-result fixture; no live systems or model.
+Development and demonstration interface. By default uses local fixture adapters and a
+caller-supplied qualification-result fixture; no live systems or model. With --source capture
+it replays a host-recorded Salesforce capture for --account (structured CRM claims; no
+qualification evidence mapping or offering annotations, so those parts stay gaps) and never
+falls back to fixtures.
 
 Options:
   --fixture NAME   Bundled opportunity-strategy fixture (default: northstar-example)
+  --account VALUE  Account reference (only with, and required by, --source capture)
+  --source MODE    fixture (default) or capture
+  --capture PATH   Salesforce capture file (required with, and only valid with,
+                   --source capture; keep raw captures under .captures/)
   --output FORMAT  json or markdown (default: json)
   --help           Show this help
 
@@ -22,7 +30,7 @@ Exit codes: 0 success, 2 partial with artifact, 3 blocked, 1 failed/invalid invo
 
 function parseArgs(argv) {
   const parsed = {};
-  const supported = new Set(["--fixture", "--output"]);
+  const supported = new Set(["--fixture", "--output", "--account", "--source", "--capture"]);
   for (let index = 0; index < argv.length; index += 1) {
     const option = argv[index];
     if (option === "--help" || option === "-h") return { help: true };
@@ -38,11 +46,28 @@ function parseArgs(argv) {
 
   const fixture = parsed["--fixture"] ?? "northstar-example";
   if (!FIXTURES.has(fixture)) throw new Error("Unknown fixture. Choose northstar-example.");
+  const sourceOptions = resolveSourceOptions(parsed, {
+    incompatible: [
+      ["--fixture", "capture mode reads the account and evidence from the capture, not a bundled fixture"],
+    ],
+  });
+  if (sourceOptions.source === "capture" && !parsed["--account"]?.trim()) {
+    throw new Error("--account is required with --source capture.");
+  }
+  if (sourceOptions.source === "fixture" && Object.hasOwn(parsed, "--account")) {
+    throw new Error("--account requires --source capture (the bundled fixture fixes its own account).");
+  }
   const output = parsed["--output"] ?? "json";
   if (!new Set(["json", "markdown"]).has(output)) {
     throw new Error("--output must be json or markdown.");
   }
-  return { help: false, fixture, output };
+  return {
+    help: false,
+    ...sourceOptions,
+    fixture,
+    output,
+    ...(sourceOptions.source === "capture" ? { account: parsed["--account"].trim() } : {}),
+  };
 }
 
 function emitDiagnostics(result) {
@@ -70,25 +95,40 @@ async function main() {
   }
 
   let input;
-  try {
-    const fixtureUrl = new URL(
-      `../fixtures/opportunity-strategy/${options.fixture}.json`,
-      import.meta.url,
-    );
-    input = JSON.parse(readFileSync(fixtureUrl, "utf8"));
-  } catch {
-    process.stderr.write("The selected opportunity-strategy fixture could not be loaded.\n");
-    process.exitCode = 1;
-    return;
+  let session;
+  let deps;
+  if (options.source === "capture") {
+    try {
+      session = createCaptureSession(options.capturePath);
+    } catch (error) {
+      process.stderr.write(`${error.message}\n`);
+      process.exitCode = 1;
+      return;
+    }
+    deps = session.deps;
+    input = { workflow_input: { account_reference: options.account, requested_sources: ["crm"] } };
+  } else {
+    try {
+      const fixtureUrl = new URL(
+        `../fixtures/opportunity-strategy/${options.fixture}.json`,
+        import.meta.url,
+      );
+      input = JSON.parse(readFileSync(fixtureUrl, "utf8"));
+    } catch {
+      process.stderr.write("The selected opportunity-strategy fixture could not be loaded.\n");
+      process.exitCode = 1;
+      return;
+    }
+    deps = {
+      accountAdapter: createFixtureAccountAdapter({ fixture: "workflow-first-meeting-success" }),
+      evidenceAdapter: createFixtureEvidenceAdapter({ fixture: "workflow-first-meeting-success" }),
+      claimExtractor: createFixtureClaimExtractor(),
+    };
   }
 
   let result;
   try {
-    result = await runOpportunityStrategy(input, {
-      accountAdapter: createFixtureAccountAdapter({ fixture: "workflow-first-meeting-success" }),
-      evidenceAdapter: createFixtureEvidenceAdapter({ fixture: "workflow-first-meeting-success" }),
-      claimExtractor: createFixtureClaimExtractor(),
-    });
+    result = await runOpportunityStrategy(input, deps);
   } catch {
     process.stderr.write("Workflow failed before producing a valid result.\n");
     process.exitCode = 1;
@@ -107,7 +147,7 @@ async function main() {
     emitDiagnostics(result);
   }
 
-  process.exitCode = exitCode(result.status);
+  process.exitCode = captureExitCode(exitCode(result.status), session);
 }
 
 await main();

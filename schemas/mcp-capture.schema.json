@@ -1,0 +1,56 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sales-copilot.local/schemas/mcp-capture.schema.json",
+  "title": "MCP capture document",
+  "description": "Ordered record of read-only MCP tool calls captured by a host agent (Mode A) and replayed deterministically by the library. Raw captures may contain real customer data and must stay in the git-ignored .captures/ directory. Size limits (max entries, per-entry and per-file bytes) are enforced by the loader in adapters/mcp/capture.js, not only by this schema.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format_version", "capture", "entries"],
+  "properties": {
+    "format_version": {
+      "const": "mcp-capture/1",
+      "description": "Capture format version."
+    },
+    "capture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["created_at", "source_system", "connector"],
+      "properties": {
+        "created_at": { "type": "string", "format": "date-time" },
+        "source_system": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+          "description": "Source system label, for example salesforce or m365."
+        },
+        "connector": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Connector label, for example the MCP server name."
+        },
+        "note": { "type": "string", "maxLength": 1000 }
+      }
+    },
+    "entries": {
+      "type": "array",
+      "maxItems": 1000,
+      "description": "Calls in the order they were made. Each entry has exactly one of result or error.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["tool", "args", "captured_at"],
+        "properties": {
+          "tool": { "type": "string", "minLength": 1, "maxLength": 200 },
+          "args": { "type": "object", "description": "Arguments exactly as sent to the tool." },
+          "result": { "description": "Raw MCP tool result (content/structuredContent/isError) or raw connector payload; any JSON value." },
+          "error": { "type": "object", "description": "Transport or connector error, for example {error_code, status_code, body} or {code, message}." },
+          "captured_at": { "type": "string", "format": "date-time" }
+        },
+        "oneOf": [
+          { "required": ["result"], "properties": { "result": {} } },
+          { "required": ["error"], "properties": { "error": {} } }
+        ]
+      }
+    }
+  }
+}

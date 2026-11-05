@@ -5,6 +5,9 @@ import { prepareFirstMeetingV2 } from "../workflows/prepare-first-meeting-v2/ind
 import { createFixtureAccountAdapter } from "../adapters/fixture-account-adapter.js";
 import { createFixtureEvidenceAdapter } from "../adapters/fixture-evidence-adapter.js";
 import { createFixtureClaimExtractor } from "../adapters/fixture-claim-extractor.js";
+import {
+  assertCaptureSources, captureExitCode, createCaptureSession, resolveSourceOptions,
+} from "../cli/capture-mode.js";
 
 const DEFAULT_FIXTURE = "workflow-first-meeting-success";
 const WORKFLOW_FIXTURES = new Set([
@@ -24,8 +27,10 @@ const MAPPING_FIXTURES = new Set(["none", "northstar-example"]);
 
 const HELP = `Usage: npm run prepare-first-meeting-v2 -- --account NAME [options]
 
-Development and demonstration interface. Uses local fixture adapters, a deterministic
+Development and demonstration interface. By default uses local fixture adapters, a deterministic
 fixture claim extractor, and optional explicit annotation fixtures; no live systems or model.
+With --source capture it replays a host-recorded Salesforce capture (CRM data, structured-field
+claims, no annotations) and never falls back to fixtures.
 
 Options:
   --account VALUE          Required account reference
@@ -35,6 +40,9 @@ Options:
   --audience VALUE         internal_sales, executive, or customer (default: internal_sales)
   --fixture NAME           workflow-first-meeting-* fixture (default: ${DEFAULT_FIXTURE})
   --mapping-fixture NAME   none or northstar-example (default: none)
+  --source MODE            fixture (default) or capture
+  --capture PATH           Salesforce capture file (required with, and only valid with,
+                           --source capture; keep raw captures under .captures/)
   --output FORMAT          json or markdown (default: json)
   --help                   Show this help
 
@@ -52,6 +60,8 @@ function parseArgs(argv) {
     "--fixture",
     "--mapping-fixture",
     "--output",
+    "--source",
+    "--capture",
   ]);
   for (let index = 0; index < argv.length; index += 1) {
     const option = argv[index];
@@ -88,8 +98,17 @@ function parseArgs(argv) {
     }
   }
 
+  const sourceOptions = resolveSourceOptions(parsed, {
+    incompatible: [
+      ["--fixture", "capture mode reads the account and evidence from the capture, not a bundled fixture"],
+      ["--mapping-fixture", "annotation fixtures reference fixture evidence IDs; capture mode uses the no-mapping path"],
+    ],
+  });
+  if (sourceOptions.source === "capture") assertCaptureSources(sources);
+
   return {
     help: false,
+    ...sourceOptions,
     account: parsed["--account"].trim(),
     ...(sources ? { sources } : {}),
     ...(Object.hasOwn(parsed, "--classification") ? { classification: parsed["--classification"] } : {}),
@@ -147,16 +166,29 @@ async function main() {
     }
   }
 
+  let session;
+  let deps;
+  if (options.source === "capture") {
+    try {
+      session = createCaptureSession(options.capturePath);
+    } catch (error) {
+      process.stderr.write(`${error.message}\n`);
+      process.exitCode = 1;
+      return;
+    }
+    deps = session.deps;
+    workflowInput.requested_sources ??= ["crm"];
+  } else {
+    deps = {
+      accountAdapter: createFixtureAccountAdapter({ fixture: options.fixture }),
+      evidenceAdapter: createFixtureEvidenceAdapter({ fixture: options.fixture }),
+      claimExtractor: createFixtureClaimExtractor(),
+    };
+  }
+
   let result;
   try {
-    result = await prepareFirstMeetingV2(
-      { workflow_input: workflowInput, annotations },
-      {
-        accountAdapter: createFixtureAccountAdapter({ fixture: options.fixture }),
-        evidenceAdapter: createFixtureEvidenceAdapter({ fixture: options.fixture }),
-        claimExtractor: createFixtureClaimExtractor(),
-      },
-    );
+    result = await prepareFirstMeetingV2({ workflow_input: workflowInput, annotations }, deps);
   } catch {
     process.stderr.write("Workflow failed before producing a valid result.\n");
     process.exitCode = 1;
@@ -175,7 +207,7 @@ async function main() {
     emitDiagnostics(result);
   }
 
-  process.exitCode = exitCode(result.status);
+  process.exitCode = captureExitCode(exitCode(result.status), session);
 }
 
 await main();

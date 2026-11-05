@@ -5,6 +5,7 @@ import { prepareEngagement } from "../workflows/prepare-engagement/index.js";
 import { createFixtureAccountAdapter } from "../adapters/fixture-account-adapter.js";
 import { createFixtureEvidenceAdapter } from "../adapters/fixture-evidence-adapter.js";
 import { createFixtureClaimExtractor } from "../adapters/fixture-claim-extractor.js";
+import { captureExitCode, createCaptureSession, resolveSourceOptions } from "../cli/capture-mode.js";
 
 const DEFAULT_FIXTURE = "engagement-initial";
 const FIXTURES = new Set([
@@ -17,7 +18,10 @@ const FIXTURES = new Set([
 
 const HELP = `Usage: npm run prepare-engagement -- [options]
 
-Fixture-only Engagement workflow; no live systems, message sending, or CRM writes.
+Fixture-only Engagement workflow by default; no live systems, message sending, or CRM writes.
+With --source capture it replays a host-recorded Salesforce capture for an initial
+draft (structured CRM claims only, no annotations or claim references) and never falls back
+to fixtures.
 
 Options:
   --fixture NAME       engagement-* fixture (default: ${DEFAULT_FIXTURE})
@@ -25,6 +29,10 @@ Options:
   --mode VALUE         initial or follow_up
   --classification     public, internal, or confidential
   --tone VALUE         neutral, concise, formal, or warm
+  --source MODE        fixture (default) or capture
+  --capture PATH       Salesforce capture file (required with, and only valid with,
+                       --source capture, which also requires --account and mode initial;
+                       keep raw captures under .captures/)
   --output FORMAT      json or markdown (default: json)
   --help               Show this help
 
@@ -40,6 +48,8 @@ function parseArgs(argv) {
     "--classification",
     "--tone",
     "--output",
+    "--source",
+    "--capture",
   ]);
   for (let index = 0; index < argv.length; index += 1) {
     const option = argv[index];
@@ -71,8 +81,20 @@ function parseArgs(argv) {
   if (!["json", "markdown"].includes(output)) {
     throw new Error("--output must be json or markdown.");
   }
+  const sourceOptions = resolveSourceOptions(parsed, {
+    incompatible: [
+      ["--fixture", "capture mode reads the account and evidence from the capture, not a bundled fixture"],
+    ],
+  });
+  if (sourceOptions.source === "capture") {
+    if (!parsed["--account"]?.trim()) throw new Error("--account is required with --source capture.");
+    if (parsed["--mode"] === "follow_up") {
+      throw new Error("--mode follow_up cannot be used with --source capture: follow-up needs caller-supplied evidence claim IDs that a live capture cannot provide.");
+    }
+  }
   return {
     help: false,
+    ...sourceOptions,
     fixture,
     output,
     ...(parsed["--account"] !== undefined ? { account: parsed["--account"] } : {}),
@@ -107,17 +129,41 @@ async function main() {
   }
 
   let input;
-  try {
-    input = JSON.parse(readFileSync(
-      new URL(`../fixtures/${options.fixture}/input.json`, import.meta.url),
-      "utf8",
-    ));
-  } catch {
-    process.stderr.write("The selected Engagement fixture input could not be loaded.\n");
-    process.exitCode = 1;
-    return;
+  let session;
+  let deps;
+  if (options.source === "capture") {
+    try {
+      session = createCaptureSession(options.capturePath);
+    } catch (error) {
+      process.stderr.write(`${error.message}\n`);
+      process.exitCode = 1;
+      return;
+    }
+    deps = session.deps;
+    input = {
+      mode: "initial",
+      workflow_input: { account_reference: options.account.trim(), requested_sources: ["crm"] },
+    };
+  } else {
+    try {
+      input = JSON.parse(readFileSync(
+        new URL(`../fixtures/${options.fixture}/input.json`, import.meta.url),
+        "utf8",
+      ));
+    } catch {
+      process.stderr.write("The selected Engagement fixture input could not be loaded.\n");
+      process.exitCode = 1;
+      return;
+    }
+    deps = {
+      accountAdapter: createFixtureAccountAdapter({ fixture: "workflow-first-meeting-success" }),
+      evidenceAdapter: createFixtureEvidenceAdapter({ fixture: options.fixture }),
+      claimExtractor: createFixtureClaimExtractor(),
+    };
   }
-  if (options.account !== undefined) input.workflow_input.account_reference = options.account;
+  if (options.source === "fixture" && options.account !== undefined) {
+    input.workflow_input.account_reference = options.account;
+  }
   if (options.mode !== undefined) input.mode = options.mode;
   if (options.classification !== undefined) {
     input.workflow_input.classification_ceiling = options.classification;
@@ -129,11 +175,7 @@ async function main() {
 
   let result;
   try {
-    result = await prepareEngagement(input, {
-      accountAdapter: createFixtureAccountAdapter({ fixture: "workflow-first-meeting-success" }),
-      evidenceAdapter: createFixtureEvidenceAdapter({ fixture: options.fixture }),
-      claimExtractor: createFixtureClaimExtractor(),
-    });
+    result = await prepareEngagement(input, deps);
   } catch {
     process.stderr.write("Workflow failed before producing a valid result.\n");
     process.exitCode = 1;
@@ -149,7 +191,7 @@ async function main() {
     process.stderr.write(`Workflow ${result.status}: ${code}. No draft artifact was produced.\n`);
   }
   writeDiagnostics(result);
-  process.exitCode = exitCode(result.status);
+  process.exitCode = captureExitCode(exitCode(result.status), session);
 }
 
 await main();
