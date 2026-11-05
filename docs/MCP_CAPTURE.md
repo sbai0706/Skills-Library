@@ -299,3 +299,6 @@ forces exit 1 with `REPLAY_INCOMPLETE` naming `m365-capture-plan`. M365 error ca
 `details.graphRequestId` and `details.uriPath` redacted (volatile or path-bearing). Keep captures under
 `.captures/` and the mapping under `local/`; never commit either, never paste raw results, snippets, file
 names or paths into chat.
+
+Live acceptance results (status, exit codes and counts only) and the opt-in `npm run live-replay` that
+reruns a recorded acceptance run are in [LIVE_ACCEPTANCE.md](LIVE_ACCEPTANCE.md).
