@@ -48,7 +48,8 @@ Start with `docs/PROJECT_HANDOFF.md`; working notes and the current plan are in
 
 ```text
 npm ci          # restore dependencies from the lockfile
-npm test        # full suite (585/585 on main @ 12fa14e)
+npm test        # full suite (847: 846 pass + 1 skipped on Windows; ~3 min)
+npm run -s live-replay   # opt-in: replays local real captures (git-ignored expectations)
 node --test tests/<file>.test.js
 ```
 
