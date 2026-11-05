@@ -1,6 +1,6 @@
 import { readField } from "./fields.js";
 import { SfAdapterError, malformed } from "./errors.js";
-import { cleanText, fieldLine, formatValue, headerLine, optionalDateTime } from "./format.js";
+import { cleanText, dateToDateTime, fieldLine, formatValue, headerLine, lastModifiedLine, optionalDateTime } from "./format.js";
 import { questionIdsFor } from "./routing.js";
 
 const WHAT_OBJECT = Object.freeze({ "001": "Account", "006": "Opportunity", "003": "Contact" });
@@ -37,6 +37,34 @@ export function recordNameOf(def, row) {
 }
 
 /**
+ * Data timestamp for `source.rank` (P4 design, Decision 3; changes P2 section 3.3). First
+ * available wins: Task CompletedDateTime, ActivityDate (a date, taken as UTC midnight), then
+ * LastModifiedDate; Event StartDateTime then LastModifiedDate; Account/Opportunity/Contact
+ * LastModifiedDate. An activity candidate later than the retrieval time (an open task's due date,
+ * a scheduled meeting) is skipped, so it never ranks as recent data. No value at all gives
+ * `{occurredAt: null, occurredAtSource: null}`.
+ * @param {object} def
+ * @param {object} row
+ * @param {string} retrievedAt ISO retrieval time of the record
+ */
+export function occurredAtOf(def, row, retrievedAt) {
+  const activity = [];
+  if (def.name === "Task") {
+    activity.push(["CompletedDateTime", () => optionalDateTime(row.CompletedDateTime)]);
+    activity.push(["ActivityDate", () => dateToDateTime(row.ActivityDate)]);
+  } else if (def.name === "Event") {
+    activity.push(["StartDateTime", () => optionalDateTime(row.StartDateTime)]);
+  }
+  const retrievedMs = Date.parse(retrievedAt);
+  for (const [source, read] of activity) {
+    const value = read();
+    if (value !== null && !(Date.parse(value) > retrievedMs)) return { occurredAt: value, occurredAtSource: source };
+  }
+  const modified = optionalDateTime(row.LastModifiedDate);
+  return modified === null ? { occurredAt: null, occurredAtSource: null } : { occurredAt: modified, occurredAtSource: "LastModifiedDate" };
+}
+
+/**
  * Salesforce row -> source record (design section 3.3). Throws SfAdapterError on malformed values.
  * @param {object} def OBJECTS entry
  * @param {object} row
@@ -64,11 +92,10 @@ export function mapRecord(def, row, ctx) {
     ? ctx.requestedAccountId
     : `sf_${typeof (def.name === "Account" ? row.Id : row.AccountId) === "string" ? (def.name === "Account" ? row.Id : row.AccountId) : "missing"}`;
 
-  let occurredAt = null;
   const whatId = def.extra.includes("WhatId") ? idOrNull(row.WhatId, "invalid_what_id") : null;
   const whoId = def.extra.includes("WhoId") ? idOrNull(row.WhoId, "invalid_who_id") : null;
-  if (def.name === "Task") occurredAt = optionalDateTime(row.CompletedDateTime);
-  if (def.name === "Event") occurredAt = optionalDateTime(row.StartDateTime);
+  const { occurredAt, occurredAtSource } = occurredAtOf(def, row, ctx.retrievedAt);
+  if (occurredAtSource === "LastModifiedDate") lines.push(lastModifiedLine(def.name, recordName, occurredAt));
 
   const metadata = {
     provider: "salesforce",
@@ -83,6 +110,7 @@ export function mapRecord(def, row, ctx) {
     ...(optionalDateTime(row.LastModifiedDate) ? { sf_last_modified_date: optionalDateTime(row.LastModifiedDate) } : {}),
     ...(whatId ? { sf_what_id: whatId, sf_what_object: WHAT_OBJECT[whatId.slice(0, 3)] ?? "other" } : {}),
     ...(whoId ? { sf_who_id: whoId } : {}),
+    ...(occurredAtSource ? { sf_occurred_at_source: occurredAtSource } : {}),
     ...(ctx.truncated ? { sf_truncated: true } : {}),
   };
 

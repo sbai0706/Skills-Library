@@ -41,6 +41,10 @@ Options:
   --source MODE           fixture (default) or capture
   --capture PATH          Salesforce capture file (required with, and only valid with,
                           --source capture; keep raw captures under .captures/)
+  --capture-m365 PATH     M365 SharePoint capture file (optional; only with --source capture and --capture;
+                          adds the internal_document source; needs the mapping file below)
+  --m365-mapping PATH     Account-to-SharePoint mapping (only with --capture-m365;
+                          default local/m365-account-mapping.yaml, git-ignored)
   --output FORMAT         json or markdown (default: json)
   --help                   Show this help
 
@@ -59,6 +63,8 @@ function parseArgs(argv) {
     "--output",
     "--source",
     "--capture",
+    "--capture-m365",
+    "--m365-mapping",
   ]);
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -95,7 +101,7 @@ function parseArgs(argv) {
   const sourceOptions = resolveSourceOptions(parsed, {
     incompatible: [["--fixture", "capture mode reads the account and evidence from the capture, not a bundled fixture"]],
   });
-  if (sourceOptions.source === "capture") assertCaptureSources(sources);
+  if (sourceOptions.source === "capture") assertCaptureSources(sources, { m365: sourceOptions.m365CapturePath !== undefined });
 
   return {
     help: false,
@@ -153,14 +159,14 @@ async function main() {
   let deps;
   if (options.source === "capture") {
     try {
-      session = createCaptureSession(options.capturePath);
+      session = createCaptureSession(options);
     } catch (error) {
       process.stderr.write(`${error.message}\n`);
       process.exitCode = 1;
       return;
     }
     deps = session.deps;
-    input.requested_sources ??= ["crm"];
+    input.requested_sources ??= session.defaultSources;
   } else {
     deps = {
       accountAdapter: createFixtureAccountAdapter({ fixture: options.fixture }),

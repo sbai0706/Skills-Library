@@ -1,23 +1,49 @@
 #!/usr/bin/env node
 
 import { readFileSync } from "node:fs";
+import { isValidAccountId } from "../adapters/m365/index.js";
+import { parseSfAccountId } from "../adapters/salesforce/index.js";
+import { captureExitCode, createCaptureSession, resolveSourceOptions } from "../cli/capture-mode.js";
+import { retrieveEvidence } from "../skills/evidence-retrieve/index.js";
 import { rankSources } from "../skills/source-rank/index.js";
 import { parseTimestamp } from "../skills/source-rank/timestamps.js";
+import { loadDefaultQuestions } from "../workflows/prepare-first-meeting/reference.js";
 
 const DEFAULT_FIXTURE = "source-rank-recency";
 const FIXTURES = new Set([DEFAULT_FIXTURE]);
 
+/** Access ceiling -> permitted classifications for evidence.retrieve (capture mode). */
+const CEILINGS = Object.freeze({
+  public: ["public"],
+  internal: ["public", "internal"],
+  confidential: ["public", "internal", "confidential"],
+});
+
 const HELP = `Usage: npm run source-rank -- [options]
 
 Development and demonstration interface. Ranks the sources of one account by data recency
-only, from a local fixture; it does not connect to live systems and makes no reliability,
-authority or quality judgement.
+only, from a local fixture by default; it does not connect to live systems and makes no
+reliability, authority or quality judgement. With --source capture it ranks the sources found in
+host-recorded captures (Salesforce, optionally M365 SharePoint) instead; it never queries any
+system itself and never falls back to the fixture.
 
 Options:
-  --fixture NAME   Bundled source-rank fixture (default: ${DEFAULT_FIXTURE})
+  --fixture NAME   Bundled source-rank fixture (default: ${DEFAULT_FIXTURE}; fixture mode only)
   --account VALUE  Account ID to rank for; items of other accounts are excluded
-                   (default: the fixture's account_id)
-  --now VALUE      RFC 3339 date-time with an explicit offset, used as the clock (default: fixture's now)
+                   (default: the fixture's account_id). Required with --source capture and must
+                   be a resolved id: sf_<18-character Salesforce Id> (acct_<id> with only M365)
+  --now VALUE      RFC 3339 date-time with an explicit offset, used as the clock
+                   (default: the fixture's now; in capture mode the latest capture time)
+  --source MODE    fixture (default) or capture
+  --capture PATH   Salesforce capture file (capture mode; keep raw captures under .captures/)
+  --capture-m365 PATH
+                   M365 SharePoint capture file (capture mode; needs the mapping file below)
+  --m365-mapping PATH
+                   Account-to-SharePoint mapping (only with --capture-m365;
+                   default local/m365-account-mapping.yaml, git-ignored)
+  --classification VALUE
+                   Access ceiling for retrieved records in capture mode: public, internal,
+                   confidential (default: internal; capture mode only)
   --output FORMAT  json or markdown (default: json)
   --help           Show this help
 
@@ -26,7 +52,9 @@ Exit codes: 0 success, 2 partial with data, 3 blocked, 1 failed/invalid invocati
 
 function parseArgs(argv) {
   const parsed = {};
-  const supported = new Set(["--fixture", "--account", "--now", "--output"]);
+  const supported = new Set([
+    "--fixture", "--account", "--now", "--output", "--source", "--capture", "--capture-m365", "--m365-mapping", "--classification",
+  ]);
   for (let index = 0; index < argv.length; index += 1) {
     const option = argv[index];
     if (option === "--help" || option === "-h") return { help: true };
@@ -52,10 +80,30 @@ function parseArgs(argv) {
   if (Object.hasOwn(parsed, "--now") && parseTimestamp(parsed["--now"]) === null) {
     throw new Error("--now must be a valid RFC 3339 date-time with an explicit offset.");
   }
+  const sourceOptions = resolveSourceOptions(parsed, {
+    salesforceOptional: true,
+    incompatible: [["--fixture", "capture mode reads the evidence from the capture, not a bundled fixture"]],
+  });
+  const classification = parsed["--classification"] ?? "internal";
+  if (!Object.hasOwn(CEILINGS, classification)) throw new Error("--classification must be public, internal or confidential.");
+  if (sourceOptions.source === "fixture" && Object.hasOwn(parsed, "--classification")) {
+    throw new Error("--classification requires --source capture.");
+  }
+  if (sourceOptions.source === "capture") {
+    const account = parsed["--account"]?.trim();
+    if (!account) throw new Error("--account is required with --source capture.");
+    const resolved = sourceOptions.capturePath !== undefined ? parseSfAccountId(account) !== null : isValidAccountId(account);
+    if (!resolved) {
+      throw new Error("--account must be a resolved account id: sf_ followed by the 18-character Salesforce Id"
+        + (sourceOptions.capturePath === undefined ? " (or a mapped acct_ id)." : "."));
+    }
+  }
   return {
     help: false,
     fixture,
     output,
+    ...sourceOptions,
+    classification,
     ...(Object.hasOwn(parsed, "--account") ? { account: parsed["--account"].trim() } : {}),
     ...(Object.hasOwn(parsed, "--now") ? { now: parsed["--now"] } : {}),
   };
@@ -128,6 +176,11 @@ async function main() {
     return;
   }
 
+  if (options.source === "capture") {
+    await runCapture(options);
+    return;
+  }
+
   let input;
   try {
     const fixtureUrl = new URL(`../fixtures/${options.fixture}/input.json`, import.meta.url);
@@ -149,7 +202,12 @@ async function main() {
     return;
   }
 
-  if (options.output === "json") {
+  present(result, options.output);
+  process.exitCode = exitCode(result.status);
+}
+
+function present(result, output) {
+  if (output === "json") {
     process.stdout.write(`${JSON.stringify(result)}\n`);
     emitDiagnostics(result);
   } else if (result.data && ["success", "partial"].includes(result.status)) {
@@ -160,8 +218,62 @@ async function main() {
     process.stderr.write(`Skill ${result.status}: ${code}. No ranking was produced.\n`);
     emitDiagnostics(result);
   }
+}
 
-  process.exitCode = exitCode(result.status);
+const uniqueCodes = (items) => [...new Set(items.map((item) => item.code))].join(",");
+
+/** Capture mode: retrieve from the captures, then rank the retrieved records by data recency. */
+async function runCapture(options) {
+  let session;
+  try {
+    session = createCaptureSession(options);
+  } catch (error) {
+    process.stderr.write(`${error.message}\n`);
+    process.exitCode = 1;
+    return;
+  }
+  let retrieval;
+  try {
+    retrieval = await retrieveEvidence(
+      {
+        account_id: options.account,
+        questions: loadDefaultQuestions().questions.map((question) => ({ id: question.id, text: question.text })),
+        requested_sources: session.defaultSources,
+        context: { permitted_classifications: CEILINGS[options.classification] },
+      },
+      { adapter: session.deps.evidenceAdapter },
+    );
+  } catch {
+    process.stderr.write("Evidence retrieval failed before producing a valid result.\n");
+    process.exitCode = 1;
+    return;
+  }
+  for (const issue of [...retrieval.warnings, ...retrieval.errors]) {
+    const source = issue.details?.source ? ` (source ${issue.details.source})` : "";
+    process.stderr.write(`evidence.retrieve: ${issue.code}${source}\n`);
+  }
+  if (retrieval.status === "failed" || retrieval.status === "blocked") {
+    const label = retrieval.status === "failed" ? "RETRIEVAL_FAILED" : "RETRIEVAL_BLOCKED";
+    process.stderr.write(`source.rank: ${label}: ${uniqueCodes(retrieval.errors)}\n`);
+    process.exitCode = captureExitCode(retrieval.status === "failed" ? 1 : 3, session);
+    return;
+  }
+
+  let result;
+  try {
+    result = rankSources({ account_id: options.account, records: retrieval.data.records, now: options.now ?? session.latestCreatedAt });
+  } catch {
+    process.stderr.write("Skill failed before producing a valid result.\n");
+    process.exitCode = captureExitCode(1, session);
+    return;
+  }
+  present(result, options.output);
+  let code = exitCode(result.status);
+  if (retrieval.status === "partial") {
+    process.stderr.write("source.rank: PARTIAL_SOURCES: at least one requested source did not return usable records; the ranking covers the remaining sources only.\n");
+    if (code === 0) code = 2;
+  }
+  process.exitCode = captureExitCode(code, session);
 }
 
 await main();

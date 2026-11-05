@@ -1,0 +1,10 @@
+{
+  "format_version": "mcp-capture/1",
+  "capture": {
+    "created_at": "2026-11-05T10:00:00Z",
+    "source_system": "m365",
+    "connector": "synthetic-m365-connector",
+    "note": "Entirely fictional fixture; empty capture for an account without a SharePoint mapping."
+  },
+  "entries": []
+}

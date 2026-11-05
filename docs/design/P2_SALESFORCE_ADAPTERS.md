@@ -521,3 +521,5 @@ were not exercised live; if any is rejected, adjust the builder and capture plan
    `metadata.sf_claim_excluded: true`; the extractor then returns no candidates for them. Limits
    are `DEFAULT_CLAIM_LIMITS` (constants.js, re-exported by the extractor) and the adapter option
    `claimLimits` (lowering only). No SOQL, select list or contract change.
+10. **Data timestamp (user decision 2026-11-05, supersedes the `occurred_at` row of §3.3):** `occurred_at` is
+    LastModifiedDate-based; see Decision 3 in [P4_M365_SHAREPOINT_ADAPTER.md](P4_M365_SHAREPOINT_ADAPTER.md).

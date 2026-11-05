@@ -514,6 +514,11 @@ Open questions (business decisions, not design gaps):
    No SOQL/select-list change (fields already selected), so existing captures stay valid. Content
    lines / labels say "Last modified" where `LastModifiedDate` is the source. This makes
    `source.rank` compare Salesforce and SharePoint on comparable last-modified data.
+   Refinement (review, 2026-11-05): a Task/Event candidate (`CompletedDateTime`, `ActivityDate`,
+   `StartDateTime`) that is later than the record's retrieval time is skipped (an open task's due date
+   or a scheduled meeting is not recent data) and the next candidate applies, ending at
+   `LastModifiedDate`; `sf_occurred_at_source` records the field used. An impossible calendar date
+   (for example `2026-02-31`) is treated as missing.
 4. **Open question 1** (orchestrator): v1 routes SharePoint documents to no first-meeting question
    (`question_ids: []`), as designed.
 5. **Open question 2** (orchestrator): no renderer change in P4; record content and claim text say

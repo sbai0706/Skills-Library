@@ -7,3 +7,6 @@ coverage/
 
 # Raw live MCP captures (may contain real customer data). Local only - NEVER commit.
 .captures/
+
+# Local, human-maintained config that may contain customer names. NEVER commit.
+/local/

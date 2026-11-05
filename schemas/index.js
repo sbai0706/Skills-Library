@@ -43,6 +43,7 @@ const SCHEMA_FILES = {
   workflowInput: "workflow-input.schema.json",
   workflowResult: "workflow-result.schema.json",
   mcpCapture: "mcp-capture.schema.json",
+  m365AccountMapping: "m365-account-mapping.schema.json",
 };
 
 const ajv = new Ajv({ allErrors: true, strict: true });

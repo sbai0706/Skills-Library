@@ -1,0 +1,71 @@
+{
+  "format_version": "mcp-capture/1",
+  "capture": {
+    "created_at": "2026-11-05T10:00:00Z",
+    "source_system": "m365",
+    "connector": "synthetic-m365-connector",
+    "note": "Entirely fictional fixture; two searches, one outside-mapping and one personal hit excluded, one duplicate item."
+  },
+  "entries": [
+    {
+      "tool": "sharepoint_search",
+      "args": {
+        "query": "*",
+        "folderName": "Northwind Traders",
+        "limit": 50,
+        "offset": 0
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"uri\":\"file:///b!SYNdrive0001/01SYNITEM0001\",\"driveId\":\"b!SYNdrive0001\",\"id\":\"01SYNITEM0001\",\"name\":\"Example Proposal.pptx\",\"content\":\"<c0>Example</c0> outline 1<ddd/>\",\"summary\":\"<c0>Example</c0> outline 1<ddd/>\",\"isPartialContent\":true,\"webUrl\":\"https://contoso.sharepoint.com/sites/ExampleSales/Shared Documents/Northwind Traders/Example Proposal.pptx\",\"downloadUrl\":null,\"size\":null,\"lastModifiedDateTime\":\"2026-09-03T15:28:28.000Z\",\"offset\":0}"
+          },
+          {
+            "type": "text",
+            "text": "{\"uri\":\"file:///b!SYNdrive0001/01SYNITEM0002\",\"driveId\":\"b!SYNdrive0001\",\"id\":\"01SYNITEM0002\",\"name\":\"Example Meeting Notes.docx\",\"content\":\"Synthetic meeting outline<ddd/>\",\"summary\":\"Synthetic meeting outline<ddd/>\",\"isPartialContent\":true,\"webUrl\":\"https://contoso.sharepoint.com/sites/ExampleSales/Shared Documents/Northwind Traders/Meetings/Example Meeting Notes.docx\",\"downloadUrl\":null,\"size\":null,\"lastModifiedDateTime\":\"2026-10-12T09:15:00.000Z\",\"offset\":0}"
+          },
+          {
+            "type": "text",
+            "text": "{\"uri\":\"file:///b!SYNdrive0001/01SYNITEM0003\",\"driveId\":\"b!SYNdrive0001\",\"id\":\"01SYNITEM0003\",\"name\":\"Unrelated Root File.docx\",\"content\":\"<c0>Example</c0> outline 3<ddd/>\",\"summary\":\"<c0>Example</c0> outline 3<ddd/>\",\"isPartialContent\":true,\"webUrl\":\"https://contoso.sharepoint.com/Shared Documents/Unrelated Root File.docx\",\"downloadUrl\":null,\"size\":null,\"lastModifiedDateTime\":\"2026-09-03T15:28:28.000Z\",\"offset\":0}"
+          },
+          {
+            "type": "text",
+            "text": "{\"uri\":\"file:///b!SYNdrive0099/01SYNITEM0004\",\"driveId\":\"b!SYNdrive0099\",\"id\":\"01SYNITEM0004\",\"name\":\"Personal Draft.docx\",\"content\":\"<c0>Example</c0> outline 4<ddd/>\",\"summary\":\"<c0>Example</c0> outline 4<ddd/>\",\"isPartialContent\":true,\"webUrl\":\"https://contoso-my.sharepoint.com/personal/someone_contoso_com/Documents/Northwind Traders/Personal Draft.docx\",\"downloadUrl\":null,\"size\":null,\"lastModifiedDateTime\":\"2026-09-03T15:28:28.000Z\",\"offset\":0}"
+          },
+          {
+            "type": "text",
+            "text": "{\"totalResultCount\":4}"
+          }
+        ]
+      },
+      "captured_at": "2026-11-05T10:00:01Z"
+    },
+    {
+      "tool": "sharepoint_search",
+      "args": {
+        "query": "*",
+        "folderName": "Northwind",
+        "limit": 50,
+        "offset": 0
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"uri\":\"file:///b!SYNdrive0002/01SYNITEM0005\",\"driveId\":\"b!SYNdrive0002\",\"id\":\"01SYNITEM0005\",\"name\":\"Example Delivery Plan.xlsx\",\"content\":null,\"summary\":null,\"isPartialContent\":true,\"webUrl\":\"https://contoso.sharepoint.com/sites/ExampleDelivery/Shared Documents/Clients/Northwind/Plans/Example Delivery Plan.xlsx\",\"downloadUrl\":null,\"size\":null,\"lastModifiedDateTime\":\"2026-08-20T07:00:00.000Z\",\"offset\":0}"
+          },
+          {
+            "type": "text",
+            "text": "{\"uri\":\"file:///b!SYNdrive0001/01SYNITEM0002\",\"driveId\":\"b!SYNdrive0001\",\"id\":\"01SYNITEM0002\",\"name\":\"Example Meeting Notes.docx\",\"content\":\"Synthetic meeting outline<ddd/>\",\"summary\":\"Synthetic meeting outline<ddd/>\",\"isPartialContent\":true,\"webUrl\":\"https://contoso.sharepoint.com/sites/ExampleSales/Shared Documents/Northwind Traders/Meetings/Example Meeting Notes.docx\",\"downloadUrl\":null,\"size\":null,\"lastModifiedDateTime\":\"2026-10-12T09:15:00.000Z\",\"offset\":0}"
+          },
+          {
+            "type": "text",
+            "text": "{\"totalResultCount\":2}"
+          }
+        ]
+      },
+      "captured_at": "2026-11-05T10:00:01Z"
+    }
+  ]
+}
