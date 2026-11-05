@@ -112,3 +112,4 @@ input) reference evidence IDs and remain caller-supplied; first live runs use th
   P1 and P2 implemented, reviewed, fixed and merged locally (466/466). Nothing pushed.
 - 2026-11-04: P3 implemented, reviewed, live-smoked, fixed and merged (515/515). Nothing pushed.
 - 2026-11-04: Brief-size trimming merged (520/520); live smoke brief 350 -> 80 citations, ~69k -> ~17.5k chars.
+- 2026-11-05: MCP integration PAUSED for an urgent request (source-recency skill). Done: P1, P2, P3, brief trimming (520/520). Next when resumed: P4 (M365 SharePoint), then P5 live acceptance. Live smoke capture kept at .claude/worktrees/agent-a328e4860f7c24b2f/.captures/smoke.json (git-ignored, real data).
