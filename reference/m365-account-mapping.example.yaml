@@ -1,0 +1,28 @@
+# Example (fictional) account -> SharePoint location mapping for the M365 adapter.
+# Copy to local/m365-account-mapping.yaml (git-ignored) and replace with real, human-chosen
+# locations. NEVER guess a location: an unmapped account makes no M365 call and gets no documents.
+# Locations must be SharePoint site or team libraries
+#   https://<tenant>.sharepoint.com/sites/<site>/<library>[/<folder>...]
+#   https://<tenant>.sharepoint.com/teams/<site>/<library>[/<folder>...]
+# written unencoded, exactly as a document's webUrl shows them. Personal OneDrive
+# (<tenant>-my.sharepoint.com or any /personal/ segment) and root-site libraries are rejected.
+version: 0.1.0
+status: provisional
+business_owner: TBD
+approver: TBD
+approval_date: null
+source_documents: []
+effective_date: null
+change_history:
+  - version: 0.1.0
+    date: 2026-11-05
+    change: Initial fictional example for the P4 M365 SharePoint adapter; pending business review.
+mapping_kind: m365_sharepoint_account_locations
+accounts:
+  - account_id: sf_001SYN0000000001AA
+    label: Northwind Traders (fictional)          # human aid only; never emitted
+    locations:
+      - web_url_prefix: "https://contoso.sharepoint.com/sites/ExampleSales/Shared Documents/Northwind Traders"
+      - web_url_prefix: "https://contoso.sharepoint.com/sites/ExampleDelivery/Shared Documents/Clients/Northwind"
+        search_folder_name: "Northwind"             # optional: folder name sent to the search (default: last path segment)
+        classification: confidential                # optional: may only raise the adapter default (internal)

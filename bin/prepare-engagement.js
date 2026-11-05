@@ -33,6 +33,10 @@ Options:
   --capture PATH       Salesforce capture file (required with, and only valid with,
                        --source capture, which also requires --account and mode initial;
                        keep raw captures under .captures/)
+  --capture-m365 PATH  M365 SharePoint capture file (optional; only with --source capture and --capture;
+                       adds the internal_document source; needs the mapping file below)
+  --m365-mapping PATH  Account-to-SharePoint mapping (only with --capture-m365;
+                       default local/m365-account-mapping.yaml, git-ignored)
   --output FORMAT      json or markdown (default: json)
   --help               Show this help
 
@@ -50,6 +54,8 @@ function parseArgs(argv) {
     "--output",
     "--source",
     "--capture",
+    "--capture-m365",
+    "--m365-mapping",
   ]);
   for (let index = 0; index < argv.length; index += 1) {
     const option = argv[index];
@@ -133,7 +139,7 @@ async function main() {
   let deps;
   if (options.source === "capture") {
     try {
-      session = createCaptureSession(options.capturePath);
+      session = createCaptureSession(options);
     } catch (error) {
       process.stderr.write(`${error.message}\n`);
       process.exitCode = 1;
@@ -142,7 +148,7 @@ async function main() {
     deps = session.deps;
     input = {
       mode: "initial",
-      workflow_input: { account_reference: options.account.trim(), requested_sources: ["crm"] },
+      workflow_input: { account_reference: options.account.trim(), requested_sources: session.defaultSources },
     };
   } else {
     try {

@@ -1,0 +1,70 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sales-copilot.local/schemas/m365-account-mapping.schema.json",
+  "title": "M365 SharePoint account-to-location mapping",
+  "description": "Human-maintained mapping from a resolved account ID to SharePoint site-library locations (web URL prefixes). Structure only; URL rules (SharePoint site/team libraries, never personal OneDrive) are enforced in adapters/m365/mapping.js.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "status",
+    "business_owner",
+    "approver",
+    "approval_date",
+    "source_documents",
+    "effective_date",
+    "change_history",
+    "mapping_kind",
+    "accounts"
+  ],
+  "properties": {
+    "version": { "type": "string", "minLength": 1 },
+    "status": { "enum": ["provisional", "approved"] },
+    "business_owner": { "type": "string", "minLength": 1 },
+    "approver": { "type": "string", "minLength": 1 },
+    "approval_date": { "type": ["string", "null"] },
+    "source_documents": { "type": "array" },
+    "effective_date": { "type": ["string", "null"] },
+    "change_history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["version", "date", "change"],
+        "properties": {
+          "version": { "type": "string" },
+          "date": { "type": "string" },
+          "change": { "type": "string" }
+        }
+      }
+    },
+    "mapping_kind": { "const": "m365_sharepoint_account_locations" },
+    "accounts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["account_id", "locations"],
+        "properties": {
+          "account_id": { "type": "string" },
+          "label": { "type": "string" },
+          "locations": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 10,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["web_url_prefix"],
+              "properties": {
+                "web_url_prefix": { "type": "string" },
+                "search_folder_name": { "type": "string" },
+                "classification": { "enum": ["internal", "confidential"] }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

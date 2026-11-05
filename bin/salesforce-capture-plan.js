@@ -1,10 +1,9 @@
 #!/usr/bin/env node
 
-import { mkdirSync, realpathSync, statSync, writeFileSync } from "node:fs";
-import { dirname, isAbsolute, relative, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 import { loadCapture, canonicalize, unwrapToolResult } from "../adapters/mcp/index.js";
 import { warnIfNotGitIgnored } from "../cli/capture-mode.js";
+import { CaptureFileUsageError, initCaptureFile } from "../cli/capture-files.js";
 import { accountSearchPlan, evidencePlan, nextPageArgs, parseSfAccountId, SF_TOOL } from "../adapters/salesforce/index.js";
 import { toSearchTerm } from "../skills/account-resolve/search.js";
 
@@ -37,9 +36,6 @@ const HOST_RULES = [
   "If a result has done:false, immediately also call {url: <nextRecordsUrl>, method: \"GET\"} and record that page; repeat until done.",
   "Raw captures may contain real customer data: keep them under .captures/ (git-ignored), never commit them and never paste raw content into chat.",
 ];
-
-const REPO_ROOT = resolve(fileURLToPath(new URL("..", import.meta.url)));
-const CAPTURES_DIR = resolve(REPO_ROOT, ".captures");
 
 const MODES = ["--account", "--account-id", "--init-capture", "--validate"];
 
@@ -115,39 +111,8 @@ function buildPhase2(accountId) {
   };
 }
 
-class UsageError extends Error {}
-
-const underCaptures = (target) => {
-  const rel = relative(CAPTURES_DIR, target);
-  return rel !== "" && !rel.startsWith("..") && !isAbsolute(rel);
-};
-
-/** Writes only inside <repo root>/.captures/ (git-ignored); there is deliberately no override. */
 function initCapture(path) {
-  const target = resolve(path);
-  const isDirectory = /[\\/]$/.test(path) || target === CAPTURES_DIR || (() => {
-    try { return statSync(target).isDirectory(); } catch { return false; }
-  })();
-  if (isDirectory) throw new UsageError("--init-capture needs a file path such as .captures/<slug>.json, not a directory.");
-  if (!underCaptures(target)) {
-    throw new UsageError("--init-capture refuses any target outside the repository's .captures/ directory.");
-  }
-  const doc = {
-    format_version: "mcp-capture/1",
-    capture: {
-      created_at: new Date().toISOString(),
-      source_system: "salesforce",
-      connector: "Salesforce connector (dispatch_readonly)",
-    },
-    entries: [],
-  };
-  mkdirSync(dirname(target), { recursive: true });
-  const realRel = relative(realpathSync(CAPTURES_DIR), realpathSync(dirname(target)));
-  if (realRel.startsWith("..") || isAbsolute(realRel)) {
-    throw new UsageError("--init-capture refuses any target outside the repository's .captures/ directory.");
-  }
-  writeFileSync(target, `${JSON.stringify(doc, null, 2)}\n`, { flag: "wx" });
-  return { initialized: target, entries: 0, note: "Append one entry per recorded call, in call order, then run --validate." };
+  return initCaptureFile(path, { sourceSystem: "salesforce", connector: "Salesforce connector (dispatch_readonly)" });
 }
 
 function queryObject(args) {
@@ -245,7 +210,7 @@ function main() {
     try {
       print(initCapture(parsed["--init-capture"]));
     } catch (error) {
-      process.stderr.write(error instanceof UsageError ? `${error.message}\n`
+      process.stderr.write(error instanceof CaptureFileUsageError ? `${error.message}\n`
         : error?.code === "EEXIST"
           ? "The capture file already exists; refusing to overwrite it.\n"
           : "The capture skeleton could not be written.\n");

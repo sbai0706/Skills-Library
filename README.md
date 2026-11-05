@@ -562,7 +562,9 @@ The workflow has separate input and result schemas; the shared skill envelope is
 5. Timestamps are UTC ISO-8601. `trace_id` is generated per skill execution.
 6. Fixtures and example domains use the reserved `.example` TLD; nothing calls a live service.
 7. **Only fixture adapters exist.** There is no Salesforce, SharePoint, or web connector, and
-   only the fixture claim extractor exists; no model provider is contacted.
+   only the fixture claim extractor exists; no model provider is contacted. (Opt-in exception:
+   the capture mode replays host-recorded read-only Salesforce and M365 SharePoint captures, see
+   [docs/MCP_CAPTURE.md](docs/MCP_CAPTURE.md); the library still never connects to either system.)
 8. `evidence.retrieve` treats `requested_sources` as a closed set (`crm`, `public_source`,
    `internal_document`). An unknown value fails the request rather than being ignored.
 9. The adapter, not the skill, decides which records are relevant to a question; the skill rejects

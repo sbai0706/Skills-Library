@@ -149,6 +149,10 @@ Salesforce 记录贴到聊天中。完整步骤与 capture 文件格式见
 [MCP capture 文档](MCP_CAPTURE.md) 和各 skill 的 "Live Salesforce (capture) mode" 一节。如实
 报告 `status`、退出码、citation 和 warnings；CRM 数据稀疏，大量 gap 属正常。
 
+可选的 M365 SharePoint 文档（第二个 capture 文件，`--capture-m365`、`--m365-mapping`，host 只调用
+`sharepoint_search`，绝不调用 `read_resource` 或任何写入/发送工具；source-rank 同样支持 capture 模式）
+见 [MCP capture 文档](MCP_CAPTURE.md) 的 "M365 SharePoint" 一节；不加 `--capture-m365` 时行为不变。
+
 ## 工作流契约
 
 - [Prepare First Meeting v1](../workflows/prepare-first-meeting/WORKFLOW.md)

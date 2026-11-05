@@ -1,0 +1,20 @@
+# Synthetic mapping for the m365-northwind fixture (fictional; no real customer data).
+version: 0.1.0
+status: provisional
+business_owner: TBD
+approver: TBD
+approval_date: null
+source_documents: []
+effective_date: null
+change_history:
+  - version: 0.1.0
+    date: 2026-11-05
+    change: Synthetic fixture mapping.
+mapping_kind: m365_sharepoint_account_locations
+accounts:
+  - account_id: sf_001SYN0000000001AA
+    label: Northwind Traders (fictional)
+    locations:
+      - web_url_prefix: "https://contoso.sharepoint.com/sites/ExampleSales/Shared Documents/Northwind Traders"
+      - web_url_prefix: "https://contoso.sharepoint.com/sites/ExampleDelivery/Shared Documents/Clients/Northwind"
+        search_folder_name: "Northwind"

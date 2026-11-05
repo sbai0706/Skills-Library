@@ -98,6 +98,12 @@ input) reference evidence IDs and remain caller-supplied; first live runs use th
 - Next: P4 (M365 SharePoint → `internal_document`), including capture mode for the
   `source-rank` CLI over Salesforce + M365 captures (ranking is only meaningful with ≥2 sources);
   then P5 (live acceptance; Event shape still unverified — 0 rows).
+- 2026-11-05: P4 implemented (not yet merged; suite 763/763) per
+  [design/P4_M365_SHAREPOINT_ADAPTER.md](design/P4_M365_SHAREPOINT_ADAPTER.md) incl. its Decisions:
+  `adapters/m365/` (SharePoint `internal_document`, mapping-scoped, metadata-only claims, OneDrive
+  excluded, `/sites/` + `/teams/` allowed), `bin/m365-capture-plan.js`, `--capture-m365` /
+  `--m365-mapping` on the workflow CLIs, `source-rank` capture mode; Salesforce `occurred_at` is now
+  LastModifiedDate-based (separate commit). Needs P5 live verification.
 - Agent worktrees kept under `.claude/worktrees/` (locally excluded via `.git/info/exclude`).
 
 ## Environment notes

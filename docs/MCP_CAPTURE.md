@@ -14,7 +14,8 @@ never commit them. Committed fixtures must be synthetic and clearly fictional
 ## Only read-only tools may be captured
 
 - Salesforce: `dispatch_readonly` (GET) only. **Never capture or call `dispatch`.**
-- Microsoft 365: search and `read_resource` only. Never capture send/post/edit tools.
+- Microsoft 365: for the library only `sharepoint_search`. Never capture `read_resource`,
+  `sharepoint_folder_search` or any send/post/edit/create/move/delete/upload tool.
 
 ## Format (`schemas/mcp-capture.schema.json`, validator name `mcpCapture`)
 
@@ -135,8 +136,9 @@ calls; it makes no network call.
    break `--output json`. Report "failed: incomplete capture" and ignore the stdout status and
    artifact. A capture whose `source_system` is not `salesforce` is rejected (exit 1).
 
-Capture mode only serves the `crm` source (`--sources` other than `crm` is invalid usage) and uses
-the no-mapping paths; options that reference fixture evidence IDs (`--fixture`, `--mapping-fixture`,
+Capture mode serves the `crm` source from the Salesforce capture (and, with an M365 capture, the
+`internal_document` source: see "M365 SharePoint" below; any other `--sources` value is invalid
+usage) and uses the no-mapping paths; options that reference fixture evidence IDs (`--fixture`, `--mapping-fixture`,
 `--assessment-fixture`, `--mode follow_up`) are rejected. Keep captures under `.captures/`
 (git-ignored); `--init-capture` enforces it, and `--validate` and every capture-mode run print a
 stderr WARNING (no payload content, exit code unchanged) when the capture file is not git-ignored
@@ -144,3 +146,52 @@ stderr WARNING (no payload content, exit code unchanged) when the capture file i
 shown to the user (citations are the bracketed `[clm_...]` markers in `artifact.markdown` plus
 `evidence_ids`; there is no separate list), but raw captures, connector payloads and Salesforce
 records must never be pasted or committed.
+
+## M365 SharePoint (second capture file)
+
+Design: [design/P4_M365_SHAREPOINT_ADAPTER.md](design/P4_M365_SHAREPOINT_ADAPTER.md) (its final
+"Decisions (2026-11-05)" section overrides earlier sections). SharePoint documents are a second,
+optional source (`internal_document`). Content is search metadata only (file name, folder location,
+file type, last-modified time); the search snippet is bounded context, never a claim; there is no
+`read_resource` and no document body. Personal OneDrive is excluded; mapped locations are SharePoint
+`/sites/<site>/<library>...` or `/teams/<site>/<library>...` libraries, never root-site libraries.
+
+It uses its own capture file (`capture.source_system: m365`, only `sharepoint_search` entries),
+validated by `bin/m365-capture-plan.js`, and a human-maintained account-to-location mapping
+(`local/m365-account-mapping.yaml`, git-ignored; example: `reference/m365-account-mapping.example.yaml`).
+An account without a mapping makes no M365 call: `internal_document` is a clean empty source and the
+run reports `M365_NOT_MAPPED`. Each capture is replayed by its own strict client, so the two sources
+cannot consume each other's entries.
+
+Host procedure for one account (Salesforce + M365 + `source-rank`):
+
+1. `npm run m365-capture-plan -- --check-mapping` (counts only; needs the local mapping file).
+2. Salesforce, exactly as in the procedure above: resolve `sf_<Id>` and capture Phase 1 and Phase 2 into
+   `.captures/<slug>.json` (`dispatch_readonly` only).
+3. `npm run m365-capture-plan -- --init-capture .captures/<slug>-m365.json`
+4. `npm run m365-capture-plan -- --account-id sf_<Id>` and make every printed call with the connector tool
+   `sharepoint_search` only (exact args; never `read_resource`, `sharepoint_folder_search` or a write/send
+   tool), following `nextOffset` while `moreResults` is true (at most 4 pages per search), recording each
+   raw result as `{"content":[<item text blocks>, <trailer text block>]}` (empty: `{"content":[]}`) or the
+   tool error as `"error"`. On a rate-limit error wait `graphRetryAfterSeconds`, retry once, record the final
+   attempt. Unmapped: record nothing. The plan output contains folder names: do not paste it into chat.
+5. `npm run m365-capture-plan -- --validate .captures/<slug>-m365.json --account-id sf_<Id>`
+6. `npm run source-rank -- --source capture --account sf_<Id> --capture .captures/<slug>.json --capture-m365 .captures/<slug>-m365.json --output json`
+   or a workflow, e.g. `npm run prepare-first-meeting -- --account "<ref>" --source capture --capture .captures/<slug>.json --capture-m365 .captures/<slug>-m365.json --output json`.
+
+Flags (all capture mode only): `--capture-m365 PATH`, `--m365-mapping PATH` (requires `--capture-m365`;
+default `local/m365-account-mapping.yaml`). The workflow CLIs still need `--capture` (account
+resolution uses Salesforce) and default `--sources` to `crm,internal_document`; `source-rank` also takes
+`--capture` and/or `--capture-m365`, `--classification public|internal|confidential` (default
+`internal`) and defaults `--now` to the latest `capture.created_at`. Without `--capture-m365`,
+behaviour is unchanged.
+
+Stderr diagnostics (`capture: <CODE>: <count and fixed text>`; counts only; exit code unchanged):
+`M365_NOT_MAPPED`, `M365_PERSONAL_EXCLUDED`, `M365_OUTSIDE_MAPPING_EXCLUDED`,
+`M365_UNSUPPORTED_ITEMS_SKIPPED`, `M365_COPIES_MERGED`, `M365_SEARCH_TRUNCATED`, `M365_RECORDS_TRUNCATED`.
+An M365 error makes the `internal_document` source unavailable or unauthorized (`partial`/2, or blocked/3
+when nothing else works); a missing capture entry (including an empty skeleton for a mapped account)
+forces exit 1 with `REPLAY_INCOMPLETE` naming `m365-capture-plan`. M365 error captures are loaded with
+`details.graphRequestId` and `details.uriPath` redacted (volatile or path-bearing). Keep captures under
+`.captures/` and the mapping under `local/`; never commit either, never paste raw results, snippets, file
+names or paths into chat.
