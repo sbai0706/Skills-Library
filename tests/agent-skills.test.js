@@ -236,18 +236,18 @@ test("every wrapper has a separate Live Salesforce (capture) mode section that k
     assert.ok(readSkill(spec).metadata.description.includes("recorded by the host from the read-only connector"), `${spec.name} description wording`);
     assert.ok(!/live Salesforce capture/i.test(readSkill(spec).metadata.description));
     for (const required of [
-      "npm run salesforce-capture-plan -- --init-capture .captures/",
-      "npm run salesforce-capture-plan -- --account",
-      "npm run salesforce-capture-plan -- --account-id",
-      "npm run salesforce-capture-plan -- --validate",
-      "npm run salesforce-capture-plan -- --append .captures/",
+      "npm run -s salesforce-capture-plan -- --init-capture .captures/",
+      "npm run -s salesforce-capture-plan -- --account",
+      "npm run -s salesforce-capture-plan -- --account-id",
+      "npm run -s salesforce-capture-plan -- --validate",
+      "npm run -s salesforce-capture-plan -- --append .captures/",
       "--step <step>",
       "--result-file",
       "--error-file",
       "--page-url",
       "--replace-last",
       "never hand-write capture entries",
-      "npm run m365-capture-plan -- --append .captures/",
+      "npm run -s m365-capture-plan -- --append .captures/",
       "--offset <nextOffset>",
       "dispatch_readonly",
       "Never call `dispatch`",
@@ -256,7 +256,7 @@ test("every wrapper has a separate Live Salesforce (capture) mode section that k
       "nextRecordsUrl",
       "git-ignored",
       "never commit",
-      `npm run ${spec.script} -- `,
+      `npm run -s ${spec.script} -- `,
       "--source capture --capture .captures/",
       "REPLAY_INCOMPLETE",
       "failed: incomplete capture",
@@ -297,8 +297,8 @@ test("the source-rank wrapper and the capture docs require the append command in
   const rank = readSkill(SPECS.find((spec) => spec.name === "source-rank")).text;
   const section = rank.slice(rank.indexOf("## Capture mode (Salesforce + M365 SharePoint)"), rank.indexOf("## Boundaries"));
   for (const required of [
-    "npm run salesforce-capture-plan -- --append .captures/",
-    "npm run m365-capture-plan -- --append .captures/",
+    "npm run -s salesforce-capture-plan -- --append .captures/",
+    "npm run -s m365-capture-plan -- --append .captures/",
     "--result-file", "--error-file", "--page-url", "--offset <nextOffset>", "never hand-write capture entries",
   ]) {
     assert.ok(section.includes(required), `source-rank capture section is missing: ${required}`);
@@ -315,7 +315,68 @@ test("the source-rank wrapper and the capture docs require the append command in
   }
   const m365Help = spawnSync(process.execPath, [resolve(ROOT, "bin", "m365-capture-plan.js"), "--help"], { cwd: ROOT, encoding: "utf8" });
   assert.equal(m365Help.status, 0, m365Help.stderr);
-  for (const option of ["--append", "--step", "--offset", "--result-file", "--error-file", "--replace-last", "--captured-at"]) {
+  for (const option of ["--append", "--step", "--offset", "--result-file", "--result-text-file", "--error-file", "--replace-last", "--captured-at"]) {
     assert.ok(m365Help.stdout.includes(option), `m365 help is missing ${option}`);
+  }
+});
+
+const CAPTURE_SECTION_START = { "source-rank": "## Capture mode (Salesforce + M365 SharePoint)" };
+const captureSection = (spec) => {
+  const { text } = readSkill(spec);
+  return text.slice(text.indexOf(CAPTURE_SECTION_START[spec.name] ?? "## Live Salesforce (capture) mode"));
+};
+
+test("capture commands use silent npm, and the M365 appends use --result-text-file", () => {
+  const unsilent = /npm run (?:salesforce-capture-plan|m365-capture-plan|prepare-first-meeting|prepare-engagement|qualification|opportunity-strategy|source-rank) --/;
+  const guide = readFileSync(resolve(ROOT, "docs", "AGENT_SKILLS.md"), "utf8");
+  const mcp = readFileSync(resolve(ROOT, "docs", "MCP_CAPTURE.md"), "utf8");
+  const sections = [
+    ...SPECS.map((spec) => [spec.name, captureSection(spec)]),
+    ["AGENT_SKILLS.md", guide.slice(guide.indexOf("## Live Salesforce (capture) mode"))],
+    ["MCP_CAPTURE.md", mcp],
+  ];
+  for (const [name, section] of sections) {
+    assert.ok(section.includes("npm run -s"), `${name} must use npm run -s in capture commands`);
+    assert.ok(!unsilent.test(section), `${name} has a capture command without npm run -s: ${section.match(unsilent)?.[0]}`);
+    // every M365 append command carries --result-text-file (not --result-file)
+    for (const [line] of section.matchAll(/npm run -s m365-capture-plan -- --append[^\n]*/g)) {
+      assert.ok(line.includes("--result-text-file"), `${name}: an M365 append must use --result-text-file: ${line}`);
+    }
+  }
+  for (const spec of SPECS) {
+    const section = captureSection(spec).replace(/\s+/g, " ");
+    for (const required of ["--result-text-file", "duplicate key", "never paste it into chat"]) {
+      assert.ok(section.includes(required), `${spec.name} capture section is missing: ${required}`);
+    }
+  }
+  const m365Help = spawnSync(process.execPath, [resolve(ROOT, "bin", "m365-capture-plan.js"), "--help"], { cwd: ROOT, encoding: "utf8" });
+  assert.match(m365Help.stdout, /--result-text-file PATH/);
+  assert.match(m365Help.stdout.replace(/\s+/g, " "), /duplicate key/);
+  assert.ok(guide.includes("--result-text-file"));
+  assert.ok(guide.includes("npm run -s"));
+});
+
+test("the capture docs and wrappers state the account-resolution, ID-query and Phase 2 behaviours", () => {
+  const guide = readFileSync(resolve(ROOT, "docs", "AGENT_SKILLS.md"), "utf8");
+  const mcp = readFileSync(resolve(ROOT, "docs", "MCP_CAPTURE.md"), "utf8");
+  for (const spec of SPECS) {
+    const section = captureSection(spec).replace(/\s+/g, " ");
+    for (const required of [
+      "token-based", "skills/account-resolve", "`AMBIGUOUS_ACCOUNT`", "`ACCOUNT_NOT_FOUND`",
+      "ID query must be recorded first, even when the Id came straight from the name search",
+      "`REPLAY_INCOMPLETE`", "drops the whole `crm` source by design", "output shows the mapped folder names",
+    ]) {
+      assert.ok(section.includes(required), `${spec.name} capture section is missing: ${required}`);
+    }
+  }
+  const doc = mcp.replace(/\s+/g, " ");
+  for (const required of [
+    "token-based", "AMBIGUOUS_ACCOUNT", "ACCOUNT_NOT_FOUND", "ID query must be recorded first, even when the Id came straight from the name search",
+    "drops the whole `crm` source by design", "shows the mapped folder names", "must not paste it into chat", "Raw M365 result text",
+  ]) {
+    assert.ok(doc.includes(required), `MCP_CAPTURE.md is missing: ${required}`);
+  }
+  for (const required of ["token", "AMBIGUOUS_ACCOUNT", "ACCOUNT_NOT_FOUND", "REPLAY_INCOMPLETE", "crm"]) {
+    assert.ok(guide.includes(required), `AGENT_SKILLS.md is missing: ${required}`);
   }
 });

@@ -95,15 +95,26 @@ input) reference evidence IDs and remain caller-supplied; first live runs use th
 - 2026-11-05: `source.rank` skill + `/source-rank` wrapper/CLI added on main while MCP was paused;
   MCP branch merged back (12fa14e), 585/585. Salesforce records already carry
   `metadata.provider: "salesforce"` and `occurred_at`, so they are rankable by `source.rank`.
-- Next: P4 (M365 SharePoint → `internal_document`), including capture mode for the
-  `source-rank` CLI over Salesforce + M365 captures (ranking is only meaningful with ≥2 sources);
-  then P5 (live acceptance; Event shape still unverified — 0 rows).
+- Next (done since): P4 (M365 SharePoint → `internal_document`), including capture mode for the
+  `source-rank` CLI over Salesforce + M365 captures; then P5 (live acceptance, see below).
 - 2026-11-05: P4 implemented (not yet merged; suite 763/763) per
   [design/P4_M365_SHAREPOINT_ADAPTER.md](design/P4_M365_SHAREPOINT_ADAPTER.md) incl. its Decisions:
   `adapters/m365/` (SharePoint `internal_document`, mapping-scoped, metadata-only claims, OneDrive
   excluded, `/sites/` + `/teams/` allowed), `bin/m365-capture-plan.js`, `--capture-m365` /
   `--m365-mapping` on the workflow CLIs, `source-rank` capture mode; Salesforce `occurred_at` is now
   LastModifiedDate-based (separate commit). Needs P5 live verification.
+- 2026-11-05: **P5 done** (live acceptance, sandbox + M365, read-only; scenarios S1-S9, X1, X2). Results
+  (status, exit codes and counts only) in [LIVE_ACCEPTANCE.md](LIVE_ACCEPTANCE.md). Fixes from the run:
+  `m365-capture-plan --append --result-text-file` (raw `sharepoint_search` text, no host helper script), a
+  duplicate-key guard on result/error files, `source-rank` capture mode prints the JSON result for
+  blocked/failed with `--output json`, docs/wrappers (`npm run -s`, token-based account resolution, ID query
+  must be recorded, Phase 2 gap = whole `crm` source dropped). Opt-in `npm run live-replay` (allow-listed
+  commands, payload-free table, not part of `npm test`) reruns a git-ignored expectations file
+  (`local/p5-live-acceptance.json`); synthetic example `reference/live-replay-expectations.example.json`.
+  **Remaining unverified live** (not reproducible in this org): SF/M365 pagination (largest result 40 rows,
+  M365 9 hits), permission errors (`INVALID_FIELD`/403), a transient 401/429 and `--error-file` with a real
+  error, Event shape (0 Events), `/teams/` locations. Also open: the `<Id>` placeholders in the local record's
+  S8 validate commands must be replaced with real ids for `live-replay` to run them (they show as `SKIP`).
 - Agent worktrees kept under `.claude/worktrees/` (locally excluded via `.git/info/exclude`).
 
 ## Environment notes
@@ -126,3 +137,4 @@ input) reference evidence IDs and remain caller-supplied; first live runs use th
 - 2026-11-05: MCP integration PAUSED for an urgent request (source-recency skill). Done: P1, P2, P3, brief trimming (520/520). Next when resumed: P4 (M365 SharePoint), then P5 live acceptance. Live smoke capture kept at .claude/worktrees/agent-a328e4860f7c24b2f/.captures/smoke.json (git-ignored, real data).
 - 2026-11-05: Resumed MCP work; merged feature/mcp-integration into main with source.rank (585/585). Commits no longer carry AI attribution lines.
 - 2026-11-05: Live E2E (BENEVIS; SF + SharePoint, real mapping in git-ignored local/): source-rank success/0 (salesforce rank 1 age 0d, m365_sharepoint rank 2 age 63d); prepare-first-meeting success/0, 41 citations (23 crm_record, 18 internal_document), ~16k chars; qualification partial/2 POLICY_UNAVAILABLE. M365: 9 hits, 6 kept, 2 personal + 1 root-site excluded. Gap found: host has no tool-side way to append raw results to a capture (had to reconstruct entries in a script) — candidate P5 item.
+- 2026-11-05: P5 wrap-up: append --result-text-file + duplicate-key guard, source-rank JSON on blocked/failed, docs/wrappers, LIVE_ACCEPTANCE.md and opt-in `npm run live-replay`.

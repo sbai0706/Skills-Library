@@ -1,0 +1,51 @@
+{
+  "_comment": "Synthetic example for `npm run live-replay -- --expectations reference/live-replay-expectations.example.json`: the fictional northwind fixtures (Salesforce + M365). The real expectations file lives in the git-ignored local/ directory and holds real paths; it is never committed. Only `scenarios.<id>.runs[]` and `scenarios.<id>.validate.<name>` entries are replayed; other keys are ignored. `status` is compared with the stdout `status` when present.",
+  "scenarios": {
+    "N1": {
+      "note": "Mapped account, Salesforce + M365 captures.",
+      "captures": ["fixtures/salesforce-northwind/capture.json", "fixtures/m365-northwind/capture.json"],
+      "validate": {
+        "salesforce": {
+          "command": "npm run -s salesforce-capture-plan -- --validate fixtures/salesforce-northwind/capture.json --account \"Northwind Traders\" --account-id sf_001SYN0000000001AA",
+          "exit_code": 0
+        },
+        "m365": {
+          "command": "npm run -s m365-capture-plan -- --validate fixtures/m365-northwind/capture.json --account-id sf_001SYN0000000001AA --m365-mapping fixtures/m365-northwind/mapping.yaml",
+          "exit_code": 0
+        }
+      },
+      "runs": [
+        {
+          "label": "first meeting",
+          "command": "npm run -s prepare-first-meeting -- --account \"Northwind Traders\" --source capture --capture fixtures/salesforce-northwind/capture.json --capture-m365 fixtures/m365-northwind/capture.json --m365-mapping fixtures/m365-northwind/mapping.yaml --output json",
+          "exit_code": 0,
+          "status": "success"
+        },
+        {
+          "label": "source rank",
+          "command": "npm run -s source-rank -- --source capture --account sf_001SYN0000000001AA --capture fixtures/salesforce-northwind/capture.json --capture-m365 fixtures/m365-northwind/capture.json --m365-mapping fixtures/m365-northwind/mapping.yaml --output json",
+          "exit_code": 0,
+          "status": "success"
+        },
+        {
+          "label": "public ceiling withholds the records",
+          "command": "npm run -s source-rank -- --source capture --account sf_001SYN0000000001AA --classification public --capture fixtures/salesforce-northwind/capture.json --capture-m365 fixtures/m365-northwind/capture.json --m365-mapping fixtures/m365-northwind/mapping.yaml --output json",
+          "exit_code": 3,
+          "status": "blocked"
+        }
+      ]
+    },
+    "N2": {
+      "note": "No match for the term.",
+      "captures": ["fixtures/salesforce-northwind/capture.json"],
+      "runs": [
+        {
+          "label": "no match",
+          "command": "npm run -s prepare-first-meeting -- --account zzqxv --source capture --capture fixtures/salesforce-northwind/capture.json --output json",
+          "exit_code": 1,
+          "status": "failed"
+        }
+      ]
+    }
+  }
+}

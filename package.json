@@ -16,7 +16,8 @@
     "prepare-engagement": "node bin/prepare-engagement.js",
     "source-rank": "node bin/source-rank.js",
     "salesforce-capture-plan": "node bin/salesforce-capture-plan.js",
-    "m365-capture-plan": "node bin/m365-capture-plan.js"
+    "m365-capture-plan": "node bin/m365-capture-plan.js",
+    "live-replay": "node bin/live-replay.js"
   },
   "dependencies": {
     "ajv": "^8.17.1",

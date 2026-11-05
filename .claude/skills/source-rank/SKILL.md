@@ -69,20 +69,29 @@ time. `source.rank` compares both on the same `occurred_at` field.
 
 1. Follow the "Live Salesforce (capture) mode" steps of the `prepare-first-meeting` wrapper to resolve
    the account and capture its Salesforce Phase 1 and Phase 2 into `.captures/<account-slug>.json`
-   (`npm run salesforce-capture-plan -- ...`; only `dispatch_readonly`, never `dispatch`).
-   Record every call with `npm run salesforce-capture-plan -- --append .captures/<account-slug>.json --account "<ref>" --step <step> --result-file <raw response file under .captures/>`
+   (`npm run -s salesforce-capture-plan -- ...`; only `dispatch_readonly`, never `dispatch`).
+   Record every call with `npm run -s salesforce-capture-plan -- --append .captures/<account-slug>.json --account "<ref>" --step <step> --result-file <raw response file under .captures/>`
    (`--account-id sf_<Id>` for Phase 2, `--error-file` for an error payload, `--page-url "<nextRecordsUrl>"`
    instead of `--step` for a pagination page): the CLI takes the tool and args from the plan and stamps
-   `captured_at`; never hand-write capture entries.
+   `captured_at`; never hand-write capture entries. Use `npm run -s` (silent) for every command here:
+   their stdout is parsed as JSON and the npm banner lines would break the parsing. Account resolution is
+   token-based (see `skills/account-resolve`), not a SOQL substring match: an exact name among several
+   matching rows yields `AMBIGUOUS_ACCOUNT`, and a weak token match can yield `ACCOUNT_NOT_FOUND` although
+   SOQL returned rows. To run by `--account sf_<Id>` the ID query must be recorded first, even when the Id
+   came straight from the name search; otherwise `REPLAY_INCOMPLETE` follows. A single missing Salesforce
+   Phase 2 entry drops the whole `crm` source by design (a `REPLAY_INCOMPLETE` failure).
 2. Optional, for SharePoint documents: follow "Optional M365 documents (SharePoint)" in the same wrapper
-   (`npm run m365-capture-plan -- ...`; only `sharepoint_search`; never `read_resource`, never any write,
+   (`npm run -s m365-capture-plan -- ...`; only `sharepoint_search`; never `read_resource`, never any write,
    send, create, move, delete or upload tool) to capture `.captures/<account-slug>-m365.json`.
-   Record every search call with `npm run m365-capture-plan -- --append .captures/<account-slug>-m365.json --account-id sf_<Id> --step <step> --result-file <raw response file under .captures/>`
-   (`--error-file` for a tool error, plus `--offset <nextOffset>` for a follow-up page; never hand-write
-   capture entries).
+   Record every search call with `npm run -s m365-capture-plan -- --append .captures/<account-slug>-m365.json --account-id sf_<Id> --step <step> --result-text-file <raw response text file under .captures/>`
+   (`sharepoint_search` returns concatenated JSON objects as raw text: save that text as is and let
+   `--result-text-file` wrap it, never write a helper script; `--error-file` for a tool error, plus
+   `--offset <nextOffset>` for a follow-up page; a file with a duplicate key in any object is refused; never
+   hand-write capture entries). The plan output shows the mapped folder names: you may read it to make the
+   calls, but never paste it into chat.
    It needs the user's `local/m365-account-mapping.yaml`; never guess a mapping location.
 3. Run, with the resolved `sf_<Id>` (not a name):
-   `npm run source-rank -- --source capture --account sf_<Id> --capture .captures/<account-slug>.json --capture-m365 .captures/<account-slug>-m365.json --output json`
+   `npm run -s source-rank -- --source capture --account sf_<Id> --capture .captures/<account-slug>.json --capture-m365 .captures/<account-slug>-m365.json --output json`
    Either capture may be omitted (an M365-only run accepts a mapped `acct_` id too). Optional:
    `--m365-mapping <path>`, `--classification public|internal|confidential` (access ceiling for the
    retrieved records, default `internal`; never raise it without the user's direction) and `--now`
@@ -92,10 +101,11 @@ time. `source.rank` compares both on the same `occurred_at` field.
      means at least one requested source (for example M365 after an authorization error) did not
      return usable records: say which, and present the ranking of the remaining sources.
    - Exit 3: no ranking (retrieval blocked, for example `ADAPTER_UNAUTHORIZED` or
-     `CLASSIFICATION_RESTRICTED`, or no records at all): report the codes.
+     `CLASSIFICATION_RESTRICTED`, or no records at all): report the codes. With `--output json` the
+     blocked or failed result is printed on stdout (`status`, `data: null`, `errors`); there is no ranking.
    - Exit 1: failed or invalid usage. With `REPLAY_INCOMPLETE` on stderr report "failed: incomplete
-     capture", ignore any stdout ranking, and re-capture the calls named by `salesforce-capture-plan`
-     or `m365-capture-plan`.
+     capture", ignore any stdout ranking (a success ranking of the remaining source may still be
+     printed), and re-capture the calls named by `salesforce-capture-plan` or `m365-capture-plan`.
    - Report the stderr diagnostics as counts, exactly as printed (`M365_NOT_MAPPED`,
      `M365_PERSONAL_EXCLUDED`, `M365_OUTSIDE_MAPPING_EXCLUDED`, ...). Say "data timestamp" or "last
      modified" as appropriate, never "published": SharePoint timestamps are last-modified times, and

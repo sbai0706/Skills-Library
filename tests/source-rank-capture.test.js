@@ -118,6 +118,38 @@ test("M365 alone with an unmapped account has nothing to rank: blocked, exit 3",
 
 // ---------------------------------------------------------------- retrieval outcomes
 
+/** Blocked or failed retrieval with `--output json`: a parseable source.rank envelope, no ranking. */
+function assertStopEnvelope(result, status) {
+  const skill = json(result);
+  assert.equal(skill.skill, "source.rank");
+  assert.equal(skill.status, status);
+  assert.equal(skill.data, null);
+  assert.deepEqual(skill.evidence_ids, []);
+  assert.ok(skill.errors.length > 0, "the retrieval's errors are carried over");
+  assert.deepEqual(validate("skillResult", skill), { valid: true, errors: [] });
+  assert.ok(!result.stdout.includes("req-synthetic") && !result.stdout.includes("secret-file"), "no payload content on stdout");
+  return skill;
+}
+
+test("a blocked or failed capture-mode ranking prints the JSON envelope for --output json and nothing for markdown", () => {
+  const blockedEntries = m365Doc([m365Entry("Northwind Traders", 0, { error: m365Error(403) }), m365Entry("Northwind", 0, { result: m365Page([]) })]);
+  const blockedArgs = [...capture, "--capture-m365", blockedEntries, "--m365-mapping", MAPPING];
+  for (const args of [blockedArgs, [...blockedArgs, "--output", "json"]]) {
+    const result = rank(args);
+    assert.equal(result.status, 3, result.stderr);
+    assert.ok(assertStopEnvelope(result, "blocked").errors.some((error) => error.code === "ADAPTER_UNAUTHORIZED"));
+  }
+  const markdown = rank([...blockedArgs, "--output", "markdown"]);
+  assert.equal(markdown.status, 3);
+  assert.equal(markdown.stdout, "");
+  assert.match(markdown.stderr, /source\.rank: RETRIEVAL_BLOCKED: ADAPTER_UNAUTHORIZED/);
+
+  const failedEntries = m365Doc([m365Entry("Northwind Traders", 0, { error: m365Error(500) }), m365Entry("Northwind", 0, { result: m365Page([]) })]);
+  const failed = rank([...capture, "--capture-m365", failedEntries, "--m365-mapping", MAPPING, "--output", "json"]);
+  assert.equal(failed.status, 1);
+  assertStopEnvelope(failed, "failed");
+});
+
 test("a failing M365 source (401) is a partial retrieval: the Salesforce ranking is printed and the exit is 2", () => {
   const entries = m365Doc([m365Entry("Northwind Traders", 0, { error: m365Error(401) }), m365Entry("Northwind", 0, { result: m365Page([]) })]);
   const result = rank([...capture, "--capture", SF, "--capture-m365", entries, "--m365-mapping", MAPPING]);
@@ -132,7 +164,7 @@ test("when every source fails with an authorization error retrieval is blocked: 
   const entries = m365Doc([m365Entry("Northwind Traders", 0, { error: m365Error(403) }), m365Entry("Northwind", 0, { result: m365Page([]) })]);
   const result = rank([...capture, "--capture-m365", entries, "--m365-mapping", MAPPING]);
   assert.equal(result.status, 3);
-  assert.equal(result.stdout, "");
+  assertStopEnvelope(result, "blocked");
   assert.match(result.stderr, /source\.rank: RETRIEVAL_BLOCKED: ADAPTER_UNAUTHORIZED/);
 });
 
@@ -140,7 +172,7 @@ test("when every source fails with an execution error retrieval failed: exit 1, 
   const entries = m365Doc([m365Entry("Northwind Traders", 0, { error: m365Error(500) }), m365Entry("Northwind", 0, { result: m365Page([]) })]);
   const result = rank([...capture, "--capture-m365", entries, "--m365-mapping", MAPPING]);
   assert.equal(result.status, 1);
-  assert.equal(result.stdout, "");
+  assertStopEnvelope(result, "failed");
   assert.match(result.stderr, /source\.rank: RETRIEVAL_FAILED: ADAPTER_UNAVAILABLE/);
 });
 
@@ -174,7 +206,7 @@ test("--classification sets the access ceiling: confidential locations are withh
 test("a public ceiling withholds internal records; an internal ceiling is the default", () => {
   const publicOnly = rank([...bothCaptures, "--classification", "public"]);
   assert.equal(publicOnly.status, 3, publicOnly.stderr);
-  assert.equal(publicOnly.stdout, "");
+  assertStopEnvelope(publicOnly, "blocked");
   const explicit = rank([...bothCaptures, "--classification", "internal"]);
   assert.equal(stable(json(explicit)), stable(json(rank(bothCaptures))));
 });

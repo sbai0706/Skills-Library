@@ -30,7 +30,7 @@ Modes:
   --append PATH            Append ONE recorded sharepoint_search call to the capture at PATH (an existing
                            file under .captures/, created with --init-capture). The tool and args come
                            from the printed plan step, never from you. Needs --account-id, --step and
-                           --result-file or --error-file
+                           one of --result-file, --result-text-file or --error-file
   --m365-mapping PATH      Mapping file (default: local/m365-account-mapping.yaml, git-ignored);
                            valid with --account-id, --validate with --account-id, --check-mapping,
                            --append
@@ -43,12 +43,17 @@ Append options (only with --append, which needs --account-id):
                            omit for the first page (offset 0)
   --result-file PATH       The connector's raw response, verbatim, as a JSON file under .captures/
                            (for example .captures/tmp/r1.json); stored exactly as parsed
+  --result-text-file PATH  The raw TEXT the connector returned (a file under .captures/): the concatenated JSON
+                           objects, one per hit plus the trailer, exactly as sharepoint_search printed them
+                           (blank = no hits). Split with a JSON scanner into {content:[{type:"text",text}...]}
+                           and stored in the same shape as --result-file; use this instead of wrapping by hand
   --error-file PATH        The connector's raw error payload (a JSON object file under .captures/)
   --replace-last           Replace the last entry, which must be the same call (a retry's final attempt)
   --captured-at RFC3339    Override captured_at (tests); default is the time of the append
 
 Append refuses (exit 1, nothing written, payload never printed): files outside .captures/, non-JSON
-input, a capture with another source_system, a duplicate of the last entry without --replace-last,
+input, a result or error file with a duplicate key in any object, a --result-text-file that is not a
+sequence of JSON objects, a capture with another source_system, a duplicate of the last entry without --replace-last,
 an --offset that does not follow a recorded page, and entries or files over the capture size limits.
 Output is a payload-free summary.
 
@@ -57,15 +62,15 @@ Output is JSON on stdout. Exit codes: 0 ok, 1 invalid usage or validation proble
 
 const HOST_RULES = [
   `Call only the Microsoft 365 connector tool ${M365_TOOL}, with exactly the printed args. Never call read_resource, sharepoint_folder_search or any write/send/create/move/delete/upload tool for this workflow; never add filters or change query.`,
-  "Record every call with --append, in call order: write the connector's raw response, unmodified ({\"content\":[<item text blocks>, <trailer text block>]}, an empty result as {\"content\":[]}), to a JSON file under .captures/ (for example .captures/tmp/r1.json), then run: npm run m365-capture-plan -- --append <capture path> --account-id <id> --step <step> --result-file <file>. A tool error payload goes to a JSON file too and is appended with --error-file. Never hand-write capture entries or captured_at.",
-  `Follow nextOffset while the trailer has moreResults:true, up to ${MAX_PAGES_PER_SEARCH} pages per search: call the same search with offset = nextOffset and append that page with: --append <capture path> --account-id <id> --step <the same step> --offset <nextOffset> --result-file <file>.`,
+  "Record every call with --append, in call order: write the connector's raw response text, unmodified, to a file under .captures/ (for example .captures/tmp/r1.txt) and run: npm run -s m365-capture-plan -- --append <capture path> --account-id <id> --step <step> --result-text-file <file>. sharepoint_search returns concatenated JSON objects (one per hit plus a trailer) as raw text: save that text as is and the tool wraps it into the capture shape (empty text = no hits); never wrap it by hand. A response that already is a JSON {\"content\":[...]} object may be appended with --result-file instead. A tool error payload goes to a JSON object file and is appended with --error-file. A file with a duplicate key in any object is refused. Never hand-write capture entries or captured_at.",
+  `Follow nextOffset while the trailer has moreResults:true, up to ${MAX_PAGES_PER_SEARCH} pages per search: call the same search with offset = nextOffset and append that page with: --append <capture path> --account-id <id> --step <the same step> --offset <nextOffset> --result-text-file <file>.`,
   "On a rate-limit error wait graphRetryAfterSeconds, retry the identical call once and append only the final attempt (if the failed attempt was already appended, append the retry with --replace-last).",
   "Raw captures may contain real customer data: keep them under .captures/ (git-ignored), never commit them and never paste raw results, snippets, file names or paths into chat.",
 ];
 
 const MODES = ["--account-id", "--init-capture", "--validate", "--check-mapping", "--append"];
-const APPEND_OPTIONS = ["--step", "--offset", "--result-file", "--error-file", "--replace-last", "--captured-at"];
-const VALUE_FLAGS = new Set(["--account-id", "--init-capture", "--validate", "--m365-mapping", "--append", "--step", "--offset", "--result-file", "--error-file", "--captured-at"]);
+const APPEND_OPTIONS = ["--step", "--offset", "--result-file", "--result-text-file", "--error-file", "--replace-last", "--captured-at"];
+const VALUE_FLAGS = new Set(["--account-id", "--init-capture", "--validate", "--m365-mapping", "--append", "--step", "--offset", "--result-file", "--result-text-file", "--error-file", "--captured-at"]);
 
 function parseArgs(argv) {
   const parsed = {};
@@ -92,8 +97,8 @@ function parseArgs(argv) {
   if (modes.includes("--append")) {
     if (!Object.hasOwn(parsed, "--account-id")) throw new Error("--append needs --account-id (the account that printed the plan).");
     if (!Object.hasOwn(parsed, "--step")) throw new Error("--append needs --step.");
-    if (Object.hasOwn(parsed, "--result-file") === Object.hasOwn(parsed, "--error-file")) {
-      throw new Error("--append needs exactly one of --result-file and --error-file.");
+    if (["--result-file", "--result-text-file", "--error-file"].filter((flag) => Object.hasOwn(parsed, flag)).length !== 1) {
+      throw new Error("--append needs exactly one of --result-file, --result-text-file and --error-file.");
     }
     if (Object.hasOwn(parsed, "--offset") && !/^\d+$/.test(parsed["--offset"].trim())) throw new Error("--offset must be a non-negative integer.");
   } else {
@@ -280,6 +285,7 @@ function appendEntry(parsed, mapping) {
     tool: M365_TOOL,
     args,
     resultFile: parsed["--result-file"],
+    resultTextFile: parsed["--result-text-file"],
     errorFile: parsed["--error-file"],
     replaceLast: parsed["--replace-last"] === true,
     capturedAt: parsed["--captured-at"],

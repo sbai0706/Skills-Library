@@ -212,7 +212,7 @@ test("an M365 capture that misses a planned call forces exit 1 and REPLAY_INCOMP
   const result = run("prepare-first-meeting.js", ["--account", "Northwind Traders", "--source", "capture", "--capture", SF, "--capture-m365", capture, "--m365-mapping", MAPPING]);
   assert.equal(result.status, 1);
   assert.match(result.stderr, /capture: REPLAY_INCOMPLETE: failed: incomplete capture/);
-  assert.match(result.stderr, /npm run m365-capture-plan -- --account-id sf_<Id>/);
+  assert.match(result.stderr, /npm run -s m365-capture-plan -- --account-id sf_<Id>/);
   assert.ok(!/salesforce-capture-plan/.test(result.stderr), "only the M365 plan CLI is named for an M365 miss");
 });
 

@@ -103,14 +103,17 @@ timestamps by hand. For every connector call the host:
    `.captures/` (for example `.captures/tmp/r1.json`; error payloads the same way);
 2. runs append with the same planning flags that printed the plan, plus the printed `step`.
 
+Use `npm run -s` (silent) in every command whose stdout is parsed as JSON (all the commands in this
+document): without `-s` the npm banner lines precede the JSON and break parsing.
+
 ```text
 # one plan call (Salesforce Phase 2; Phase 1 uses --account "<ref>" instead of --account-id)
-npm run salesforce-capture-plan -- --append .captures/<slug>.json --account-id sf_<Id> --step Opportunity --result-file .captures/tmp/r1.json
+npm run -s salesforce-capture-plan -- --append .captures/<slug>.json --account-id sf_<Id> --step Opportunity --result-file .captures/tmp/r1.json
 # one pagination page (nextRecordsUrl of a recorded done:false result; Git Bash on Windows: MSYS_NO_PATHCONV=1)
-npm run salesforce-capture-plan -- --append .captures/<slug>.json --page-url "<nextRecordsUrl>" --result-file .captures/tmp/r2.json
+npm run -s salesforce-capture-plan -- --append .captures/<slug>.json --page-url "<nextRecordsUrl>" --result-file .captures/tmp/r2.json
 # one M365 search call, then its next page
-npm run m365-capture-plan -- --append .captures/<slug>-m365.json --account-id sf_<Id> --step search_1 --result-file .captures/tmp/r3.json
-npm run m365-capture-plan -- --append .captures/<slug>-m365.json --account-id sf_<Id> --step search_1 --offset <nextOffset> --result-file .captures/tmp/r4.json
+npm run -s m365-capture-plan -- --append .captures/<slug>-m365.json --account-id sf_<Id> --step search_1 --result-text-file .captures/tmp/r3.txt
+npm run -s m365-capture-plan -- --append .captures/<slug>-m365.json --account-id sf_<Id> --step search_1 --offset <nextOffset> --result-text-file .captures/tmp/r4.txt
 ```
 
 | Flag | Meaning |
@@ -119,7 +122,8 @@ npm run m365-capture-plan -- --append .captures/<slug>-m365.json --account-id sf
 | `--step STEP` | Printed plan `step` (`search`, `exact_name_guard`, `Account`..`Event`; `search_1`..) or its 1-based position in `calls`. Needs exactly one of `--account` / `--account-id` (Salesforce) or `--account-id` (M365), same value as when the plan was printed (M365 also `--m365-mapping`) |
 | `--page-url URL` | Salesforce page: `nextRecordsUrl` of an already recorded successful `done:false` result; records `{url, method:"GET"}` via `nextPageArgs`. Not combinable with `--step` or the planning flags |
 | `--offset N` | M365 follow-up page (`--step` selects the search): must equal the `nextOffset` of a recorded page of that search with `moreResults:true`; at most 4 pages per search. Omit for page 1 |
-| `--result-file PATH` / `--error-file PATH` | Exactly one. The raw response (any JSON value) or the raw error payload (a JSON object); file under `.captures/` |
+| `--result-file PATH` / `--error-file PATH` | Exactly one (M365: or `--result-text-file`). The raw response (any JSON value) or the raw error payload (a JSON object); file under `.captures/` |
+| `--result-text-file PATH` | M365 only, instead of the two above. The raw TEXT `sharepoint_search` returned: concatenated JSON objects (one per hit plus the trailer), saved as is under `.captures/`. See "Raw M365 result text" below |
 | `--replace-last` | Replace the last entry instead of appending; it must be the same call (tool and args) |
 | `--captured-at RFC3339` | Tests only; default is the time of the append |
 
@@ -127,13 +131,29 @@ The entry is `{tool, args, result|error, captured_at}` where `tool` and `args` c
 step (or `nextPageArgs(url)`), never from host-typed JSON, so they are byte-identical to what replay
 matches on. The payload is parsed and stored exactly as given: no normalisation and no redaction at
 write time (`loadCapture` redacts at read time, as before). A UTF-8 BOM is tolerated. Payloads are
-parsed and re-serialized, so key order and whitespace are normalised, numbers beyond 2^53 lose
-precision and duplicate keys collapse (the last wins); this is the same view `loadCapture` has of the
-file. The first append also re-formats a compact capture file as pretty-printed JSON.
+parsed and re-serialized, so key order and whitespace are normalised and numbers beyond 2^53 lose
+precision; this is the same view `loadCapture` has of the file. A result or error file with a
+duplicate key in any object is refused (a host typo would otherwise collapse silently, the last
+value winning); the refusal text is fixed and never echoes the key or value. The first append also
+re-formats a compact capture file as pretty-printed JSON.
+
+### Raw M365 result text (`--result-text-file`)
+
+`sharepoint_search` returns its result as raw text: one JSON object per hit plus a trailer object,
+concatenated (newlines or nothing between them), not a JSON document. Save that text as is to a file
+under `.captures/` and append it with `--result-text-file`; do not write a helper script. A streaming
+JSON scanner (no regular expressions) splits the text into its top-level objects, tolerating
+whitespace between them, checks that each is a JSON object and stores
+`{"content":[{"type":"text","text":<each object's original text>}, ...]}`, the shape the parser and
+the fixtures use, so the entry equals one built from a hand-wrapped result. Blank text is
+`{"content":[]}` (no hits). Anything else (a scalar or array at the top level, a comma between
+objects, truncated text, trailing garbage) is refused with fixed text, as is a duplicate key in any
+object. A response that is already a `{"content":[...]}` JSON document goes in with `--result-file`.
 
 Refusals (exit 1, the capture is not modified, nothing payload-derived is printed): a result/error
 file or capture outside `<repo>/.captures/` (real paths, so symlinks cannot escape), a missing
-capture or payload file, non-JSON input, an `--error-file` that is not an object, a capture whose
+capture or payload file, non-JSON input, a payload with a duplicate object key, a
+`--result-text-file` that is not a sequence of JSON objects, an `--error-file` that is not an object, a capture whose
 `source_system` is not this CLI's (salesforce / m365), an invalid existing capture, an invalid
 `--captured-at`, an unknown `--step`, a `--page-url` that is not a Salesforce `nextRecordsUrl`
 (`/services/data/vNN.N/query/<id>`) or a `--page-url`/`--offset` that does not follow a recorded
@@ -161,11 +181,11 @@ The CLIs `prepare-first-meeting`, `prepare-first-meeting-v2`, `qualification`, `
 `--source fixture`; no fallback between the two). `bin/salesforce-capture-plan.js` prints the exact
 calls; it makes no network call.
 
-1. `npm run salesforce-capture-plan -- --init-capture .captures/<slug>.json --source-system salesforce`
+1. `npm run -s salesforce-capture-plan -- --init-capture .captures/<slug>.json --source-system salesforce`
    writes an empty valid skeleton. The target must be a file under `<repo root>/.captures/`
    (anything else, including a directory, is refused with exit 1; there is no override flag), and
    an existing file is never overwritten.
-2. Phase 1: `npm run salesforce-capture-plan -- --account "<name or sf_<Id>>"`. Output is JSON:
+2. Phase 1: `npm run -s salesforce-capture-plan -- --account "<name or sf_<Id>>"`. Output is JSON:
    `calls` is a list of `{step, tool:"dispatch_readonly", args}` (some with a `condition`), plus
    `pagination` and `host_rules` text. Call the Salesforce connector tool `dispatch_readonly` with
    exactly each `args` (never `dispatch`/`describe`/`discover`, never hand-written SOQL), write the
@@ -173,22 +193,27 @@ calls; it makes no network call.
    "Appending entries"; never hand-write entries or `captured_at`), once per call in call order. Retry
    a 401 `INVALID_AUTH_HEADER` once and append only the final attempt; follow and append
    `nextRecordsUrl` pages with `--page-url` (validation fails on a missing page).
-3. Choose the account: take the Id directly only when exactly one row matched AND its `Name`
-   equals the term case-insensitively (after the adapter's trimming). Otherwise run the CLI once
+3. Choose the account. Resolution is token-based (`skills/account-resolve`), not a SOQL substring
+   match: a row the name search returned does not by itself make a candidate. An exact name among
+   several matching rows yields `AMBIGUOUS_ACCOUNT`, and a weak token match can yield
+   `ACCOUNT_NOT_FOUND` although SOQL returned rows. Take the Id directly only when exactly one row
+   matched AND its `Name` equals the term case-insensitively (after the adapter's trimming). To run by
+   `--account sf_<Id>` the ID query must be recorded first, even when the Id came straight from the
+   name search; otherwise `REPLAY_INCOMPLETE` follows. Otherwise run the CLI once
    after Phase 1 as an ambiguity/confirmation check only: exit 3 with `CONFIRMATION_REQUIRED` or
    candidates present means the user must choose an Id; then re-run Phase 1 with
    `--account sf_<Id>` and record that ID query. A `REPLAY_INCOMPLETE` failure at that point is
    expected when the account resolves, because Phase 2 is not captured yet.
-4. Phase 2: `npm run salesforce-capture-plan -- --account-id sf_<Id>`: five calls (Account,
+4. Phase 2: `npm run -s salesforce-capture-plan -- --account-id sf_<Id>`: five calls (Account,
    Opportunity, Contact, Task, Event) recorded the same way. One capture file holds Phase 1 and
    Phase 2 entries, so both `--account "<name>"` and `--account sf_<Id>` replay from it.
-5. `npm run salesforce-capture-plan -- --validate .captures/<slug>.json --account "<ref>" --account-id sf_<Id>`
+5. `npm run -s salesforce-capture-plan -- --validate .captures/<slug>.json --account "<ref>" --account-id sf_<Id>`
    runs `loadCapture` and prints a payload-free summary (entry counts, recorded error count,
    problems); exit 1 on any problem: missing planned calls, a tool other than `dispatch_readonly`
    or a non-GET method, a successful `done:false` result without a recorded later
    `{url: nextRecordsUrl, method: "GET"}` page (`entry N: missing pagination page`; a recorded
    error is not a page), or `capture.source_system` other than `salesforce`.
-6. `npm run <workflow> -- --account "<ref>" --source capture --capture .captures/<slug>.json --output json`.
+6. `npm run -s <workflow> -- --account "<ref>" --source capture --capture .captures/<slug>.json --output json`.
    Exit codes are unchanged (0 success, 2 partial, 3 blocked, 1 failed or invalid usage). Exit 3 is
    "blocked": read `status` and `errors`; only `CONFIRMATION_REQUIRED` or ambiguity (candidates)
    means the user picks an Id, while evidence/authorization errors (`NO_RECORDS_RETRIEVED`,
@@ -198,7 +223,8 @@ calls; it makes no network call.
    shows a generic code such as `ADAPTER_UNAVAILABLE`): adding a `REPLAY_INCOMPLETE` entry would
    alter the status/artifact consistency of the workflow result contracts, and a stdout line would
    break `--output json`. Report "failed: incomplete capture" and ignore the stdout status and
-   artifact. A capture whose `source_system` is not `salesforce` is rejected (exit 1).
+   artifact. A single missing Salesforce Phase 2 entry drops the whole `crm` source by design, so it
+   is always this failure, never a smaller result. A capture whose `source_system` is not `salesforce` is rejected (exit 1).
 
 Capture mode serves the `crm` source from the Salesforce capture (and, with an M365 capture, the
 `internal_document` source: see "M365 SharePoint" below; any other `--sources` value is invalid
@@ -229,21 +255,22 @@ cannot consume each other's entries.
 
 Host procedure for one account (Salesforce + M365 + `source-rank`):
 
-1. `npm run m365-capture-plan -- --check-mapping` (counts only; needs the local mapping file).
+1. `npm run -s m365-capture-plan -- --check-mapping` (counts only; needs the local mapping file).
 2. Salesforce, exactly as in the procedure above: resolve `sf_<Id>` and capture Phase 1 and Phase 2 into
    `.captures/<slug>.json` (`dispatch_readonly` only).
-3. `npm run m365-capture-plan -- --init-capture .captures/<slug>-m365.json`
-4. `npm run m365-capture-plan -- --account-id sf_<Id>` and make every printed call with the connector tool
+3. `npm run -s m365-capture-plan -- --init-capture .captures/<slug>-m365.json`
+4. `npm run -s m365-capture-plan -- --account-id sf_<Id>` and make every printed call with the connector tool
    `sharepoint_search` only (exact args; never `read_resource`, `sharepoint_folder_search` or a write/send
-   tool), following `nextOffset` while `moreResults` is true (at most 4 pages per search). Write each raw
-   result verbatim (`{"content":[<item text blocks>, <trailer text block>]}`; empty: `{"content":[]}`; or
-   the tool error payload) to a JSON file under `.captures/` and record it with `--append` (see "Appending
-   entries"; `--offset <nextOffset>` for a follow-up page). On a rate-limit error wait
-   `graphRetryAfterSeconds`, retry once, append the final attempt. Unmapped: append nothing. The plan
-   output contains folder names: do not paste it into chat.
-5. `npm run m365-capture-plan -- --validate .captures/<slug>-m365.json --account-id sf_<Id>`
-6. `npm run source-rank -- --source capture --account sf_<Id> --capture .captures/<slug>.json --capture-m365 .captures/<slug>-m365.json --output json`
-   or a workflow, e.g. `npm run prepare-first-meeting -- --account "<ref>" --source capture --capture .captures/<slug>.json --capture-m365 .captures/<slug>-m365.json --output json`.
+   tool), following `nextOffset` while `moreResults` is true (at most 4 pages per search). Save each raw
+   result text verbatim (concatenated JSON objects; empty text for no hits) to a file under `.captures/`
+   and record it with `--append ... --result-text-file` (see "Appending entries" and "Raw M365 result
+   text"; `--offset <nextOffset>` for a follow-up page); a tool error payload is a JSON object file for
+   `--error-file`. On a rate-limit error wait `graphRetryAfterSeconds`, retry once, append the final
+   attempt. Unmapped: append nothing. The plan output shows the mapped folder names: the host may read
+   it to make the calls, but must not paste it into chat.
+5. `npm run -s m365-capture-plan -- --validate .captures/<slug>-m365.json --account-id sf_<Id>`
+6. `npm run -s source-rank -- --source capture --account sf_<Id> --capture .captures/<slug>.json --capture-m365 .captures/<slug>-m365.json --output json`
+   or a workflow, e.g. `npm run -s prepare-first-meeting -- --account "<ref>" --source capture --capture .captures/<slug>.json --capture-m365 .captures/<slug>-m365.json --output json`.
 
 Flags (all capture mode only): `--capture-m365 PATH`, `--m365-mapping PATH` (requires `--capture-m365`;
 default `local/m365-account-mapping.yaml`). The workflow CLIs still need `--capture` (account
@@ -251,6 +278,13 @@ resolution uses Salesforce) and default `--sources` to `crm,internal_document`; 
 `--capture` and/or `--capture-m365`, `--classification public|internal|confidential` (default
 `internal`) and defaults `--now` to the latest `capture.created_at`. Without `--capture-m365`,
 behaviour is unchanged.
+
+`source-rank` in capture mode with `--output json` prints a parseable `source.rank` result on stdout
+for every outcome, as the workflow CLIs do: when retrieval is blocked (exit 3, for example
+`CLASSIFICATION_RESTRICTED`) or failed (exit 1) the result has the same `status`, `data: null` and the
+retrieval's `errors`; exit codes are unchanged. `--output markdown` prints nothing on stdout in those
+cases. Under `REPLAY_INCOMPLETE` it may still print the success ranking of the remaining source and
+exits 1: report "failed: incomplete capture" and ignore the stdout status.
 
 The first-meeting brief's evidence reference lines label `occurred_at` as "Occurred" (renderer
 unchanged); for SharePoint documents and for Salesforce records dated from LastModifiedDate this
@@ -265,3 +299,6 @@ forces exit 1 with `REPLAY_INCOMPLETE` naming `m365-capture-plan`. M365 error ca
 `details.graphRequestId` and `details.uriPath` redacted (volatile or path-bearing). Keep captures under
 `.captures/` and the mapping under `local/`; never commit either, never paste raw results, snippets, file
 names or paths into chat.
+
+Live acceptance results (status, exit codes and counts only) and the opt-in `npm run live-replay` that
+reruns a recorded acceptance run are in [LIVE_ACCEPTANCE.md](LIVE_ACCEPTANCE.md).
