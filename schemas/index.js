@@ -15,6 +15,8 @@ const SCHEMA_FILES = {
   error: "error.schema.json",
   sourceRecord: "source-record.schema.json",
   gapResult: "gap-result.schema.json",
+  sourceRankInput: "source-rank-input.schema.json",
+  sourceRankResult: "source-rank-result.schema.json",
   firstMeetingBriefInput: "first-meeting-brief-input.schema.json",
   signalResult: "signal-result.schema.json",
   stakeholderMap: "stakeholder-map.schema.json",

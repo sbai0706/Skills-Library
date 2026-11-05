@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sales-copilot.local/schemas/source-rank-input.schema.json",
+  "title": "source.rank input",
+  "description": "Top-level request shape for source.rank. Each item of records and evidence is validated by the skill against source-record.schema.json and evidence.schema.json respectively, with one deliberate difference: the three timestamp fields (published_at, occurred_at, retrieved_at) are NOT required to be valid date-times, because an invalid or missing timestamp is a reportable condition for this skill rather than a rejection. Every other field is validated strictly.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["account_id"],
+  "anyOf": [
+    { "required": ["records"], "properties": { "records": { "type": "array" } } },
+    { "required": ["evidence"], "properties": { "evidence": { "type": "array" } } }
+  ],
+  "properties": {
+    "account_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Resolved account identifier (not a name or domain). Items for any other account are excluded and counted, never ranked."
+    },
+    "records": {
+      "type": "array",
+      "maxItems": 5000,
+      "items": {},
+      "description": "Raw source records in the source-record.schema.json shape. Items are validated one by one; a malformed item is rejected and reported without failing the request. The source identifier is metadata.provider."
+    },
+    "evidence": {
+      "type": "array",
+      "maxItems": 5000,
+      "items": {},
+      "description": "Normalized evidence items in the evidence.schema.json shape. Items are validated one by one; a malformed item is rejected and reported without failing the request. An item whose source_record_id matches a supplied record inherits that record's source identifier; otherwise its source_type is the source identifier."
+    },
+    "now": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Reference time for age_days. When supplied the skill never reads the system clock."
+    }
+  }
+}

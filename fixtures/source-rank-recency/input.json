@@ -1,0 +1,193 @@
+{
+  "account_id": "acct_vantage_001",
+  "now": "2026-11-05T12:00:00Z",
+  "records": [
+    {
+      "record_id": "src_mi_2001",
+      "account_id": "acct_vantage_001",
+      "source_type": "third_party",
+      "title": "Market profile snapshot",
+      "content": "Fictional market profile of Vantage Freight Systems from an earlier snapshot.",
+      "source_uri": null,
+      "published_at": "2026-09-01T08:00:00Z",
+      "retrieved_at": "2026-11-01T10:00:00Z",
+      "access_classification": "internal",
+      "question_ids": [
+        "FM-CTX-001"
+      ],
+      "metadata": {
+        "provider": "fixture-market-intel",
+        "record_type": "company_profile"
+      }
+    },
+    {
+      "record_id": "src_mi_2002",
+      "account_id": "acct_vantage_001",
+      "source_type": "third_party",
+      "title": "Market profile refresh",
+      "content": "Fictional refreshed market profile of Vantage Freight Systems.",
+      "source_uri": null,
+      "published_at": "2026-10-30T08:00:00Z",
+      "retrieved_at": "2026-11-01T10:00:00Z",
+      "access_classification": "internal",
+      "question_ids": [
+        "FM-CTX-001"
+      ],
+      "metadata": {
+        "provider": "fixture-market-intel",
+        "record_type": "company_profile"
+      }
+    },
+    {
+      "record_id": "src_crm_act_2101",
+      "account_id": "acct_vantage_001",
+      "source_type": "crm_activity",
+      "title": "Discovery call notes",
+      "content": "Fictional call notes: operations team described a planned systems review.",
+      "source_uri": null,
+      "occurred_at": "2026-10-12T09:00:00Z",
+      "retrieved_at": "2026-11-04T09:00:00Z",
+      "access_classification": "internal",
+      "question_ids": [
+        "FM-REL-001"
+      ],
+      "metadata": {
+        "provider": "fixture-crm",
+        "object_name": "Task",
+        "record_type": "discovery_call"
+      }
+    },
+    {
+      "record_id": "src_crm_rec_2102",
+      "account_id": "acct_vantage_001",
+      "source_type": "crm_record",
+      "title": "Account record",
+      "content": "Fictional account record: industry logistics, region Midwest.",
+      "source_uri": null,
+      "occurred_at": null,
+      "retrieved_at": "2026-11-04T09:00:00Z",
+      "access_classification": "internal",
+      "question_ids": [
+        "FM-CTX-001"
+      ],
+      "metadata": {
+        "provider": "fixture-crm",
+        "object_name": "Account",
+        "record_type": "account_profile"
+      }
+    },
+    {
+      "record_id": "src_crm_act_9901",
+      "account_id": "acct_other_999",
+      "source_type": "crm_activity",
+      "title": "Other account call notes",
+      "content": "Fictional notes belonging to a different account; must never be ranked.",
+      "source_uri": null,
+      "occurred_at": "2026-11-04T09:00:00Z",
+      "retrieved_at": "2026-11-04T09:00:00Z",
+      "access_classification": "internal",
+      "question_ids": [],
+      "metadata": {
+        "provider": "fixture-crm",
+        "object_name": "Task",
+        "record_type": "discovery_call"
+      }
+    },
+    {
+      "record_id": "src_web_2201",
+      "account_id": "acct_vantage_001",
+      "source_type": "news",
+      "title": "Vantage Freight Systems opens regional hub",
+      "content": "Fictional news article about a new regional hub.",
+      "source_uri": "https://news.example/vantage-regional-hub",
+      "published_at": "2026-10-12T11:00:00+02:00",
+      "retrieved_at": "2026-11-02T07:00:00Z",
+      "access_classification": "public",
+      "question_ids": [
+        "FM-DEV-001"
+      ],
+      "metadata": {
+        "provider": "fixture-public-web",
+        "record_type": "news_article"
+      }
+    },
+    {
+      "record_id": "src_web_2202",
+      "account_id": "acct_vantage_001",
+      "source_type": "company_site",
+      "title": "Company overview",
+      "content": "Fictional company overview page with no stated date.",
+      "source_uri": "https://vantage-freight.example/about",
+      "published_at": null,
+      "occurred_at": null,
+      "retrieved_at": "2026-11-02T07:00:00Z",
+      "access_classification": "public",
+      "question_ids": [
+        "FM-CTX-001"
+      ],
+      "metadata": {
+        "provider": "fixture-public-web",
+        "record_type": "company_page"
+      }
+    },
+    {
+      "record_id": "src_doc_2301",
+      "account_id": "acct_vantage_001",
+      "source_type": "internal_document",
+      "title": "Internal account plan",
+      "content": "Fictional internal account plan with no stated date.",
+      "source_uri": null,
+      "retrieved_at": "2026-10-25T10:00:00Z",
+      "access_classification": "internal",
+      "question_ids": [],
+      "metadata": {
+        "provider": "fixture-intranet",
+        "record_type": "account_plan"
+      }
+    },
+    {
+      "record_id": "src_pf_2401",
+      "account_id": "acct_vantage_001",
+      "source_type": "third_party",
+      "title": "Partner feed entry",
+      "content": "Fictional partner feed entry whose only timestamp is malformed.",
+      "source_uri": null,
+      "retrieved_at": "31/10/2026",
+      "access_classification": "internal",
+      "question_ids": [],
+      "metadata": {
+        "provider": "fixture-partner-feed",
+        "record_type": "partner_note"
+      }
+    },
+    {
+      "record_id": "src_pf_2402",
+      "account_id": "acct_vantage_001",
+      "source_type": "third_party",
+      "title": "Partner feed entry without dates",
+      "content": "Fictional partner feed entry with no timestamp at all.",
+      "source_uri": null,
+      "access_classification": "internal",
+      "question_ids": [],
+      "metadata": {
+        "provider": "fixture-partner-feed",
+        "record_type": "partner_note"
+      }
+    }
+  ],
+  "evidence": [
+    {
+      "claim_id": "clm_mi_3001",
+      "claim": "Fictional claim: Vantage Freight Systems operates in the Midwest.",
+      "source_type": "third_party",
+      "source_record_id": "src_mi_2002",
+      "account_id": "acct_vantage_001",
+      "published_at": "2026-10-30T08:00:00Z",
+      "retrieved_at": "2026-11-01T10:00:00Z",
+      "excerpt": "Fictional refreshed market profile of Vantage Freight Systems.",
+      "confidence": "medium",
+      "verification_status": "direct",
+      "access_classification": "internal"
+    }
+  ]
+}

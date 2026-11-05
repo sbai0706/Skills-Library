@@ -1,0 +1,149 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sales-copilot.local/schemas/source-rank-result.schema.json",
+  "title": "source.rank result data",
+  "description": "Evidence sources for one account ordered by the recency of their data. This is a recency ordering only; it carries no judgement of source reliability, authority or quality. It contains IDs, timestamps and counts, never record content.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "account_id",
+    "now",
+    "ranking_basis",
+    "timestamp_precedence",
+    "sources",
+    "summary_counts"
+  ],
+  "properties": {
+    "account_id": { "type": "string", "minLength": 1 },
+    "now": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Reference time used for age_days."
+    },
+    "ranking_basis": {
+      "const": "data_recency_only",
+      "description": "Fixed marker: sources are ordered by data recency alone, never by reliability, authority or quality."
+    },
+    "timestamp_precedence": {
+      "type": "array",
+      "items": { "enum": ["published_at", "occurred_at", "retrieved_at"] },
+      "description": "Field precedence applied per item, highest first. retrieved_at is a source-level fallback used only when no item of the source has a usable published_at or occurred_at."
+    },
+    "sources": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/source" },
+      "description": "Data-dated sources first, then retrieval-fallback sources (each group by latest timestamp descending, ties by source_id ascending), then recency-unknown sources by source_id ascending."
+    },
+    "summary_counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sources",
+        "data_dated",
+        "retrieval_fallback",
+        "recency_unknown",
+        "records_accepted",
+        "records_excluded_foreign_account",
+        "records_rejected",
+        "invalid_timestamps"
+      ],
+      "properties": {
+        "sources": { "type": "integer", "minimum": 0 },
+        "data_dated": { "type": "integer", "minimum": 0 },
+        "retrieval_fallback": { "type": "integer", "minimum": 0 },
+        "recency_unknown": { "type": "integer", "minimum": 0 },
+        "records_accepted": { "type": "integer", "minimum": 0 },
+        "records_excluded_foreign_account": { "type": "integer", "minimum": 0 },
+        "records_rejected": { "type": "integer", "minimum": 0 },
+        "invalid_timestamps": { "type": "integer", "minimum": 0 }
+      }
+    }
+  },
+  "definitions": {
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rank",
+        "source_id",
+        "source_id_basis",
+        "source_types",
+        "recency",
+        "latest_data_at",
+        "latest_data_at_field",
+        "age_days",
+        "record_count",
+        "supporting_record_ids",
+        "supporting_evidence_ids",
+        "tied_with",
+        "invalid_timestamp_count"
+      ],
+      "properties": {
+        "rank": {
+          "type": ["integer", "null"],
+          "minimum": 1,
+          "description": "1-based position among dated sources; null when recency is unknown. Tied sources still receive distinct ranks (see tied_with)."
+        },
+        "source_id": { "type": "string", "minLength": 1 },
+        "source_id_basis": {
+          "enum": ["metadata.provider", "source_type"],
+          "description": "Which field identified the source. source_type is the coarse fallback used when no provider is available."
+        },
+        "source_types": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "crm_record",
+              "crm_activity",
+              "company_site",
+              "news",
+              "third_party",
+              "internal_document"
+            ]
+          }
+        },
+        "recency": {
+          "enum": ["dated", "retrieval_fallback", "unknown"],
+          "description": "dated: ranked by a published_at/occurred_at data timestamp; retrieval_fallback: only retrieved_at was available (an upper bound on data age, not data recency); unknown: no usable timestamp."
+        },
+        "latest_data_at": { "type": ["string", "null"], "format": "date-time" },
+        "latest_data_at_field": {
+          "enum": ["published_at", "occurred_at", "retrieved_at", null]
+        },
+        "age_days": {
+          "type": ["integer", "null"],
+          "description": "Whole days from latest_data_at to now. Negative when the timestamp is later than now."
+        },
+        "record_count": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Accepted items (records plus evidence items) attributed to this source."
+        },
+        "supporting_record_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^src_[A-Za-z0-9_-]+$" },
+          "description": "Source record IDs whose timestamp equals latest_data_at."
+        },
+        "supporting_evidence_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^clm_[A-Za-z0-9_-]+$" },
+          "description": "Evidence IDs whose timestamp equals latest_data_at."
+        },
+        "tied_with": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Other source_ids with the same latest_data_at and recency class. Order between tied sources is source_id ascending."
+        },
+        "invalid_timestamp_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Timestamp values present on this source's items that were unparseable and treated as missing."
+        }
+      }
+    }
+  }
+}

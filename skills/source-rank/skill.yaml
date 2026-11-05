@@ -1,0 +1,99 @@
+skill: source.rank
+version: 0.1.0
+status: draft
+business_owner: TBD
+
+intent: Order the evidence sources of one account by the recency of their data (newest first), reporting the timestamps and supporting IDs behind each position, without judging source reliability, authority or quality.
+
+when_to_use:
+  - Records or normalized evidence for a resolved account exist and the most recently dated source must be identified.
+  - A downstream step needs a reproducible freshness ordering of an account's sources with explicit unknowns.
+when_not_to_use:
+  - A source must be judged reliable, authoritative or correct, or a conflict must be resolved.
+  - Evidence must still be retrieved or normalized.
+  - The account is unresolved.
+  - A staleness threshold or freshness policy must be applied; none is approved.
+
+inputs:
+  schema: ../../schemas/source-rank-input.schema.json
+  required: [account_id]
+  optional: [records, evidence, now]
+  notes:
+    - At least one of records or evidence must be present; it may be empty (reported as blocked).
+    - records items follow source-record.schema.json and evidence items follow evidence.schema.json; the three timestamp fields are deliberately not required to be valid date-times.
+    - now is an RFC 3339 date-time; when supplied (or via deps.now) no clock is read.
+
+outputs:
+  schema: ../../schemas/skill-result.schema.json
+  data_schema: ../../schemas/source-rank-result.schema.json
+  fields: [data.account_id, data.now, data.ranking_basis, data.timestamp_precedence, data.sources, data.summary_counts]
+  evidence_ids: sorted union of supporting evidence IDs (clm_) of all sources; empty for record-only input
+  statuses: [success, partial, blocked, failed]
+
+timestamp_precedence: [published_at, occurred_at, retrieved_at]
+source_identifier:
+  records: metadata.provider
+  fallback: source_type
+  evidence: inherits the provider of the record named by source_record_id, otherwise source_type
+
+dependencies:
+  skills: [evidence.retrieve, evidence.normalize]
+  reference: []
+  evidence:
+    - ../../schemas/source-record.schema.json
+    - ../../schemas/evidence.schema.json
+  adapters: []
+  runtime:
+    - ../../schemas/index.js
+    - skills/source-rank/validate-input.js
+    - skills/source-rank/timestamps.js
+
+authorization:
+  permitted_roles: [sales_partner, sales_owner]
+  record_scope: account_scoped_records
+  permitted_fields: [record_id, claim_id, account_id, source_type, published_at, occurred_at, retrieved_at, metadata.provider, source_record_id]
+  prohibited_fields: [content, title, claim, excerpt, source_uri]
+  enforcement: caller_supplied_account_scope
+  notes:
+    - Items for another account are excluded before any other inspection and are counted, never ranked or echoed.
+    - Classification is not evaluated; callers pass only items visible at their classification ceiling.
+    - Diagnostics contain IDs, indexes, schema paths and counts only, never record content.
+
+procedure:
+  - Validate account_id, the records and evidence arrays, and now.
+  - Exclude and count items whose account_id differs from the request.
+  - Validate each remaining item against its shared schema with the timestamp fields neutralised; reject malformed items and every copy of a duplicated ID.
+  - Resolve each item's source identifier (provider, linked-record provider, or source_type fallback).
+  - Parse timestamps strictly; treat invalid values as missing and count them.
+  - Take each item's data timestamp by precedence published_at then occurred_at; take the source latest as the maximum.
+  - Use retrieved_at only for a source with no data timestamp and flag it as a retrieval fallback.
+  - Order dated, then retrieval-fallback, then unknown sources; break ties by source_id ascending and flag them.
+  - Compute age_days against now, summary counts, warnings and status; validate data and envelope against their schemas.
+
+constraints:
+  - Recency ordering only; never judge source reliability, authority, accuracy, completeness or quality.
+  - Never encode a staleness threshold, source preference or other business policy.
+  - Never rank, count by ID or echo items from another account.
+  - Never silently drop a source; sources without a usable timestamp are listed as unknown.
+  - Never let retrieved_at override a data timestamp; never treat an invalid timestamp as valid.
+  - Never copy content, titles, claims, excerpts or URIs into results or diagnostics.
+  - Never retrieve evidence, call a connector, use the network or write to any system.
+  - Never read the clock when now is supplied.
+
+gates:
+  - schema_valid
+  - source_rank_result_schema_valid
+  - account_scoped_records_only
+  - recency_uses_data_timestamp_before_retrieval_time
+  - invalid_timestamps_treated_as_missing_and_reported
+  - unknown_sources_listed_not_dropped
+  - ties_flagged_and_broken_deterministically
+  - diagnostics_content_free
+  - deterministic_ordering
+  - no_clock_read_when_now_supplied
+
+evals:
+  suites: [golden, negative, determinism, account-scope, timestamps, ties]
+  fixtures:
+    - fixtures/source-rank-recency
+  command: npm test

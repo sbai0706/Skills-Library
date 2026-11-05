@@ -182,6 +182,8 @@ schemas/
   source-record.example.json    One valid raw source record used by the tests
   gap-result.schema.json        Structured answer/gap/conflict status per question
   gap-result.example.json       Example gap result used by tests
+  source-rank-input.schema.json   source.rank request shape (items validated per item, timestamps lenient)
+  source-rank-result.schema.json  source.rank recency-only source ordering
   first-meeting-brief-input.schema.json   Structured renderer input (structural validation only)
   first-meeting-brief-input-v2.schema.json Additive structured renderer input
   prepare-first-meeting-v2-*.schema.json  V2 workflow and mapping contracts
@@ -243,6 +245,9 @@ skills/gap-detect/
   conflicts.js                  Conflict validation and deterministic conflict IDs
   questions.js                  Deterministic question coverage and status policy
   reference.js                  Reference question-set loader
+
+skills/source-rank/
+  SKILL.md, skill.yaml, index.js, validate-input.js, timestamps.js for recency-only source ordering (`source.rank` / `rankSources`); no reliability judgement
 
 skills/artifact-render/
   SKILL.md                      Agent-facing instructions
@@ -311,6 +316,7 @@ fixtures/
   normalize-classification/
   normalize-empty/
   gap-*/                        Gap coverage, conflict, rejection, and empty-claim fixtures
+  source-rank-recency/          source.rank: five synthetic sources with a tie, a fallback, an unknown, a foreign record
   brief-*/                      Renderer golden, sparse, partial, conflict, classification, template fixtures
   workflow-first-meeting-*/     End-to-end workflow scenarios: input.json, expected.json, accounts.json, sources.json
   engagement-*/                 Initial, follow-up, sparse, empty, and conflict draft scenarios
@@ -337,6 +343,7 @@ tests/
   evidence-retrieve.test.js     evidence.retrieve behavior, multi-source, authorization, ordering
   evidence-normalize.test.js    evidence.normalize claims, support rules, conflicts, dedup, extractor failures
   gap-detect.test.js            Gap statuses, conflicts, rejections, ordering, determinism
+  source-rank.test.js           source.rank recency, precedence, ties, unknowns, account scope, determinism, contracts
   artifact-render.test.js       Rendering, classification filtering, leakage, templates, determinism
   prepare-first-meeting.test.js Workflow fixtures, stopping rules, provenance, diagnostics, determinism
   prepare-first-meeting-cli.test.js CLI output, argument, status, leakage, and cwd behavior

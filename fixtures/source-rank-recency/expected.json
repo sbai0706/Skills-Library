@@ -1,0 +1,140 @@
+{
+  "fixture": "source-rank-recency",
+  "description": "Fictional account Vantage Freight Systems with five sources: a market-intelligence feed (newest data), a CRM and a public web source that tie at the same instant (different offsets and fields), an intranet source with only a retrieval time, and a partner feed with no usable timestamp (one invalid value, one absent). One CRM record belongs to a different account and is excluded and counted. Synthetic data only.",
+  "expected": {
+    "status": "partial",
+    "evidence_ids": [
+      "clm_mi_3001"
+    ],
+    "warning_codes": [
+      "FOREIGN_ACCOUNT_RECORDS_EXCLUDED",
+      "INVALID_TIMESTAMP_IGNORED",
+      "RETRIEVAL_TIME_FALLBACK",
+      "RECENCY_UNKNOWN",
+      "RECENCY_TIE"
+    ],
+    "data": {
+      "account_id": "acct_vantage_001",
+      "now": "2026-11-05T12:00:00Z",
+      "ranking_basis": "data_recency_only",
+      "timestamp_precedence": [
+        "published_at",
+        "occurred_at",
+        "retrieved_at"
+      ],
+      "sources": [
+        {
+          "rank": 1,
+          "source_id": "fixture-market-intel",
+          "source_id_basis": "metadata.provider",
+          "source_types": [
+            "third_party"
+          ],
+          "recency": "dated",
+          "latest_data_at": "2026-10-30T08:00:00Z",
+          "latest_data_at_field": "published_at",
+          "age_days": 6,
+          "record_count": 3,
+          "supporting_record_ids": [
+            "src_mi_2002"
+          ],
+          "supporting_evidence_ids": [
+            "clm_mi_3001"
+          ],
+          "tied_with": [],
+          "invalid_timestamp_count": 0
+        },
+        {
+          "rank": 2,
+          "source_id": "fixture-crm",
+          "source_id_basis": "metadata.provider",
+          "source_types": [
+            "crm_activity",
+            "crm_record"
+          ],
+          "recency": "dated",
+          "latest_data_at": "2026-10-12T09:00:00Z",
+          "latest_data_at_field": "occurred_at",
+          "age_days": 24,
+          "record_count": 2,
+          "supporting_record_ids": [
+            "src_crm_act_2101"
+          ],
+          "supporting_evidence_ids": [],
+          "tied_with": [
+            "fixture-public-web"
+          ],
+          "invalid_timestamp_count": 0
+        },
+        {
+          "rank": 3,
+          "source_id": "fixture-public-web",
+          "source_id_basis": "metadata.provider",
+          "source_types": [
+            "company_site",
+            "news"
+          ],
+          "recency": "dated",
+          "latest_data_at": "2026-10-12T09:00:00Z",
+          "latest_data_at_field": "published_at",
+          "age_days": 24,
+          "record_count": 2,
+          "supporting_record_ids": [
+            "src_web_2201"
+          ],
+          "supporting_evidence_ids": [],
+          "tied_with": [
+            "fixture-crm"
+          ],
+          "invalid_timestamp_count": 0
+        },
+        {
+          "rank": 4,
+          "source_id": "fixture-intranet",
+          "source_id_basis": "metadata.provider",
+          "source_types": [
+            "internal_document"
+          ],
+          "recency": "retrieval_fallback",
+          "latest_data_at": "2026-10-25T10:00:00Z",
+          "latest_data_at_field": "retrieved_at",
+          "age_days": 11,
+          "record_count": 1,
+          "supporting_record_ids": [
+            "src_doc_2301"
+          ],
+          "supporting_evidence_ids": [],
+          "tied_with": [],
+          "invalid_timestamp_count": 0
+        },
+        {
+          "rank": null,
+          "source_id": "fixture-partner-feed",
+          "source_id_basis": "metadata.provider",
+          "source_types": [
+            "third_party"
+          ],
+          "recency": "unknown",
+          "latest_data_at": null,
+          "latest_data_at_field": null,
+          "age_days": null,
+          "record_count": 2,
+          "supporting_record_ids": [],
+          "supporting_evidence_ids": [],
+          "tied_with": [],
+          "invalid_timestamp_count": 1
+        }
+      ],
+      "summary_counts": {
+        "sources": 5,
+        "data_dated": 3,
+        "retrieval_fallback": 1,
+        "recency_unknown": 1,
+        "records_accepted": 10,
+        "records_excluded_foreign_account": 1,
+        "records_rejected": 0,
+        "invalid_timestamps": 1
+      }
+    }
+  }
+}
