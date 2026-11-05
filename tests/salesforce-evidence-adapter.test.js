@@ -66,7 +66,8 @@ test("full record mapping is schema-valid and follows the design", async () => {
   assert.equal(opp.metadata.sf_what_id, undefined);
   assert.equal(opp.metadata.sf_created_date, "2026-01-05T09:00:00.000Z");
   assert.equal(opp.metadata.record_type, "opportunity");
-  assert.equal(opp.occurred_at, null);
+  assert.equal(opp.occurred_at, "2026-10-20T12:30:00.000Z"); // LastModifiedDate (P4 design Decision 3)
+  assert.ok(opp.content.endsWith('Opportunity "Phoenix Upgrade" - Last modified: 2026-10-20T12:30:00.000Z'));
   assert.deepEqual(JSON.parse(opp.metadata.sf_fields_json)[0], { api: "StageName", label: "Stage", value: "Awareness" });
 
   const task = records[`src_sf_${sid("00T", 1)}`];
@@ -90,7 +91,7 @@ test("sparse fields produce no lines and are listed in sf_null_fields", async ()
   const { adapter } = adapterFor(northwindRows);
   const result = await adapter.retrieve(request());
   const sparse = byObject(result.records)[`src_sf_${sid("006", 2)}`];
-  assert.equal(sparse.content, 'Salesforce Opportunity "Fleet Review"\nOpportunity "Fleet Review" - Stage [StageName]: Prospecting\nOpportunity "Fleet Review" - Close Date [CloseDate]: 2027-01-31');
+  assert.equal(sparse.content, 'Salesforce Opportunity "Fleet Review"\nOpportunity "Fleet Review" - Stage [StageName]: Prospecting\nOpportunity "Fleet Review" - Close Date [CloseDate]: 2027-01-31\nOpportunity "Fleet Review" - Last modified: 2026-10-20T12:30:00.000Z');
   assert.ok(sparse.metadata.sf_null_fields.split(",").includes("Amount"));
   assert.ok(!sparse.metadata.sf_null_fields.split(",").includes("StageName"));
   assert.equal(sparse.metadata.sf_truncated, undefined);

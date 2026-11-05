@@ -27,6 +27,15 @@ export function optionalDateTime(raw) {
   return raw === null || raw === undefined || (typeof raw === "string" && raw.trim() === "") ? null : normalizeDateTime(raw);
 }
 
+/** Salesforce `date` (`2026-10-01`) -> `2026-10-01T00:00:00.000Z`; absent -> null; wrong shape -> malformed. */
+export function dateToDateTime(raw) {
+  if (raw === null || raw === undefined) return null;
+  if (typeof raw !== "string") throw bad("value_type_mismatch", { value_type: "date" });
+  if (raw.trim() === "") return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw) || Number.isNaN(Date.parse(`${raw}T00:00:00.000Z`))) throw bad("invalid_date");
+  return `${raw}T00:00:00.000Z`;
+}
+
 function cut(text) {
   const chars = [...text];
   return chars.length > MAX_VALUE_LENGTH ? `${chars.slice(0, MAX_VALUE_LENGTH).join("")} [truncated]` : text;
@@ -75,4 +84,9 @@ export function fieldLine(objectName, recordName, { api, label, value }) {
 /** The field line minus ` -` and `[api]`: `Opportunity "Phoenix Upgrade" Stage: Awareness`. */
 export function fieldClaim(objectName, recordName, { label, value }) {
   return `${objectName} "${recordName}" ${label}: ${value}`;
+}
+
+/** `Opportunity "Phoenix Upgrade" - Last modified: 2026-10-20T12:30:00.000Z` (content only, never a claim). */
+export function lastModifiedLine(objectName, recordName, isoDateTime) {
+  return `${objectName} "${recordName}" - Last modified: ${isoDateTime}`;
 }
