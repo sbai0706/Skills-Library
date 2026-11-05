@@ -72,12 +72,22 @@ sparse by nature, so many gaps are correct output. Capture mode requires `--acco
    printed call, with exactly the printed `args`. Never call `dispatch`, `describe` or
    `discover`, and never write, edit or "improve" SOQL. A call with a `condition` is made only
    when that condition holds.
-3. Recording rules: append each call's raw, unmodified result (or error payload) to `entries` as
-   `{"tool":"dispatch_readonly","args":<printed args>,"result":<raw result>,"captured_at":"<ISO time>"}`
-   (`"error"` instead of `"result"` for an error payload), in call order. On a 401 with
-   `INVALID_AUTH_HEADER`, retry the identical call once and record only the final attempt. If a
-   result has `done: false`, also call and record `{"url":"<nextRecordsUrl>","method":"GET"}`
-   until done (validation fails on a missing page).
+3. Recording rules: never hand-write capture entries, args or timestamps. After each connector call,
+   write the connector's raw, unmodified response (success or error payload) to a JSON file under
+   `.captures/` (for example `.captures/tmp/r1.json`; create the directory if needed), then append it:
+   `npm run salesforce-capture-plan -- --append .captures/<account-slug>.json --account "<ref>" --step <step> --result-file .captures/tmp/r1.json`
+   The CLI takes the tool and args from the printed plan step and stamps `captured_at` itself. For
+   Phase 2 use `--account-id sf_<Id>` instead of `--account`; use `--error-file` instead of
+   `--result-file` for an error payload; `<step>` is the printed `step` (`search`, `exact_name_guard`,
+   `Account`, `Opportunity`, `Contact`, `Task`, `Event`). Run it once per call, in call order. It prints a
+   payload-free summary, and exits 1 without writing on any refusal (a duplicate of the last entry, a file
+   outside `.captures/`, non-JSON input, an oversize entry). On a 401 with `INVALID_AUTH_HEADER`, retry the
+   identical call once and append only the final attempt (if the failed attempt was already appended,
+   append the retry with `--replace-last`). If a result has `done: false` (the summary shows
+   `next_page_pending: true`), also call `{"url":"<nextRecordsUrl>","method":"GET"}` and append that page:
+   `npm run salesforce-capture-plan -- --append .captures/<account-slug>.json --page-url "<nextRecordsUrl>" --result-file .captures/tmp/r2.json`
+   (in Git Bash on Windows set `MSYS_NO_PATHCONV=1` so the leading `/` is kept), until done (validation
+   fails on a missing page).
 4. Choose the account, then Phase 2 (evidence).
    - Take the Id directly (the account is `sf_<Id>`) only when exactly one Account row matched
      AND its `Name` equals the search term case-insensitively (after trimming whitespace).
@@ -135,14 +145,21 @@ is only used when it sits under a location the user mapped to the account.
    names from the local mapping: never paste it into chat). Call ONLY the Microsoft 365 connector tool
    `sharepoint_search`, once per printed call, with exactly the printed `args`. Never call
    `read_resource`, `sharepoint_folder_search` or any write, send, create, move, delete or upload
-   tool, and never add filters or change `query`. Record each call's raw result as
-   `{"tool":"sharepoint_search","args":<printed args>,"result":{"content":[<one text block per item, verbatim>, <trailer block, verbatim>]},"captured_at":"<ISO time>"}`
-   (an empty result as `{"content":[]}`; `"error"` instead of `"result"` for a tool error, exactly as
-   returned), in call order. While the trailer has `moreResults: true`, call the same search again
-   with `offset` = the trailer's `nextOffset` and record that page too (at most 4 pages per search).
-   On a rate-limit error wait `graphRetryAfterSeconds`, retry the identical call once and record only
-   the final attempt. An unmapped account prints no call: record nothing (the empty skeleton is a valid
-   M365 capture).
+   tool, and never add filters or change `query`. Never hand-write capture entries, args or timestamps:
+   write each call's raw, unmodified response (`{"content":[<one text block per item, verbatim>, <trailer
+   block, verbatim>]}`, an empty result as `{"content":[]}`, or the tool error payload exactly as returned)
+   to a JSON file under `.captures/` (for example `.captures/tmp/r1.json`; create the directory if needed),
+   then append it:
+   `npm run m365-capture-plan -- --append .captures/<account-slug>-m365.json --account-id sf_<Id> --step <step> --result-file .captures/tmp/r1.json`
+   (`--error-file` instead of `--result-file` for a tool error; `<step>` is the printed `step`, `search_1`,
+   `search_2`, ...; `--m365-mapping <path>` if you use a non-default mapping). Run it once per call, in
+   call order; it takes the tool and args from the plan, stamps `captured_at`, prints a payload-free summary
+   and exits 1 without writing on any refusal. While the trailer has `moreResults: true`, call the same
+   search again with `offset` = the trailer's `nextOffset` and append that page with the same command plus
+   `--offset <nextOffset>` (at most 4 pages per search). On a rate-limit error wait `graphRetryAfterSeconds`,
+   retry the identical call once and append only the final attempt (if the failed attempt was already
+   appended, append the retry with `--replace-last`). An unmapped account prints no call: append nothing
+   (the empty skeleton is a valid M365 capture).
 5. `npm run m365-capture-plan -- --validate .captures/<account-slug>-m365.json --account-id sf_<Id>`
    prints a payload-free summary and exits 1 on any problem; fix them first.
 6. Run the Salesforce run command from step 6 above with `--capture-m365 .captures/<account-slug>-m365.json`

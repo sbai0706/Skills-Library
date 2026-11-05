@@ -240,6 +240,15 @@ test("every wrapper has a separate Live Salesforce (capture) mode section that k
       "npm run salesforce-capture-plan -- --account",
       "npm run salesforce-capture-plan -- --account-id",
       "npm run salesforce-capture-plan -- --validate",
+      "npm run salesforce-capture-plan -- --append .captures/",
+      "--step <step>",
+      "--result-file",
+      "--error-file",
+      "--page-url",
+      "--replace-last",
+      "never hand-write capture entries",
+      "npm run m365-capture-plan -- --append .captures/",
+      "--offset <nextOffset>",
       "dispatch_readonly",
       "Never call `dispatch`",
       "INVALID_AUTH_HEADER",
@@ -269,7 +278,7 @@ test("every wrapper has a separate Live Salesforce (capture) mode section that k
   }
   const guide = readFileSync(resolve(ROOT, "docs", "AGENT_SKILLS.md"), "utf8");
   assert.ok(guide.includes("## Live Salesforce (capture) mode"));
-  for (const required of ["salesforce-capture-plan", "--source capture", "dispatch_readonly", "REPLAY_INCOMPLETE", ".captures/", "failed: incomplete capture", "CONFIRMATION_REQUIRED", "EVIDENCE_RETRIEVAL_BLOCKED", "[clm_...]", "evidence_ids", "不是账号研究"]) {
+  for (const required of ["salesforce-capture-plan", "--append", "--page-url", "--replace-last", "--source capture", "dispatch_readonly", "REPLAY_INCOMPLETE", ".captures/", "failed: incomplete capture", "CONFIRMATION_REQUIRED", "EVIDENCE_RETRIEVAL_BLOCKED", "[clm_...]", "evidence_ids", "不是账号研究"]) {
     assert.ok(guide.includes(required), `guide is missing ${required}`);
   }
 });
@@ -279,7 +288,34 @@ test("the capture plan CLI is a documented package script with help", () => {
   assert.equal(packageJson.scripts["salesforce-capture-plan"], "node bin/salesforce-capture-plan.js");
   const help = spawnSync(process.execPath, [resolve(ROOT, "bin", "salesforce-capture-plan.js"), "--help"], { cwd: ROOT, encoding: "utf8" });
   assert.equal(help.status, 0, help.stderr);
-  for (const option of ["--account", "--account-id", "--init-capture", "--validate", "--source-system"]) {
+  for (const option of ["--account", "--account-id", "--init-capture", "--validate", "--source-system", "--append", "--step", "--page-url", "--result-file", "--error-file", "--replace-last", "--captured-at"]) {
     assert.ok(help.stdout.includes(option), `help is missing ${option}`);
+  }
+});
+
+test("the source-rank wrapper and the capture docs require the append command instead of hand-written entries", () => {
+  const rank = readSkill(SPECS.find((spec) => spec.name === "source-rank")).text;
+  const section = rank.slice(rank.indexOf("## Capture mode (Salesforce + M365 SharePoint)"), rank.indexOf("## Boundaries"));
+  for (const required of [
+    "npm run salesforce-capture-plan -- --append .captures/",
+    "npm run m365-capture-plan -- --append .captures/",
+    "--result-file", "--error-file", "--page-url", "--offset <nextOffset>", "never hand-write capture entries",
+  ]) {
+    assert.ok(section.includes(required), `source-rank capture section is missing: ${required}`);
+  }
+  const doc = readFileSync(resolve(ROOT, "docs", "MCP_CAPTURE.md"), "utf8");
+  const appending = doc.slice(doc.indexOf("## Appending entries (`--append`)"), doc.indexOf("## End-to-end host procedure"));
+  assert.ok(appending.length > 0, "MCP_CAPTURE.md needs an Appending entries section");
+  for (const required of ["--append", "--step", "--page-url", "--offset", "--result-file", "--error-file", "--replace-last", "--captured-at", "append only the final attempt", "MSYS_NO_PATHCONV", "no normalisation and no redaction"]) {
+    assert.ok(appending.includes(required), `MCP_CAPTURE.md append section is missing: ${required}`);
+  }
+  for (const spec of SPECS.filter((s) => s.name !== "source-rank")) {
+    const text = readSkill(spec).text;
+    assert.ok(!text.includes('"captured_at":"<ISO time>"'), `${spec.name} must not tell the host to hand-write capture entries`);
+  }
+  const m365Help = spawnSync(process.execPath, [resolve(ROOT, "bin", "m365-capture-plan.js"), "--help"], { cwd: ROOT, encoding: "utf8" });
+  assert.equal(m365Help.status, 0, m365Help.stderr);
+  for (const option of ["--append", "--step", "--offset", "--result-file", "--error-file", "--replace-last", "--captured-at"]) {
+    assert.ok(m365Help.stdout.includes(option), `m365 help is missing ${option}`);
   }
 });

@@ -122,16 +122,21 @@ Host 端到端命令序列（一个账号，`<ref>` 为名称或 `sf_<Id>`）：
 ```bash
 npm run salesforce-capture-plan -- --init-capture .captures/<slug>.json --source-system salesforce
 npm run salesforce-capture-plan -- --account "<ref>"            # Phase 1：账号搜索调用
-# 仅用 dispatch_readonly、逐字使用打印出的 args 调用并写入 capture（见下）
+# 仅用 dispatch_readonly、逐字使用打印出的 args 调用；把原始响应原样写入 .captures/tmp/r1.json，再逐次追加：
+npm run salesforce-capture-plan -- --append .captures/<slug>.json --account "<ref>" --step search --result-file .captures/tmp/r1.json
 npm run salesforce-capture-plan -- --account-id sf_<Id>          # Phase 2：证据调用（5 个）
-# 同样调用并写入 capture
+# 同样调用，对每个 step 用 --append ... --account-id sf_<Id> --step <step> --result-file ...（错误载荷用 --error-file）
+# 分页：--append .captures/<slug>.json --page-url "<nextRecordsUrl>" --result-file ...
 npm run salesforce-capture-plan -- --validate .captures/<slug>.json --account "<ref>" --account-id sf_<Id>
 npm run prepare-first-meeting -- --account "<ref>" --source capture --capture .captures/<slug>.json --output json
 ```
 
 规则：只调用 Salesforce connector 的 `dispatch_readonly`（永不调用 `dispatch`、`describe`、
-`discover`，也不手写 SOQL）；遇到 401 `INVALID_AUTH_HEADER` 对同一调用重试一次，只记录最后一次；
-结果含 `done: false` 时继续调用并记录 `nextRecordsUrl` 对应页（`--validate` 会检查缺页）。
+`discover`，也不手写 SOQL）；遇到 401 `INVALID_AUTH_HEADER` 对同一调用重试一次，只追加最后一次
+（已追加了失败那次则用 `--replace-last` 追加重试结果）；结果含 `done: false` 时继续调用并用
+`--page-url` 追加 `nextRecordsUrl` 对应页（`--validate` 会检查缺页）。不要手写 capture 条目或
+`captured_at`：`--append` 从 plan 取 tool 和 args、自动打时间戳，并只输出不含 payload 的摘要
+（详见 [MCP capture 文档](MCP_CAPTURE.md) 的 "Appending entries"）。
 
 选账号：仅当恰好返回一行且其 `Name` 与搜索词（按 adapter 同样的 trim 后）忽略大小写相等时，
 才直接取其 Id（`sf_<Id>`）。否则在 Phase 1 之后运行一次 CLI，仅作歧义/确认检查：退出码 3 且
