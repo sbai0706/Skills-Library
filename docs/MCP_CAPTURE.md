@@ -186,6 +186,10 @@ resolution uses Salesforce) and default `--sources` to `crm,internal_document`; 
 `internal`) and defaults `--now` to the latest `capture.created_at`. Without `--capture-m365`,
 behaviour is unchanged.
 
+The first-meeting brief's evidence reference lines label `occurred_at` as "Occurred" (renderer
+unchanged); for SharePoint documents and for Salesforce records dated from LastModifiedDate this
+is the last-modified time, and the claim text itself says "Last modified".
+
 Stderr diagnostics (`capture: <CODE>: <count and fixed text>`; counts only; exit code unchanged):
 `M365_NOT_MAPPED`, `M365_PERSONAL_EXCLUDED`, `M365_OUTSIDE_MAPPING_EXCLUDED`,
 `M365_UNSUPPORTED_ITEMS_SKIPPED`, `M365_COPIES_MERGED`, `M365_SEARCH_TRUNCATED`, `M365_RECORDS_TRUNCATED`.

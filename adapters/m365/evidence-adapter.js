@@ -3,7 +3,7 @@ import {
   DEFAULT_M365_LIMITS, M365_CLASSIFICATIONS, M365_TOOL, MAX_OFFSET, MAX_PAGES_PER_SEARCH,
 } from "./constants.js";
 import { searchArgs, searchFolderNames } from "./capture-plan.js";
-import { toM365AdapterError } from "./errors.js";
+import { internalM365Error, toM365AdapterError } from "./errors.js";
 import { cleanText } from "./format.js";
 import { findAccountMapping, isPersonalUrl, matchPrefix } from "./mapping.js";
 import { mapHit } from "./record-mapper.js";
@@ -41,16 +41,28 @@ function resolveLimits(limits) {
   return effective;
 }
 
+/**
+ * `YYYY-MM-DDTHH:MM:SS[.fff...]Z` that is a real calendar instant: the round trip through Date must
+ * give the same text (milliseconds normalized), so `2026-02-31T...` or hour 25 never rolls over.
+ */
+function isValidTimestamp(stamp) {
+  if (typeof stamp !== "string" || !TIMESTAMP.test(stamp)) return false;
+  const time = new Date(stamp);
+  if (Number.isNaN(time.getTime())) return false;
+  const normalized = stamp.replace(/(\.(\d+))?Z$/, (_m, _f, digits) => `.${`${digits ?? ""}000`.slice(0, 3)}Z`);
+  return time.toISOString() === normalized;
+}
+
 /** Strict check of a kept hit; throws an abort with ADAPTER_MALFORMED_RESPONSE. */
 function assertStrictHit(hit) {
   if (!nonEmptyString(hit.driveId) || !nonEmptyString(hit.id) || !nonEmptyString(hit.name) || cleanText(hit.name) === "") {
     throw abort(malformed("hit_incomplete"));
   }
   if (hit.uri !== `file:///${hit.driveId}/${hit.id}`) throw abort(malformed("uri_mismatch"));
-  const stamp = hit.lastModifiedDateTime;
-  if (typeof stamp !== "string" || !TIMESTAMP.test(stamp) || Number.isNaN(new Date(stamp).getTime())) throw abort(malformed("invalid_last_modified"));
+  if (!isValidTimestamp(hit.lastModifiedDateTime)) throw abort(malformed("invalid_last_modified"));
   for (const key of ["content", "summary"]) {
-    if (hit[key] !== null && typeof hit[key] !== "string") throw abort(malformed("invalid_snippet_field"));
+    // A missing key is the same as null; any other non-string is malformed.
+    if (hit[key] !== undefined && hit[key] !== null && typeof hit[key] !== "string") throw abort(malformed("invalid_snippet_field"));
   }
   try { new URL(hit.webUrl); } catch { throw abort(malformed("invalid_web_url")); }
 }
@@ -200,7 +212,8 @@ export function createM365SharePointEvidenceAdapter({
         return { ok: true, records };
       } catch (thrown) {
         if (thrown instanceof M365AdapterAbort) return { ok: false, error: thrown.error };
-        return { ok: false, error: toM365AdapterError(thrown) };
+        // Anything else is an unexpected internal exception (a defect), not a transport failure.
+        return { ok: false, error: internalM365Error() };
       }
     },
   };

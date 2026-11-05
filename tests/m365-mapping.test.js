@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import YAML from "yaml";
 import {
   M365MappingError, findAccountMapping, isPersonalUrl, loadM365AccountMapping, matchPrefix, normalizePrefix,
-  validateM365AccountMapping,
+  parseWebUrl, validateM365AccountMapping,
 } from "../adapters/m365/index.js";
 import { validate } from "../schemas/index.js";
 import { NORTHWIND_SF_ID, SALES_PREFIX, mappingDoc, oneAccount } from "./helpers/m365-capture.js";
@@ -160,4 +160,52 @@ test("matchPrefix: segment boundary, case-insensitive, raw or percent-decoded UR
   assert.equal(matchPrefix(SALES_PREFIX, locations).length, 0, "the folder itself is not a document under it");
   assert.equal(matchPrefix(`${SALES_PREFIX.replaceAll(" ", "%20")}/a.docx`, locations).length, 1, "percent-encoded webUrl");
   assert.equal(matchPrefix("https://contoso.sharepoint.com/Shared Documents/Northwind Traders/a.docx", locations).length, 0);
+});
+
+const SITE = "https://contoso.sharepoint.com/sites/ExampleSales/Shared Documents/Northwind Traders";
+const traversal = [
+  ["dot-dot", `${SITE}/../../../OtherSite/Shared Documents/x.docx`],
+  ["dot-dot into a sibling site", `${SITE}/../../../ExampleDelivery/Shared Documents/Clients/x.docx`],
+  ["dot-dot in the middle", `https://contoso.sharepoint.com/sites/ExampleSales/Shared Documents/Northwind Traders/Sub/../../Other/x.docx`],
+  ["single dot", `${SITE}/./x.docx`],
+  ["encoded dot-dot (%2e%2e)", `${SITE}/%2e%2e/%2e%2e/OtherSite/x.docx`],
+  ["encoded dot-dot (%2E%2E)", `${SITE}/%2E%2E/x.docx`],
+  ["encoded slash (%2F) then dot-dot", `${SITE}/..%2F..%2FOtherSite/x.docx`],
+  ["encoded slash (%2f) in a segment", `${SITE}/Sub%2fSecret/x.docx`],
+  ["encoded backslash (%5C)", `${SITE}/Sub%5CSecret/x.docx`],
+  ["literal backslash", `${SITE}/Sub\\Secret/x.docx`],
+  ["backslash dot-dot", `${SITE}/..\\..\\OtherSite/x.docx`],
+  ["empty segment", `${SITE}//x.docx`],
+  ["malformed percent escape", `${SITE}/%E0%A4%A/x.docx`],
+  ["userinfo", "https://user@contoso.sharepoint.com/sites/ExampleSales/Shared Documents/Northwind Traders/x.docx"],
+  ["port", "https://contoso.sharepoint.com:8443/sites/ExampleSales/Shared Documents/Northwind Traders/x.docx"],
+  ["http", "http://contoso.sharepoint.com/sites/ExampleSales/Shared Documents/Northwind Traders/x.docx"],
+  ["another host with the prefix as a path", `https://evil.example/https://contoso.sharepoint.com/sites/ExampleSales/Shared Documents/Northwind Traders/x.docx`],
+];
+
+for (const [label, webUrl] of traversal) {
+  test(`matchPrefix: ${label} is outside the mapping`, () => {
+    const { locations } = validateM365AccountMapping(oneAccount([loc(SALES_PREFIX)])).accounts[0];
+    assert.equal(parseWebUrl(webUrl), null, "the URL does not parse into a segment list");
+    assert.deepEqual(matchPrefix(webUrl, locations), []);
+  });
+}
+
+test("parseWebUrl splits the raw path and decodes each segment once; matching compares segment arrays", () => {
+  assert.deepEqual(parseWebUrl("HTTPS://Contoso.SharePoint.com/sites/ExampleSales/Shared%20Documents/Q%231%20Plan.docx?x=1#frag"), {
+    host: "contoso.sharepoint.com",
+    segments: ["sites", "ExampleSales", "Shared Documents", "Q#1 Plan.docx"],
+  });
+  assert.equal(parseWebUrl("https://contoso.sharepoint.com"), null);
+  assert.equal(parseWebUrl(undefined), null);
+  assert.deepEqual(parseWebUrl("https://contoso.sharepoint.com/sites/a%2541/b.docx").segments, ["sites", "a%41", "b.docx"], "decoded once, not twice");
+  const { locations } = validateM365AccountMapping(oneAccount([loc(SALES_PREFIX)])).accounts[0];
+  assert.equal(matchPrefix("https://CONTOSO.sharepoint.com/SITES/examplesales/shared documents/NORTHWIND TRADERS/x.docx", locations).length, 1);
+  assert.equal(matchPrefix("https://other.sharepoint.com/sites/ExampleSales/Shared Documents/Northwind Traders/x.docx", locations).length, 0, "host differs");
+  assert.equal(matchPrefix(`${SITE}%2FSub/x.docx`, locations).length, 0, "an encoded slash cannot extend the prefix");
+});
+
+test("isPersonalUrl also sees a personal segment that a raw path hides from URL normalization", () => {
+  assert.equal(isPersonalUrl(`${SITE}/../../../../personal/x.docx`), true);
+  assert.equal(isPersonalUrl(`${SITE}/%2e%2e/personal/x.docx`), true);
 });

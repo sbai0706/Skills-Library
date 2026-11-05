@@ -129,6 +129,18 @@ test("--sources internal_document alone is allowed with an M365 capture (the acc
   assert.equal(retrieve.record_count, 3);
 });
 
+test("--capture-m365 with --sources that excludes internal_document warns on stderr and runs unchanged", () => {
+  const result = run("prepare-first-meeting.js", ["--account", "Northwind Traders", ...both, "--sources", "crm"]);
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stderr, /capture: WARNING: --capture-m365 is given but --sources excludes internal_document/);
+  const retrieve = stepOf(json(result), "evidence.retrieve");
+  assert.equal(retrieve.source_count, 1);
+  assert.equal(retrieve.record_count, 5);
+  assert.ok(!/M365_PERSONAL_EXCLUDED/.test(result.stderr), "the M365 adapter was not used");
+  const withDocs = run("prepare-first-meeting.js", ["--account", "Northwind Traders", ...both, "--sources", "crm,internal_document"]);
+  assert.ok(!/excludes internal_document/.test(withDocs.stderr));
+});
+
 test("every workflow CLI lists the two new flags in --help and rejects them in fixture mode", () => {
   for (const cli of WORKFLOWS) {
     const help = run(cli.script, ["--help"]);

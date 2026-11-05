@@ -40,22 +40,28 @@ export function recordNameOf(def, row) {
  * Data timestamp for `source.rank` (P4 design, Decision 3; changes P2 section 3.3). First
  * available wins: Task CompletedDateTime, ActivityDate (a date, taken as UTC midnight), then
  * LastModifiedDate; Event StartDateTime then LastModifiedDate; Account/Opportunity/Contact
- * LastModifiedDate. No value at all gives `{occurredAt: null, occurredAtSource: null}`.
+ * LastModifiedDate. An activity candidate later than the retrieval time (an open task's due date,
+ * a scheduled meeting) is skipped, so it never ranks as recent data. No value at all gives
+ * `{occurredAt: null, occurredAtSource: null}`.
+ * @param {object} def
+ * @param {object} row
+ * @param {string} retrievedAt ISO retrieval time of the record
  */
-export function occurredAtOf(def, row) {
-  const candidates = [];
+export function occurredAtOf(def, row, retrievedAt) {
+  const activity = [];
   if (def.name === "Task") {
-    candidates.push(["CompletedDateTime", () => optionalDateTime(row.CompletedDateTime)]);
-    candidates.push(["ActivityDate", () => dateToDateTime(row.ActivityDate)]);
+    activity.push(["CompletedDateTime", () => optionalDateTime(row.CompletedDateTime)]);
+    activity.push(["ActivityDate", () => dateToDateTime(row.ActivityDate)]);
   } else if (def.name === "Event") {
-    candidates.push(["StartDateTime", () => optionalDateTime(row.StartDateTime)]);
+    activity.push(["StartDateTime", () => optionalDateTime(row.StartDateTime)]);
   }
-  candidates.push(["LastModifiedDate", () => optionalDateTime(row.LastModifiedDate)]);
-  for (const [source, read] of candidates) {
+  const retrievedMs = Date.parse(retrievedAt);
+  for (const [source, read] of activity) {
     const value = read();
-    if (value !== null) return { occurredAt: value, occurredAtSource: source };
+    if (value !== null && !(Date.parse(value) > retrievedMs)) return { occurredAt: value, occurredAtSource: source };
   }
-  return { occurredAt: null, occurredAtSource: null };
+  const modified = optionalDateTime(row.LastModifiedDate);
+  return modified === null ? { occurredAt: null, occurredAtSource: null } : { occurredAt: modified, occurredAtSource: "LastModifiedDate" };
 }
 
 /**
@@ -88,7 +94,7 @@ export function mapRecord(def, row, ctx) {
 
   const whatId = def.extra.includes("WhatId") ? idOrNull(row.WhatId, "invalid_what_id") : null;
   const whoId = def.extra.includes("WhoId") ? idOrNull(row.WhoId, "invalid_who_id") : null;
-  const { occurredAt, occurredAtSource } = occurredAtOf(def, row);
+  const { occurredAt, occurredAtSource } = occurredAtOf(def, row, ctx.retrievedAt);
   if (occurredAtSource === "LastModifiedDate") lines.push(lastModifiedLine(def.name, recordName, occurredAt));
 
   const metadata = {

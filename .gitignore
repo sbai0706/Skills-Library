@@ -9,4 +9,4 @@ coverage/
 .captures/
 
 # Local, human-maintained config that may contain customer names. NEVER commit.
-local/
+/local/

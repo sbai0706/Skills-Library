@@ -69,6 +69,9 @@ function parseArgs(argv) {
   if (Object.hasOwn(parsed, "--m365-mapping") && modes.length === 1 && modes[0] === "--init-capture") {
     throw new Error("--m365-mapping is not valid with --init-capture.");
   }
+  if (Object.hasOwn(parsed, "--m365-mapping") && modes.length === 1 && modes[0] === "--validate") {
+    throw new Error("--m365-mapping with --validate requires --account-id (the mapping is only used to check planned calls).");
+  }
   if (Object.hasOwn(parsed, "--account-id") && !isValidAccountId(parsed["--account-id"].trim())) {
     throw new Error("--account-id must be sf_ followed by the 18-character Salesforce Account Id (or a mapped acct_ id).");
   }

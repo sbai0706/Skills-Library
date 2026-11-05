@@ -71,6 +71,10 @@ export function toM365AdapterError(thrown) {
   if (thrown?.code === "TOOL_ERROR" && thrown.payload !== undefined) {
     return classifyM365Error(thrown.payload) ?? mapMcpError(thrown);
   }
+  // Native JS programming errors are defects, never a transient transport failure.
+  if (thrown?.code === undefined && [TypeError, ReferenceError, RangeError, SyntaxError].some((type) => thrown instanceof type)) {
+    return internalM365Error();
+  }
   return mapMcpError(thrown);
 }
 
@@ -88,4 +92,9 @@ export function classifyIsErrorResult(result) {
   const structured = classifyM365Error(result?.structuredContent);
   if (structured) return structured;
   return unwrapToolResult(result).error;
+}
+
+/** Unexpected internal exception inside the adapter: a defect, so never retryable. */
+export function internalM365Error() {
+  return adapterError("ADAPTER_UNAVAILABLE", "Microsoft 365 adapter failed unexpectedly.", false, { reason: "internal_error" });
 }

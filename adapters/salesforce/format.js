@@ -11,11 +11,19 @@ function bad(reason, extra) {
   return new SfAdapterError(malformed(reason, extra));
 }
 
+/** True for a real calendar day (no month/day rollover, e.g. 2026-02-31 is not). */
+function isRealDate(year, month, day) {
+  if (month < 1 || month > 12 || day < 1) return false;
+  return day <= new Date(Date.UTC(year, month, 0)).getUTCDate();
+}
+
 /** Salesforce `2026-03-01T10:00:00.000+0000` -> `2026-03-01T10:00:00.000Z`. Invalid -> malformed. */
 export function normalizeDateTime(raw) {
   if (typeof raw !== "string") throw bad("invalid_datetime");
   const text = raw.trim();
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:?\d{2})$/.test(text)) throw bad("invalid_datetime");
+  const [, year, month, day, hour, minute, second] = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/.exec(text);
+  if (!isRealDate(Number(year), Number(month), Number(day)) || Number(hour) > 23 || Number(minute) > 59 || Number(second) > 59) throw bad("invalid_datetime");
   const normalized = text.replace(/([+-]\d{2})(\d{2})$/, "$1:$2");
   const time = Date.parse(normalized);
   if (Number.isNaN(time)) throw bad("invalid_datetime");
@@ -27,13 +35,17 @@ export function optionalDateTime(raw) {
   return raw === null || raw === undefined || (typeof raw === "string" && raw.trim() === "") ? null : normalizeDateTime(raw);
 }
 
-/** Salesforce `date` (`2026-10-01`) -> `2026-10-01T00:00:00.000Z`; absent -> null; wrong shape -> malformed. */
+/**
+ * Salesforce `date` (`2026-10-01`) -> `2026-10-01T00:00:00.000Z`; absent -> null; wrong shape ->
+ * malformed; an impossible calendar date (`2026-02-31`) is treated as missing (null) so the next
+ * `occurred_at` fallback applies.
+ */
 export function dateToDateTime(raw) {
   if (raw === null || raw === undefined) return null;
   if (typeof raw !== "string") throw bad("value_type_mismatch", { value_type: "date" });
   if (raw.trim() === "") return null;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw) || Number.isNaN(Date.parse(`${raw}T00:00:00.000Z`))) throw bad("invalid_date");
-  return `${raw}T00:00:00.000Z`;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) throw bad("invalid_date");
+  return isRealDate(Number(raw.slice(0, 4)), Number(raw.slice(5, 7)), Number(raw.slice(8, 10))) ? `${raw}T00:00:00.000Z` : null;
 }
 
 function cut(text) {

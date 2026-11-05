@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import YAML from "yaml";
 import { validate } from "../../schemas/index.js";
 import { FOLDER_NAME_MAX, MAX_LOCATIONS_PER_ACCOUNT, PREFIX_MAX } from "./constants.js";
-import { safeDecode } from "./format.js";
+import { parseWebUrl, safeDecode } from "./format.js";
 
 /**
  * Account -> SharePoint location mapping (P4 design section 2, with Decisions 1 and 2 of
@@ -134,18 +134,25 @@ export function isPersonalUrl(webUrl) {
   let url;
   try { url = new URL(webUrl); } catch { return false; }
   if (/-my\.sharepoint\.com$/i.test(url.hostname)) return true;
-  return url.pathname.split("/").some((segment) => safeDecode(segment).toLowerCase() === "personal");
+  const rawPath = webUrl.replace(/^[a-z]+:\/\/[^/]*/i, "").split(/[?#]/)[0];
+  return [url.pathname, rawPath].some((path) => path.split("/").some((segment) => safeDecode(segment).toLowerCase() === "personal"));
 }
 
 /**
- * Locations whose prefix contains `webUrl` at a path-segment boundary (case-insensitive). The raw
- * URL and its percent-decoded form are both compared (mapping prefixes are unencoded).
+ * Locations whose prefix contains `webUrl` at a path-segment boundary. The URL is parsed from its
+ * raw string into host + percent-decoded segments (see `parseWebUrl`); a URL with a `.`/`..`
+ * segment, an encoded or literal `/` or `\` inside a segment, userinfo, a port or a non-https
+ * scheme matches nothing (it counts as outside the mapping). Host and segments are compared
+ * case-insensitively as arrays, never by string prefix. Prefixes are unencoded as written.
  */
 export function matchPrefix(webUrl, locations) {
-  const raw = webUrl.toLowerCase();
-  const decoded = safeDecode(webUrl).toLowerCase();
+  const url = parseWebUrl(webUrl);
+  if (url === null) return [];
+  const lower = url.segments.map((segment) => segment.toLowerCase());
   return locations.filter((location) => {
-    const prefix = `${location.key}/`;
-    return raw.startsWith(prefix) || decoded.startsWith(prefix);
+    const prefix = parseWebUrl(location.prefix);
+    if (prefix === null || prefix.host !== url.host) return false;
+    if (prefix.segments.length >= lower.length) return false; // the document sits strictly below the folder
+    return prefix.segments.every((segment, index) => segment.toLowerCase() === lower[index]);
   });
 }

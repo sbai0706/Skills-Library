@@ -61,9 +61,11 @@ library never calls Salesforce or Microsoft 365: you, the host agent, call the r
 tools and record the raw results in capture files that the CLI replays (no fixture fallback). Ranking
 is only meaningful with at least two sources; one source is a valid ranking of one source.
 
-Salesforce `occurred_at` is its last-modified data timestamp (a Task uses its completion time, else
-due date, else last modified; an Event its start, else last modified); SharePoint `occurred_at` is the
-document's last-modified time. Both are compared by `source.rank` on the same field.
+Salesforce `occurred_at` is a Task's completion time, else its due date, else LastModifiedDate, and an
+Event's start, else LastModifiedDate; an activity time that is later than the retrieval time (an open
+task's due date, a scheduled meeting) is skipped, so the record falls back to LastModifiedDate. Account,
+Opportunity and Contact use LastModifiedDate. SharePoint `occurred_at` is the document's last-modified
+time. `source.rank` compares both on the same `occurred_at` field.
 
 1. Follow the "Live Salesforce (capture) mode" steps of the `prepare-first-meeting` wrapper to resolve
    the account and capture its Salesforce Phase 1 and Phase 2 into `.captures/<account-slug>.json`
@@ -88,8 +90,11 @@ document's last-modified time. Both are compared by `source.rank` on the same fi
      capture", ignore any stdout ranking, and re-capture the calls named by `salesforce-capture-plan`
      or `m365-capture-plan`.
    - Report the stderr diagnostics as counts, exactly as printed (`M365_NOT_MAPPED`,
-     `M365_PERSONAL_EXCLUDED`, `M365_OUTSIDE_MAPPING_EXCLUDED`, ...). Salesforce and SharePoint
-     timestamps are last-modified times: say "last modified", not "published".
+     `M365_PERSONAL_EXCLUDED`, `M365_OUTSIDE_MAPPING_EXCLUDED`, ...). Say "data timestamp" or "last
+     modified" as appropriate, never "published": SharePoint timestamps are last-modified times, and
+     Salesforce Task/Event timestamps are the activity time when it is not in the future, otherwise
+     LastModifiedDate. Never quote or summarise content from hits outside the mapped locations or from
+     personal OneDrive (the library drops them; the raw capture stays on disk only).
 5. Never paste raw captures, connector payloads, snippets, file names or paths into chat; keep captures
    under the git-ignored `.captures/`; never commit them. The ranking is recency ordering only.
 

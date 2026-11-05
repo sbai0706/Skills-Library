@@ -51,6 +51,7 @@ test("invalid invocations exit 1 with a diagnostic and no stdout", () => {
     [["--account-id", NORTHWIND_SF_ID, "--check-mapping"], /cannot be combined/],
     [["--init-capture", ".captures/x.json", "--validate", "y.json"], /cannot be combined/],
     [["--init-capture", ".captures/x.json", "--m365-mapping", MAPPING], /not valid with --init-capture/],
+    [["--validate", "x.json", "--m365-mapping", MAPPING], /--m365-mapping with --validate requires --account-id/],
   ];
   for (const [args, message] of cases) {
     const result = plan(args);
@@ -122,7 +123,7 @@ test("--check-mapping prints counts and indexes only", () => {
 });
 
 test("the default mapping path is local/m365-account-mapping.yaml, which is git-ignored", () => {
-  assert.match(readFileSync(resolve(root, ".gitignore"), "utf8"), /^local\/$/m);
+  assert.match(readFileSync(resolve(root, ".gitignore"), "utf8"), /^\/local\/$/m);
   if (!existsSync(resolve(root, "local/m365-account-mapping.yaml"))) {
     const result = plan(["--check-mapping"]);
     assert.equal(result.status, 1);

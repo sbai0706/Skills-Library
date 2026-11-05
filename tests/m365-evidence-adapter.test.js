@@ -2,7 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { createM365SharePointEvidenceAdapter, searchArgs, validateM365AccountMapping } from "../adapters/m365/index.js";
+import {
+  createM365SharePointEvidenceAdapter, isPersonalUrl, matchPrefix, searchArgs, toM365AdapterError, validateM365AccountMapping,
+} from "../adapters/m365/index.js";
 import { McpClientError, ReplayMcpClient } from "../adapters/mcp/index.js";
 import { retrieveEvidence } from "../skills/evidence-retrieve/index.js";
 import { validate } from "../schemas/index.js";
@@ -135,10 +137,48 @@ test("personal hits are dropped even when a (hand-built, unvalidated) location w
   const prefix = "https://contoso-my.sharepoint.com/personal/someone_contoso_com/Documents/Northwind";
   const handBuilt = { status: "provisional", accounts: [{ account_id: NORTHWIND_SF_ID, locations: [{ prefix, key: prefix.toLowerCase(), folder_name: "Northwind", classification: null }] }] };
   const personal = m365Hit({ n: 1, webUrl: `${prefix}/Draft.docx` });
+  // Guard against a vacuous test: without the personal rule this hit WOULD match the hand-built location.
+  assert.equal(matchPrefix(personal.webUrl, handBuilt.accounts[0].locations).length, 1);
+  assert.equal(isPersonalUrl(personal.webUrl), true);
   const entries = [m365Entry("Northwind", 0, { result: m365Page([personal]) })];
   const { result, diagnostics } = await retrieve(entries, { mapping: handBuilt });
   assert.deepEqual(ok(result), []);
   assert.deepEqual(diagnostics, [{ code: "M365_PERSONAL_EXCLUDED", count: 1 }]);
+
+  // Same for a /personal/ path segment on an ordinary SharePoint host.
+  const segmentPrefix = `${SALES_PREFIX}/personal`;
+  const segmentMapping = { status: "provisional", accounts: [{ account_id: NORTHWIND_SF_ID, locations: [{ prefix: segmentPrefix, key: segmentPrefix.toLowerCase(), folder_name: "Northwind Traders", classification: null }] }] };
+  const inPersonal = m365Hit({ n: 2, webUrl: `${segmentPrefix}/Draft.docx` });
+  assert.equal(matchPrefix(inPersonal.webUrl, segmentMapping.accounts[0].locations).length, 1);
+  const segmentRun = await retrieve(page1([inPersonal]), { mapping: segmentMapping });
+  assert.deepEqual(ok(segmentRun.result), []);
+  assert.deepEqual(segmentRun.diagnostics, [{ code: "M365_PERSONAL_EXCLUDED", count: 1 }]);
+});
+
+test("path-traversal hits are dropped as outside the mapping, counted and never emitted", async () => {
+  const base = SALES_PREFIX;
+  const evil = [
+    `${base}/../../../OtherSite/Shared Documents/Secret One.docx`,
+    `${base}/%2e%2e/%2e%2e/OtherSite/Secret Two.docx`,
+    `${base}/..%2F..%2FOtherSite/Secret Three.docx`,
+    `${base}/Sub%2FSecret Four.docx`,
+    `${base}/Sub\\Secret Five.docx`,
+    `${base}/../../../ExampleDelivery/Shared Documents/Clients/Secret Six.docx`,
+  ].map((webUrl, index) => m365Hit({ n: 10 + index, name: `Secret ${index}.docx`, webUrl }));
+  const fine = m365Hit({ n: 1 });
+  const { result, diagnostics } = await retrieve(page1([...evil, fine]));
+  const records = ok(result);
+  assert.deepEqual(records.map((r) => r.metadata.m365_item_id), [fine.id]);
+  assert.deepEqual(diagnostics, [{ code: "M365_OUTSIDE_MAPPING_EXCLUDED", count: 6 }]);
+  assert.ok(!JSON.stringify([records, diagnostics]).match(/OtherSite|Secret/));
+});
+
+test("the emitted location and site come from the same segments that were matched", async () => {
+  const hit = m365Hit({ n: 1, webUrl: "https://CONTOSO.sharepoint.com/SITES/examplesales/shared%20documents/northwind%20traders/Sub%20Folder/Mixed%20Case.docx" });
+  const [record] = ok((await retrieve(page1([hit]))).result);
+  assert.equal(record.metadata.m365_location, "/SITES/examplesales/shared documents/northwind traders/Sub Folder");
+  assert.equal(record.metadata.m365_site, "examplesales");
+  assert.ok(record.content.includes("Location: /SITES/examplesales/shared documents/northwind traders/Sub Folder"));
 });
 
 // ---------------------------------------------------------------- pagination
@@ -250,11 +290,16 @@ test("kept hits that break the strict check make the source malformed", async ()
     "uri inconsistent with driveId/id": m365Hit({ n: 1, uri: "file:///b!SYNdrive0001/01SYNOTHER" }),
     "date without Z": m365Hit({ n: 1, lastModified: "2026-09-03T15:28:28+02:00" }),
     "date garbage": m365Hit({ n: 1, lastModified: "yesterday" }),
+    "February 31 (would roll over)": m365Hit({ n: 1, lastModified: "2026-02-31T10:00:00Z" }),
+    "February 29 in a non-leap year": m365Hit({ n: 1, lastModified: "2026-02-29T10:00:00.000Z" }),
+    "April 31": m365Hit({ n: 1, lastModified: "2026-04-31T10:00:00.000Z" }),
+    "month 00": m365Hit({ n: 1, lastModified: "2026-00-10T10:00:00.000Z" }),
+    "hour 24": m365Hit({ n: 1, lastModified: "2026-03-10T24:00:00.000Z" }),
     "impossible date": m365Hit({ n: 1, lastModified: "2026-13-45T25:61:61Z" }),
     "date missing": m365Hit({ n: 1, lastModifiedDateTime: undefined }),
     "driveId missing": m365Hit({ n: 1, driveId: "" }),
     "id not a string": m365Hit({ n: 1, id: 5, uri: "file:///b!SYNdrive0001/5" }),
-    "name blank": m365Hit({ n: 1, name: "  " }),
+    "name blank": m365Hit({ n: 1, name: "  ", webUrl: `${SALES_PREFIX}/real.docx` }),
     "content a number": m365Hit({ n: 1, content: 7 }),
     "summary an object": m365Hit({ n: 1, summary: {} }),
   };
@@ -276,6 +321,41 @@ test("a hit without a webUrl is malformed", async () => {
 test("null content and summary (archives) are accepted", async () => {
   const [record] = ok((await retrieve(page1([m365Hit({ n: 1, content: null, summary: null })]))).result);
   assert.equal(record.metadata.m365_snippet, undefined);
+});
+
+test("a missing content or summary key is the same as null", async () => {
+  const hit = m365Hit({ n: 1 });
+  delete hit.content;
+  delete hit.summary;
+  const [record] = ok((await retrieve(page1([hit]))).result);
+  assert.equal(record.metadata.m365_snippet, undefined);
+  const onlySummary = m365Hit({ n: 2, summary: "from summary" });
+  delete onlySummary.content;
+  const [second] = ok((await retrieve(page1([onlySummary]))).result);
+  assert.ok(second.content.endsWith("from summary"));
+});
+
+test("valid timestamps pass the calendar round trip: leap day, fractions of any length, no fraction", async () => {
+  for (const lastModified of ["2028-02-29T10:00:00.000Z", "2026-03-10T10:00:00Z", "2026-03-10T10:00:00.1Z", "2026-03-10T10:00:00.123456789Z", "2026-12-31T23:59:59.999Z"]) {
+    const { result } = await retrieve(page1([m365Hit({ n: 1, lastModified })]));
+    assert.equal(result.ok, true, lastModified);
+  }
+});
+
+test("unexpected internal exceptions are non-retryable internal_error; transport failures stay transient", async () => {
+  const exploding = { status: "provisional", accounts: new Proxy([], { get(target, key) { if (key === "find") throw new TypeError("boom with /sites/Secret/path"); return target[key]; } }) };
+  const { adapter } = setup([], { mapping: exploding });
+  const result = await adapter.retrieve(request());
+  assert.equal(result.ok, false);
+  assert.equal(result.error.code, "ADAPTER_UNAVAILABLE");
+  assert.equal(result.error.retryable, false);
+  assert.equal(result.error.details.reason, "internal_error");
+  assert.ok(!JSON.stringify(result.error).includes("Secret"));
+  assert.equal(toM365AdapterError(new TypeError("x")).details.reason, "internal_error");
+  assert.equal(toM365AdapterError(new RangeError("x")).retryable, false);
+  const transport = toM365AdapterError(new Error("socket hang up"));
+  assert.equal(transport.details.reason, "transport_error");
+  assert.equal(transport.retryable, true);
 });
 
 // ---------------------------------------------------------------- hit -> record
@@ -382,6 +462,14 @@ test("snippets: summary is the fallback, a null summary and a snippet equal to t
   assert.equal(sameAsName.snippet, null);
   const onlyTags = await snippetOf(m365Hit({ n: 1, content: "<c0></c0>" }));
   assert.equal(onlyTags.snippet, null);
+});
+
+test("snippets: marker stripping is case-insensitive and loops until stable (no re-formed markers)", async () => {
+  const upper = await snippetOf(m365Hit({ n: 1, content: "<C0>Alpha</C0> beta<DDD/>gamma<Ddd />" }));
+  assert.equal(upper.snippet, "Alpha beta ... gamma ...");
+  const nested = await snippetOf(m365Hit({ n: 1, content: "x <<c0>c0>y</c0> and <</c1>c1>z<<ddd/>ddd/>" }));
+  assert.ok(!/<\/?c\d+>/i.test(nested.snippet) && !/<ddd/i.test(nested.snippet), nested.snippet);
+  assert.ok(nested.snippet.includes("y") && nested.snippet.includes("z"));
 });
 
 test("snippet text is a single line: it cannot forge field lines, and never reaches diagnostics", async () => {

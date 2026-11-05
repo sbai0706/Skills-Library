@@ -96,6 +96,9 @@ export function assertCaptureSources(sources, { m365 = false } = {}) {
   if (!m365 && sources.includes("internal_document")) {
     throw new Error("--sources internal_document requires --capture-m365 PATH (and --m365-mapping): no M365 capture was given.");
   }
+  if (m365 && !sources.includes("internal_document")) {
+    process.stderr.write("capture: WARNING: --capture-m365 is given but --sources excludes internal_document; the M365 capture will not be used.\n");
+  }
 }
 
 /**

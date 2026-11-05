@@ -29,17 +29,42 @@ export function safeDecode(text) {
   try { return decodeURIComponent(text); } catch { return text; }
 }
 
-/** Decoded pathname without the final (file) segment, host omitted, cleaned and cut. */
-export function locationOf(webUrl) {
-  const pathname = safeDecode(new URL(webUrl).pathname);
-  const index = pathname.lastIndexOf("/");
-  return cutTo(cleanText(index > 0 ? pathname.slice(0, index) : pathname), LOCATION_MAX);
+/**
+ * Parse a document `webUrl` into `{host, segments}` from the RAW string (WHATWG URL parsing would
+ * silently resolve `..`, so it is not used for the path). The path is split on `/` and each
+ * segment is percent-decoded once. Returns null (the hit counts as outside every mapping) for:
+ * a non-https URL, userinfo, a port, a query-less/fragment-less cut that leaves no path, an empty
+ * segment, a `.` or `..` segment (raw or decoded), a segment that contains `/` or `\` after
+ * decoding, or a malformed percent escape.
+ */
+export function parseWebUrl(webUrl) {
+  if (typeof webUrl !== "string") return null;
+  const match = /^https:\/\/([^/?#]*)([^?#]*)/i.exec(webUrl.trim());
+  if (!match) return null;
+  const authority = match[1];
+  if (authority === "" || /[@:\s]/.test(authority)) return null;
+  const rawSegments = match[2].split("/").slice(1);
+  if (rawSegments.length === 0) return null;
+  const segments = [];
+  for (const raw of rawSegments) {
+    if (raw === "" || raw === "." || raw === "..") return null;
+    let decoded;
+    try { decoded = decodeURIComponent(raw); } catch { return null; }
+    if (decoded === "." || decoded === ".." || /[/\\]/.test(decoded)) return null;
+    segments.push(decoded);
+  }
+  return { host: authority.toLowerCase(), segments };
 }
 
-/** Decoded segment after `/sites/` or `/teams/`, cleaned. */
+/** Decoded folder path (host omitted, final file segment dropped), from the same segments that were matched. */
+export function locationOf(webUrl) {
+  const parsed = parseWebUrl(webUrl);
+  return cutTo(cleanText(`/${(parsed?.segments ?? []).slice(0, -1).join("/")}`), LOCATION_MAX);
+}
+
+/** Decoded segment after `/sites/` or `/teams/`, cleaned, from the same segments that were matched. */
 export function siteOf(webUrl) {
-  const segments = safeDecode(new URL(webUrl).pathname).split("/").filter((segment) => segment !== "");
-  return cleanText(segments[1] ?? "");
+  return cleanText(parseWebUrl(webUrl)?.segments[1] ?? "");
 }
 
 /**
@@ -52,7 +77,12 @@ export function cleanSnippet(hit) {
     ? hit.content
     : typeof hit.summary === "string" && hit.summary.trim() !== "" ? hit.summary : null;
   if (source === null) return null;
-  const text = cleanText(source.replace(/<\/?c\d+>/g, "").replace(/<ddd\s*\/>/g, " ... "));
+  let stripped = source;
+  for (let previous = null; previous !== stripped;) {
+    previous = stripped;
+    stripped = stripped.replace(/<\/?c\d+>/gi, "").replace(/<ddd\s*\/>/gi, " ... ");
+  }
+  const text = cleanText(stripped);
   if (text === "" || text === cleanText(hit.name)) return null;
   const chars = [...text];
   return chars.length > SNIPPET_MAX ? `${chars.slice(0, SNIPPET_MAX).join("")} [truncated]` : text;
