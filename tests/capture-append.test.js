@@ -527,3 +527,57 @@ test("end to end: captures built only with --append replay through prepare-first
   assert.equal(m365Valid.status, 0, m365Valid.stdout);
 });
 
+// ---------------------------------------------------------------- hardening
+
+test("salesforce: --page-url must have the nextRecordsUrl shape, and the URL is never echoed", () => {
+  const capture = sfSkeleton();
+  const before = readFileSync(capture, "utf8");
+  for (const url of [`/evil/${SENTINEL}`, `/services/data/v66.0/query/abc?${SENTINEL}=1`, `https://example.invalid/services/data/v66.0/query/abc${SENTINEL}`, "/services/data/v66.0/sobjects/Account/x", "/services/data/v66.0/query/a/b"]) {
+    const result = sfAppend(capture, ["--page-url", url, "--result-file", payload({})]);
+    assertRefused(result, /--page-url must be a Salesforce nextRecordsUrl of the form/, capture, before);
+  }
+});
+
+test("append refuses a busy capture (exclusive lock) and releases the lock afterwards", () => {
+  const capture = sfSkeleton();
+  const lock = `${capture}.lock`;
+  writeFileSync(lock, "");
+  const before = readFileSync(capture, "utf8");
+  const args = ["--account", "Northwind Traders", "--step", "search", "--result-file", payload(sfOk("Account", [sfRow(1)]))];
+  assertRefused(sfAppend(capture, args), /capture is busy/, capture, before);
+  assert.ok(existsSync(lock), "a lock held by someone else is not removed");
+  const m365 = m365Skeleton();
+  writeFileSync(`${m365}.lock`, "");
+  assertRefused(m365Append(m365, ["--step", "search_1", "--result-file", payload(m365Page([m365Hit({ n: 1 })]))]), /capture is busy/, m365, readFileSync(m365, "utf8"));
+  rmSync(lock);
+  const ok = sfAppend(capture, args);
+  assert.equal(ok.status, 0, ok.stderr);
+  assert.ok(!existsSync(lock), "the lock is released after a successful append");
+  assertRefused(sfAppend(capture, args), /already this call/);
+  assert.ok(!existsSync(lock), "the lock is released after a refusal");
+});
+
+test("a call already recorded anywhere in the capture is refused; --replace-last only replaces the last entry", () => {
+  const capture = sfSkeleton();
+  const accountArgs = ["--account-id", NORTHWIND_ACCOUNT_ID, "--step", "Account"];
+  for (const step of ["Account", "Opportunity"]) {
+    const result = sfAppend(capture, ["--account-id", NORTHWIND_ACCOUNT_ID, "--step", step, "--result-file", payload(sfOk(step, [sfRow(1)]))]);
+    assert.equal(result.status, 0, result.stderr);
+  }
+  const before = readFileSync(capture, "utf8");
+  assertRefused(sfAppend(capture, [...accountArgs, "--result-file", payload(sfOk("Account", [sfRow(2)]))]), /already recorded in the capture/, capture, before);
+  assertRefused(sfAppend(capture, [...accountArgs, "--replace-last", "--result-file", payload(sfOk("Account", [sfRow(2)]))]), /--replace-last needs the last entry/, capture, before);
+  // a capture that already holds the call twice: --replace-last on the last one still refuses
+  const doc = JSON.parse(before);
+  doc.entries.push({ ...doc.entries[0], captured_at: "2026-11-05T10:00:09Z" });
+  writeFileSync(capture, JSON.stringify(doc));
+  const dup = readFileSync(capture, "utf8");
+  assertRefused(sfAppend(capture, [...accountArgs, "--replace-last", "--result-file", payload(sfOk("Account", [sfRow(3)]))]), /already recorded in the capture/, capture, dup);
+  // M365: a first page recorded earlier is refused later
+  const m365 = m365Skeleton();
+  assert.equal(m365Append(m365, ["--step", "search_1", "--result-file", payload(m365Page([m365Hit({ n: 1 })]))]).status, 0);
+  assert.equal(m365Append(m365, ["--step", "search_2", "--result-file", payload(m365Page([m365Hit({ n: 2 })]))]).status, 0);
+  const m365Before = readFileSync(m365, "utf8");
+  assertRefused(m365Append(m365, ["--step", "search_1", "--result-file", payload(m365Page([m365Hit({ n: 3 })]))]), /already recorded in the capture/, m365, m365Before);
+});
+

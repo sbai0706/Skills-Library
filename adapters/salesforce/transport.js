@@ -3,7 +3,8 @@ import { MAX_PAGES_PER_QUERY, SF_TOOL } from "./constants.js";
 import { classifySalesforceError, malformed, rawPayloadOf, toAdapterError } from "./errors.js";
 import { nextPageArgs, queryArgs } from "./capture-plan.js";
 
-const NEXT_URL = /^\/services\/data\/v\d+\.\d+\/query\/[A-Za-z0-9-]+$/;
+/** Shape of a valid `nextRecordsUrl`; also enforced by the capture-plan CLI for `--page-url`. */
+export const NEXT_URL = /^\/services\/data\/v\d+\.\d+\/query\/[A-Za-z0-9-]+$/;
 
 /** One call; returns {ok:true, body} or {ok:false, error}. Never throws. */
 async function callPage(client, args) {

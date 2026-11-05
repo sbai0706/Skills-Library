@@ -1,5 +1,5 @@
 import { mkdirSync, readFileSync, realpathSync, renameSync, statSync, unlinkSync, writeFileSync } from "node:fs";
-import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { CAPTURE_LIMITS, CaptureError, canonicalize, loadCapture } from "../adapters/mcp/index.js";
 
@@ -12,7 +12,7 @@ export class CaptureFileUsageError extends Error {}
 
 const underCaptures = (target) => {
   const rel = relative(CAPTURES_DIR, target);
-  return rel !== "" && !rel.startsWith("..") && !isAbsolute(rel);
+  return rel !== "" && rel !== ".." && !rel.startsWith(`..${sep}`) && !isAbsolute(rel);
 };
 
 /**
@@ -39,7 +39,7 @@ export function initCaptureFile(path, { sourceSystem, connector }) {
   };
   mkdirSync(dirname(target), { recursive: true });
   const realRel = relative(realpathSync(CAPTURES_DIR), realpathSync(dirname(target)));
-  if (realRel.startsWith("..") || isAbsolute(realRel)) {
+  if (realRel === ".." || realRel.startsWith(`..${sep}`) || isAbsolute(realRel)) {
     throw new CaptureFileUsageError("--init-capture refuses any target outside the repository's .captures/ directory.");
   }
   writeFileSync(target, `${JSON.stringify(doc, null, 2)}\n`, { flag: "wx" });
@@ -86,7 +86,7 @@ function realCapturesFile(path, flag) {
     throw refuse("must be an existing file under the repository's .captures/ directory.");
   }
   const rel = relative(realRoot, real);
-  if (rel === "" || rel.startsWith("..") || isAbsolute(rel)) throw refuse("must be a file under the repository's .captures/ directory.");
+  if (rel === "" || rel === ".." || rel.startsWith(`..${sep}`) || isAbsolute(rel)) throw refuse("must be a file under the repository's .captures/ directory.");
   let stats;
   try { stats = statSync(real); } catch { stats = null; }
   if (!stats?.isFile()) throw refuse("must be an existing file under the repository's .captures/ directory.");
@@ -138,50 +138,88 @@ export function appendCaptureEntry({
   const payloadFlag = outcome === "result" ? "--result-file" : "--error-file";
   const payload = realCapturesFile(resultFile ?? errorFile, payloadFlag);
   if (payload.real === capture.real) throw new CaptureFileUsageError(`${payloadFlag} must not be the capture file itself.`);
-  const value = readJsonFile(payload.real, payload.bytes, payloadFlag);
-  if (outcome === "error" && !isPlainObject(value)) throw new CaptureFileUsageError("--error-file must contain a JSON object.");
+  return withCaptureLock(capture.real, () => {
+    const value = readJsonFile(payload.real, payload.bytes, payloadFlag);
+    if (outcome === "error" && !isPlainObject(value)) throw new CaptureFileUsageError("--error-file must contain a JSON object.");
 
-  const doc = readJsonFile(capture.real, capture.bytes, "--append");
-  if (!isPlainObject(doc) || !isPlainObject(doc.capture) || !Array.isArray(doc.entries)) {
-    throw new CaptureFileUsageError("--append: the capture file is not a valid mcp-capture/1 document.");
-  }
-  if (doc.capture.source_system !== sourceSystem) {
-    throw new CaptureFileUsageError(`--append: this CLI appends only to captures with source_system ${sourceSystem}.`);
-  }
-  try { loadCapture(doc); } catch { throw new CaptureFileUsageError("--append: the existing capture file is not valid; run --validate."); }
+    const doc = readJsonFile(capture.real, capture.bytes, "--append");
+    if (!isPlainObject(doc) || !isPlainObject(doc.capture) || !Array.isArray(doc.entries)) {
+      throw new CaptureFileUsageError("--append: the capture file is not a valid mcp-capture/1 document.");
+    }
+    if (doc.capture.source_system !== sourceSystem) {
+      throw new CaptureFileUsageError(`--append: this CLI appends only to captures with source_system ${sourceSystem}.`);
+    }
+    try { loadCapture(doc); } catch { throw new CaptureFileUsageError("--append: the existing capture file is not valid; run --validate."); }
 
-  const last = doc.entries.at(-1);
-  const sameCall = last !== undefined && last.tool === tool && canonicalize(last.args) === canonicalize(args);
-  if (replaceLast && !sameCall) {
-    throw new CaptureFileUsageError("--replace-last needs the last entry to be the same call (same tool and args); nothing was changed.");
-  }
-  if (!replaceLast && sameCall) {
-    throw new CaptureFileUsageError("The last entry is already this call. To keep only the final attempt of a retry, append again with --replace-last.");
-  }
-  const remaining = replaceLast ? doc.entries.slice(0, -1) : doc.entries;
-  checkPriorEntries?.(remaining);
+    const last = doc.entries.at(-1);
+    const sameCall = last !== undefined && last.tool === tool && canonicalize(last.args) === canonicalize(args);
+    if (replaceLast && !sameCall) {
+      throw new CaptureFileUsageError("--replace-last needs the last entry to be the same call (same tool and args); nothing was changed.");
+    }
+    if (!replaceLast && sameCall) {
+      throw new CaptureFileUsageError("The last entry is already this call. To keep only the final attempt of a retry, append again with --replace-last.");
+    }
+    const remaining = replaceLast ? doc.entries.slice(0, -1) : doc.entries;
+    if (remaining.some((entry) => entry.tool === tool && canonicalize(entry.args) === canonicalize(args))) {
+      throw new CaptureFileUsageError("This call is already recorded in the capture; only the last entry can be replaced, with --replace-last.");
+    }
+    checkPriorEntries?.(remaining);
 
-  const entry = { tool, args, [outcome]: value, captured_at: timestamp };
-  const next = { ...doc, entries: [...remaining, entry] };
+    const entry = { tool, args, [outcome]: value, captured_at: timestamp };
+    const next = { ...doc, entries: [...remaining, entry] };
+    try {
+      loadCapture(next);
+    } catch (cause) {
+      throw new CaptureFileUsageError(cause instanceof CaptureError && cause.code === "CAPTURE_TOO_LARGE"
+        ? `The entry would exceed a capture limit (${cause.message}); nothing was changed.`
+        : "The entry would make the capture invalid; nothing was changed.");
+    }
+    const text = `${JSON.stringify(next, null, 2)}\n`;
+    const size = Buffer.byteLength(text, "utf8");
+    if (size > CAPTURE_LIMITS.maxFileBytes) {
+      throw new CaptureFileUsageError(`The capture file would exceed ${CAPTURE_LIMITS.maxFileBytes} bytes (${size}); nothing was changed.`);
+    }
+    const temp = join(dirname(capture.real), `.${basename(capture.real)}.${process.pid}.${Date.now()}.tmp`);
+    try {
+      writeFileSync(temp, text, { flag: "wx" });
+      renameWithRetry(temp, capture.real);
+    } catch {
+      try { unlinkSync(temp); } catch { /* temp file may not exist */ }
+      throw new CaptureFileUsageError("The capture file could not be written; it was not changed.");
+    }
+    return { entryIndex: remaining.length, entries: remaining.length + 1, replaced: replaceLast, outcome, capturedAt: timestamp, value };
+  });
+}
+
+/**
+ * Exclusive lock for one append: `<capture>.lock` is created with `wx` and removed in a `finally`
+ * (only if this call created it). Appends must run sequentially; a concurrent one is refused.
+ */
+function withCaptureLock(capturePath, action) {
+  const lock = `${capturePath}.lock`;
   try {
-    loadCapture(next);
-  } catch (cause) {
-    throw new CaptureFileUsageError(cause instanceof CaptureError && cause.code === "CAPTURE_TOO_LARGE"
-      ? `The entry would exceed a capture limit (${cause.message}); nothing was changed.`
-      : "The entry would make the capture invalid; nothing was changed.");
+    writeFileSync(lock, "", { flag: "wx" });
+  } catch (error) {
+    throw new CaptureFileUsageError(error?.code === "EEXIST"
+      ? "The capture is busy (another append is in progress, or a stale .lock file remains after a crash: remove it only if no append is running); nothing was changed."
+      : "The capture could not be locked; nothing was changed.");
   }
-  const text = `${JSON.stringify(next, null, 2)}\n`;
-  const size = Buffer.byteLength(text, "utf8");
-  if (size > CAPTURE_LIMITS.maxFileBytes) {
-    throw new CaptureFileUsageError(`The capture file would exceed ${CAPTURE_LIMITS.maxFileBytes} bytes (${size}); nothing was changed.`);
-  }
-  const temp = join(dirname(capture.real), `.${basename(capture.real)}.${process.pid}.${Date.now()}.tmp`);
   try {
-    writeFileSync(temp, text, { flag: "wx" });
-    renameSync(temp, capture.real);
-  } catch {
-    try { unlinkSync(temp); } catch { /* temp file may not exist */ }
-    throw new CaptureFileUsageError("The capture file could not be written; it was not changed.");
+    return action();
+  } finally {
+    try { unlinkSync(lock); } catch { /* already gone */ }
   }
-  return { entryIndex: remaining.length, entries: remaining.length + 1, replaced: replaceLast, outcome, capturedAt: timestamp, value };
+}
+
+/** `renameSync` with up to 3 attempts and a short pause on transient Windows errors. */
+function renameWithRetry(from, to) {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      renameSync(from, to);
+      return;
+    } catch (error) {
+      if (attempt >= 3 || !["EPERM", "EBUSY", "EACCES"].includes(error?.code)) throw error;
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 50 * attempt);
+    }
+  }
 }

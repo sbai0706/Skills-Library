@@ -126,15 +126,22 @@ npm run m365-capture-plan -- --append .captures/<slug>-m365.json --account-id sf
 The entry is `{tool, args, result|error, captured_at}` where `tool` and `args` come from the plan
 step (or `nextPageArgs(url)`), never from host-typed JSON, so they are byte-identical to what replay
 matches on. The payload is parsed and stored exactly as given: no normalisation and no redaction at
-write time (`loadCapture` redacts at read time, as before). A UTF-8 BOM is tolerated.
+write time (`loadCapture` redacts at read time, as before). A UTF-8 BOM is tolerated. Payloads are
+parsed and re-serialized, so key order and whitespace are normalised, numbers beyond 2^53 lose
+precision and duplicate keys collapse (the last wins); this is the same view `loadCapture` has of the
+file. The first append also re-formats a compact capture file as pretty-printed JSON.
 
 Refusals (exit 1, the capture is not modified, nothing payload-derived is printed): a result/error
 file or capture outside `<repo>/.captures/` (real paths, so symlinks cannot escape), a missing
 capture or payload file, non-JSON input, an `--error-file` that is not an object, a capture whose
 `source_system` is not this CLI's (salesforce / m365), an invalid existing capture, an invalid
-`--captured-at`, an unknown `--step`, a `--page-url`/`--offset` that does not follow a recorded
+`--captured-at`, an unknown `--step`, a `--page-url` that is not a Salesforce `nextRecordsUrl`
+(`/services/data/vNN.N/query/<id>`) or a `--page-url`/`--offset` that does not follow a recorded
 page, an entry over 2 MB, a file that would exceed 20 MB (checked on the pretty-printed file that is
-written) or 1000 entries, and a duplicate of the last entry's tool and args without `--replace-last`.
+written) or 1000 entries, a call (tool and args) that is already recorded anywhere in the capture (only
+`--replace-last` can replace, and only the last entry), and a capture that is busy: each append takes an
+exclusive `<capture>.lock` file for its duration, so appends must run one at a time (a leftover lock
+after a crash may be deleted once no append is running).
 Existing entries are never reordered or overwritten; the file is written to a temp file in the same
 directory and renamed over the capture.
 

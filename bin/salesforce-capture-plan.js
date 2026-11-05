@@ -5,6 +5,7 @@ import { loadCapture, canonicalize, unwrapToolResult } from "../adapters/mcp/ind
 import { warnIfNotGitIgnored } from "../cli/capture-mode.js";
 import { CaptureFileUsageError, appendCaptureEntry, initCaptureFile, selectPlanStep } from "../cli/capture-files.js";
 import { accountSearchPlan, evidencePlan, nextPageArgs, parseSfAccountId, SF_TOOL } from "../adapters/salesforce/index.js";
+import { NEXT_URL } from "../adapters/salesforce/transport.js";
 import { toSearchTerm } from "../skills/account-resolve/search.js";
 
 const HELP = `Usage: npm run salesforce-capture-plan -- <mode> [options]
@@ -26,7 +27,8 @@ Modes:
   --append PATH            Append ONE recorded call to the capture at PATH (an existing file under .captures/,
                            created with --init-capture). The tool and args come from the printed plan step,
                            never from you. Needs --result-file or --error-file, plus either
-                           --step with --account or --account-id (a plan call), or --page-url (a page).
+                           --step with exactly one of --account / --account-id (a plan call), or
+                           --page-url (a page).
   --source-system VALUE    Only with --init-capture; must be salesforce
   --help                   Show this help
 
@@ -250,6 +252,9 @@ function appendEntry(parsed) {
   let checkPriorEntries;
   if (Object.hasOwn(parsed, "--page-url")) {
     const url = parsed["--page-url"].trim();
+    if (!NEXT_URL.test(url)) {
+      throw new CaptureFileUsageError("--page-url must be a Salesforce nextRecordsUrl of the form /services/data/vNN.N/query/<id>; nothing was changed.");
+    }
     args = nextPageArgs(url);
     checkPriorEntries = (entries) => {
       const follows = entries.some((entry) => entry.tool === SF_TOOL && entry.result !== undefined && nextRecordsUrlOf(entry.result) === url);
