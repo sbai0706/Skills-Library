@@ -37,6 +37,13 @@ const SPECS = [
     options: ["--fixture", "--output", "northstar-example"],
     fixtures: [],
   },
+  {
+    name: "source-rank",
+    script: "source-rank",
+    executable: "source-rank.js",
+    options: ["--fixture", "--account", "--now", "--output"],
+    fixtures: ["source-rank-recency"],
+  },
 ];
 
 function readSkill(spec) {
@@ -200,4 +207,21 @@ test("opportunity-strategy fixture CLI returns a cited partial artifact", () => 
   const workflow = workflowResult(result, 2, "partial");
   assert.equal(workflow.workflow, "opportunity-strategy");
   assert.ok(workflow.evidence_ids.length > 0);
+});
+
+test("source-rank fixture CLI returns its recency-only partial ranking", () => {
+  const result = invokeCli("source-rank", [
+    "--fixture", "source-rank-recency", "--output", "json",
+  ]);
+  assert.equal(result.error, undefined, result.error?.message);
+  assert.equal(result.status, 2, result.stderr);
+  assert.equal(result.stdout.trim().split(/\r?\n/).length, 1, result.stdout);
+  const skill = JSON.parse(result.stdout);
+  assert.equal(skill.skill, "source.rank");
+  assert.equal(skill.status, "partial");
+  assert.equal(skill.data.ranking_basis, "data_recency_only");
+  assert.ok(skill.data.sources.length > 0);
+  for (const diagnostic of [...skill.warnings, ...skill.errors]) {
+    assert.ok(result.stderr.includes(diagnostic.code), `stderr omitted ${diagnostic.code}`);
+  }
 });

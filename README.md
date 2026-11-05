@@ -28,7 +28,7 @@ signal, persona, and offering registries remain provisional fixtures, and the sa
 entries are placeholders pending business review. See
 [workflows/prepare-first-meeting-v2/WORKFLOW.md](workflows/prepare-first-meeting-v2/WORKFLOW.md).
 
-The core skills are plain JavaScript functions with no model-provider dependency. Four selected
+The core skills are plain JavaScript functions with no model-provider dependency. Five selected
 repo-local Claude Code wrappers live under `.claude/skills` and invoke the portable fixture CLIs;
 see the [agent skills usage guide](docs/AGENT_SKILLS.md) for installation, invocation, and limits.
 The wrappers' frontmatter and CLI paths are tested, but Claude Code runtime discovery itself has
@@ -167,7 +167,7 @@ web, contact a CRM, send a message, or establish that a caller mapping is true o
 These are Skills Library deliverables, not a complete customer pilot. `success` and `partial` are
 workflow execution/output statuses, not business approval; CLI exit code `2` means a usable partial
 artifact with explicit gaps. See the [Phase 1 plan](docs/PHASE1_SKILLS_PLAN.md) for the acceptance
-record, unresolved business rules, and external host dependencies. The four Claude Code wrappers are
+record, unresolved business rules, and external host dependencies. The five Claude Code wrappers are
 selected invocations, not wrappers for every internal skill or every workflow: Account Intelligence
 v2 currently has a portable CLI but no `/prepare-first-meeting-v2` wrapper.
 
@@ -336,6 +336,7 @@ docs/
   prepare-engagement/           Initial/follow-up draft wrapper
   qualification/                Advisory evidence-assessment wrapper
   opportunity-strategy/         Tentative strategy wrapper
+  source-rank/                  Recency-only source ranking wrapper
 
 tests/
   schemas.test.js               Envelope, evidence, source-record, and error schema tests

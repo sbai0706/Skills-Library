@@ -13,7 +13,8 @@
     "prepare-first-meeting-v2": "node bin/prepare-first-meeting-v2.js",
     "opportunity-strategy": "node bin/opportunity-strategy.js",
     "qualification": "node bin/qualification.js",
-    "prepare-engagement": "node bin/prepare-engagement.js"
+    "prepare-engagement": "node bin/prepare-engagement.js",
+    "source-rank": "node bin/source-rank.js"
   },
   "dependencies": {
     "ajv": "^8.17.1",

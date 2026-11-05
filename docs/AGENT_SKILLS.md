@@ -2,7 +2,7 @@
 
 仓库内 `.claude/skills/<skill-name>/SKILL.md` 是 Claude Code 项目级 skill
 入口；`skills/` 下的 JavaScript 模块、schemas、fixtures 和 workflows 是实现，不是
-可直接复制进 `.claude` 的安装包。这四个 wrapper 会让 agent 从完整仓库根目录调用现有
+可直接复制进 `.claude` 的安装包。这五个 wrapper 会让 agent 从完整仓库根目录调用现有
 CLI。它们只覆盖当前选定的已完成工作流；不是所有内部 skill，也不代表业务功能已完成。
 
 | Skill | 适用场景 | 输出与边界 |
@@ -11,6 +11,7 @@ CLI。它们只覆盖当前选定的已完成工作流；不是所有内部 skil
 | `prepare-engagement` | 准备初次 outreach/会议材料，或使用明确证据引用起草 source-neutral follow-up | 人工审核用草稿；不发送消息、不写 CRM。CLI 当前只加载仓库 fixture，不接收任意 claim ID 或自由文本证据。 |
 | `qualification` | 查看标准条件映射及六个 compelling-event 字段的证据状态 | Advisory assessment；criteria fixture 是 provisional，不能据此认定资格通过或 stage readiness。 |
 | `opportunity-strategy` | 查看 evidence-linked 问题、offering 和 tentative value hypotheses | `northstar-example` 示例策略；offerings/value 假设不构成批准的建议或业务案例。 |
+| `source-rank` | 按数据新近度（recency）对账号的数据来源排序或比较 | 仅 `source-rank-recency` fixture；只是 recency 排序，不判断可靠性或策略，不做实时研究。fixture 状态为 `partial`（退出码 2）。 |
 
 ## 你和同事的安装/准备步骤
 
@@ -26,7 +27,7 @@ Code。只复制 `.claude/skills` 或 `skills/` 到 `.claude` 都不够；CLI �
    Claude Code 项目上下文中发现。若已打开会话未看到 skill，重新加载项目会话后再试。
 4. 可先运行 `npm test`，确认当前仓库测试状态；再运行下方 fixture 命令核对结果。
 
-测试覆盖 wrapper frontmatter、资源引用和五个 fixture CLI invocation；Claude Code 实际
+测试覆盖 wrapper frontmatter、资源引用和六个 fixture CLI invocation；Claude Code 实际
 slash-command 发现/执行及模型表现尚未在 runtime 中验证。Account Intelligence v2 有单独
 的 fixture CLI，目前没有对应的 `/prepare-first-meeting-v2` wrapper。
 
@@ -38,10 +39,11 @@ slash-command 发现/执行及模型表现尚未在 runtime 中验证。Account 
 /prepare-engagement 用明确的同账号后续证据准备 source-neutral follow-up 草稿
 /qualification 查看 Northstar Logistics 的 qualification 证据状态
 /opportunity-strategy 查看 Northstar 示例的机会策略
+/source-rank 按数据新近度比较 fixture 账号的来源
 ```
 
 Agent 必须实际执行仓库 CLI，检查 JSON `status`、artifact、引用、warnings 和退出码；
-不能只根据 prompt 模拟工作流，也不能声称执行过未运行的命令。四个 CLI 都按以下约定
+不能只根据 prompt 模拟工作流，也不能声称执行过未运行的命令。五个 CLI 都按以下约定
 退出：`success` 为 0，`partial`（仍有 artifact）为 2，`blocked`（无 artifact）为 3，
 `failed` 或无效命令为 1。JSON 结果在 stdout，诊断在 stderr；不要丢弃 citation、
 warnings 或 classification withholding 信息。
@@ -49,7 +51,7 @@ warnings 或 classification withholding 信息。
 ## 运行 fixture 示例
 
 以下命令都从仓库根目录执行，输出 JSON，方便比较机器可读状态、artifact 和引用。
-`prepare-engagement` 有两种模式，因此共有五个 smoke case：
+`prepare-engagement` 有两种模式，因此共有六个 smoke case：
 
 ```bash
 npm run prepare-first-meeting -- --account "Northstar Logistics" --output json
@@ -57,6 +59,7 @@ npm run prepare-engagement -- --fixture engagement-initial --mode initial --outp
 npm run prepare-engagement -- --fixture engagement-follow-up --mode follow_up --output json
 npm run qualification -- --account "Northstar Logistics" --assessment-fixture northstar-provisional --output json
 npm run opportunity-strategy -- --fixture northstar-example --output json
+npm run source-rank -- --fixture source-rank-recency --output json
 ```
 
 验证时检查每个 JSON 的 workflow/mode、status 和 `artifact.markdown`；成功或 partial
@@ -68,6 +71,8 @@ npm run opportunity-strategy -- --fixture northstar-example --output json
 如需终端直接查看 brief 而非 JSON，可把相应命令末尾的 `--output json` 改为
 `--output markdown`。Markdown 模式只在有 artifact 时输出正文；要检查结构化 status 和
 warnings，仍应使用默认 JSON 模式。
+
+`source-rank` 不是 workflow：它直接调用 `source.rank` skill，输出数据新近度排序（JSON 的 `data.sources`，或 `--output markdown` 的紧凑表格及 warnings）。`partial`（退出码 2）表示有排序数据但存在 warning，例如无可用时间戳的来源；`--account` 指向 fixture 中不存在的账号会得到 `blocked`（退出码 3）。同并列、仅 `retrieved_at` 回退和 unknown 都要如实报告。
 
 ## 建议使用顺序与限制
 
@@ -93,3 +98,4 @@ follow-up/qualification 输入的参数；不要从前一份 Markdown 猜造证�
 - [Prepare Engagement](../workflows/prepare-engagement/WORKFLOW.md)
 - [Qualification](../workflows/qualification/WORKFLOW.md)
 - [Opportunity Strategy](../workflows/opportunity-strategy/WORKFLOW.md)
+- [Source Rank](../skills/source-rank/SKILL.md)
