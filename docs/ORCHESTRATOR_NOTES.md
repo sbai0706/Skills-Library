@@ -92,7 +92,12 @@ input) reference evidence IDs and remain caller-supplied; first live runs use th
 - Design issue RESOLVED (2026-11-04): one account with 38 Opportunities gave ~350 citations /
   ~69k-char brief. Now Opportunity claims = StageName/Amount/CloseDate only, capped per object
   (Opp 10, Contact 20, Task 10, Event 10) by deterministic ordering; see P2 design section 10.9.
-- Next: P4 (M365), P5 (live acceptance; Event shape still unverified — 0 rows).
+- 2026-11-05: `source.rank` skill + `/source-rank` wrapper/CLI added on main while MCP was paused;
+  MCP branch merged back (12fa14e), 585/585. Salesforce records already carry
+  `metadata.provider: "salesforce"` and `occurred_at`, so they are rankable by `source.rank`.
+- Next: P4 (M365 SharePoint → `internal_document`), including capture mode for the
+  `source-rank` CLI over Salesforce + M365 captures (ranking is only meaningful with ≥2 sources);
+  then P5 (live acceptance; Event shape still unverified — 0 rows).
 - Agent worktrees kept under `.claude/worktrees/` (locally excluded via `.git/info/exclude`).
 
 ## Environment notes
@@ -113,3 +118,4 @@ input) reference evidence IDs and remain caller-supplied; first live runs use th
 - 2026-11-04: P3 implemented, reviewed, live-smoked, fixed and merged (515/515). Nothing pushed.
 - 2026-11-04: Brief-size trimming merged (520/520); live smoke brief 350 -> 80 citations, ~69k -> ~17.5k chars.
 - 2026-11-05: MCP integration PAUSED for an urgent request (source-recency skill). Done: P1, P2, P3, brief trimming (520/520). Next when resumed: P4 (M365 SharePoint), then P5 live acceptance. Live smoke capture kept at .claude/worktrees/agent-a328e4860f7c24b2f/.captures/smoke.json (git-ignored, real data).
+- 2026-11-05: Resumed MCP work; merged feature/mcp-integration into main with source.rank (585/585). Commits no longer carry AI attribution lines.

@@ -38,6 +38,8 @@ Start with `docs/PROJECT_HANDOFF.md`; working notes and the current plan are in
 
 - One local commit per completed and validated task, containing only that task's changes; concise
   messages. Use the existing repo Git identity; never change global Git config.
+- **No `Co-Authored-By` or other AI attribution lines in commit messages** (user decision
+  2026-11-05; older commits stay as they are). Tell implementing subagents the same.
 - Local branches and worktrees are allowed (including for parallel work); preserve worktrees until
   the user asks for cleanup. Do not prune or remove existing worktrees.
 - **Never push, open PRs, or change remotes** without explicit user permission.
@@ -46,7 +48,7 @@ Start with `docs/PROJECT_HANDOFF.md`; working notes and the current plan are in
 
 ```text
 npm ci          # restore dependencies from the lockfile
-npm test        # full suite (baseline 369/369 on main @ 3745d60)
+npm test        # full suite (585/585 on main @ 12fa14e)
 node --test tests/<file>.test.js
 ```
 
