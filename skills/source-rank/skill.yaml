@@ -34,7 +34,8 @@ timestamp_precedence: [published_at, occurred_at, retrieved_at]
 source_identifier:
   records: metadata.provider
   fallback: source_type
-  evidence: inherits the provider of the record named by source_record_id, otherwise source_type
+  grouping: exact (trimmed, case-sensitive); no provider aliasing or normalisation
+  evidence: inherits the provider of the record named by source_record_id; evidence without source_record_id uses source_type; evidence whose source_record_id does not resolve to an accepted record is excluded and counted (SOURCE_RECORD_LINK_UNRESOLVED)
 
 dependencies:
   skills: [evidence.retrieve, evidence.normalize]
@@ -74,6 +75,7 @@ constraints:
   - Recency ordering only; never judge source reliability, authority, accuracy, completeness or quality.
   - Never encode a staleness threshold, source preference or other business policy.
   - Never rank, count by ID or echo items from another account.
+  - Never rank evidence whose source_record_id does not resolve to an accepted record; never regroup it under source_type.
   - Never silently drop a source; sources without a usable timestamp are listed as unknown.
   - Never let retrieved_at override a data timestamp; never treat an invalid timestamp as valid.
   - Never copy content, titles, claims, excerpts or URIs into results or diagnostics.

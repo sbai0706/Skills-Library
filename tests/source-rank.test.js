@@ -314,6 +314,7 @@ test("every unparseable timestamp form is treated as missing and reported, not r
     "2026-13-01T10:00:00Z",
     "2026-10-12T25:00:00Z",
     "2026-10-12T10:61:00Z",
+    "2016-12-31T23:59:60Z",
     "12/10/2026",
     1760000000,
     true,
@@ -539,6 +540,17 @@ test("sources are grouped by metadata.provider, not by the broad source_type", (
   assert.deepEqual(find(result, "provider-one").source_types, ["third_party"]);
 });
 
+test("provider grouping is exact: case differences make different sources, with no normalisation", () => {
+  const result = rank({
+    records: [
+      record("a", "Salesforce", { published_at: "2026-10-01T00:00:00Z" }),
+      record("b", "salesforce", { published_at: "2026-10-02T00:00:00Z" }),
+    ],
+  });
+  assert.deepEqual(ids(result), ["salesforce", "Salesforce"]);
+  assert.equal(result.data.summary_counts.sources, 2);
+});
+
 test("without a provider the source_type is the flagged fallback identifier", () => {
   const result = rank({
     records: [
@@ -567,15 +579,19 @@ test("evidence linked to a supplied record inherits that record's provider", () 
   assert.ok(!warningCodes(result).includes("SOURCE_ID_FALLBACK"));
 });
 
-test("evidence-only input is ranked by source_type and uses evidence timestamps", () => {
+const noLink = (id) => ({ source_record_id: undefined, source_uri: `https://example.test/${id}` });
+
+test("evidence-only input without source_record_id is ranked by source_type and uses evidence timestamps", () => {
   const result = rank({
     records: undefined,
     evidence: [
-      evidence("n1", { source_type: "news", published_at: "2026-10-05T00:00:00Z" }),
-      evidence("c1", { source_type: "crm_activity", occurred_at: "2026-10-09T00:00:00Z" }),
-      evidence("c2", { source_type: "crm_activity", occurred_at: "2026-10-01T00:00:00Z" }),
+      evidence("n1", { ...noLink("n1"), source_type: "news", published_at: "2026-10-05T00:00:00Z" }),
+      evidence("c1", { ...noLink("c1"), source_type: "crm_activity", occurred_at: "2026-10-09T00:00:00Z" }),
+      evidence("c2", { ...noLink("c2"), source_type: "crm_activity", occurred_at: "2026-10-01T00:00:00Z" }),
     ],
   });
+  assert.ok(warningCodes(result).includes("SOURCE_ID_FALLBACK"));
+  assert.ok(!warningCodes(result).includes("SOURCE_RECORD_LINK_UNRESOLVED"));
   assertEnvelope(result);
   assert.deepEqual(ids(result), ["source_type:crm_activity", "source_type:news"]);
   assert.deepEqual(find(result, "source_type:crm_activity").supporting_evidence_ids, ["clm_c1"]);
@@ -583,12 +599,91 @@ test("evidence-only input is ranked by source_type and uses evidence timestamps"
   assert.deepEqual(result.evidence_ids, ["clm_c1", "clm_n1"]);
 });
 
-test("evidence pointing at an unknown record falls back to its own source_type", () => {
+function assertUnresolvedLinkExcluded(result, { unresolved, status = "partial" }) {
+  assertEnvelope(result);
+  assert.equal(result.status, status);
+  assert.ok(!ids(result).some((id) => id.startsWith("source_type:")), "never regrouped under source_type");
+  assert.ok(!result.data.sources.some((source) => source.supporting_evidence_ids.length > 0));
+  assert.deepEqual(result.evidence_ids, []);
+  const warning = result.warnings.find((item) => item.code === "SOURCE_RECORD_LINK_UNRESOLVED");
+  assert.ok(warning, "SOURCE_RECORD_LINK_UNRESOLVED warning present");
+  assert.match(warning.message, new RegExp("^" + unresolved + " evidence item"));
+  assert.ok(!JSON.stringify(result.warnings).includes("src_") && !JSON.stringify(result.warnings).includes("clm_"));
+}
+
+test("evidence whose source_record_id is absent from the request is excluded, counted and never outranks providers", () => {
   const result = rank({
-    records: [record("r1", "provider-x", { published_at: "2026-10-01T00:00:00Z" })],
-    evidence: [evidence("zzz", { source_record_id: "src_missing", source_type: "news", published_at: "2026-10-02T00:00:00Z" })],
+    records: [record("r1", "provider-x", { published_at: "2026-09-01T00:00:00Z" })],
+    evidence: [
+      evidence("zzz", { source_record_id: "src_missing", source_type: "news", published_at: "2026-11-01T00:00:00Z" }),
+    ],
   });
-  assert.deepEqual(ids(result), ["source_type:news", "provider-x"]);
+  assertUnresolvedLinkExcluded(result, { unresolved: 1 });
+  assert.deepEqual(ids(result), ["provider-x"]);
+  assert.equal(result.data.summary_counts.records_accepted, 1);
+});
+
+test("evidence linked to a record rejected as a duplicate is excluded, not regrouped", () => {
+  const result = rank({
+    records: [
+      record("dup", "provider-x", { published_at: "2026-09-01T00:00:00Z" }),
+      record("dup", "provider-x", { published_at: "2026-09-02T00:00:00Z" }),
+      record("ok", "provider-y", { published_at: "2026-08-01T00:00:00Z" }),
+    ],
+    evidence: [evidence("dup", { published_at: "2026-11-01T00:00:00Z" })],
+  });
+  assertUnresolvedLinkExcluded(result, { unresolved: 1 });
+  assert.deepEqual(ids(result), ["provider-y"]);
+  assert.equal(result.data.summary_counts.records_rejected, 2);
+});
+
+test("evidence linked to a rejected (malformed) record is excluded", () => {
+  const result = rank({
+    records: [
+      record("bad", "provider-x", { content: "" }),
+      record("ok", "provider-y", { published_at: "2026-08-01T00:00:00Z" }),
+    ],
+    evidence: [evidence("bad", { published_at: "2026-11-01T00:00:00Z" })],
+  });
+  assertUnresolvedLinkExcluded(result, { unresolved: 1 });
+  assert.deepEqual(ids(result), ["provider-y"]);
+});
+
+test("evidence linked to a foreign-account record is excluded and the status is at most partial", () => {
+  const result = rank({
+    records: [
+      record("theirs", "provider-x", { account_id: "acct_other_999", published_at: "2026-11-04T00:00:00Z" }),
+      record("ok", "provider-y", { published_at: "2026-08-01T00:00:00Z" }),
+    ],
+    evidence: [evidence("theirs", { published_at: "2026-11-04T00:00:00Z" })],
+  });
+  assertUnresolvedLinkExcluded(result, { unresolved: 1 });
+  assert.deepEqual(ids(result), ["provider-y"]);
+  assert.equal(result.data.summary_counts.records_excluded_foreign_account, 1);
+  assert.ok(!JSON.stringify(result).includes("acct_other_999"));
+});
+
+test("when only unresolved-link evidence is supplied the result is blocked with the warning", () => {
+  const result = rank({ evidence: [evidence("a", { source_record_id: "src_missing" })] });
+  assertEnvelope(result);
+  assert.equal(result.status, "blocked");
+  assert.equal(result.data, null);
+  assert.deepEqual(result.errors.map((error) => error.code), ["EVIDENCE_REFERENCE_UNAVAILABLE"]);
+  assert.deepEqual(warningCodes(result), ["SOURCE_RECORD_LINK_UNRESOLVED"]);
+});
+
+test("unresolved-link evidence is counted per item and does not affect fully resolved evidence", () => {
+  const result = rank({
+    records: [record("r1", "provider-x", { published_at: "2026-09-01T00:00:00Z" })],
+    evidence: [
+      evidence("r1", { published_at: "2026-09-01T00:00:00Z" }),
+      evidence("m1", { source_record_id: "src_missing" }),
+      evidence("m2", { source_record_id: "src_missing_too" }),
+    ],
+  });
+  assert.equal(result.status, "partial");
+  assert.match(result.warnings.find((item) => item.code === "SOURCE_RECORD_LINK_UNRESOLVED").message, /^2 evidence item/);
+  assert.deepEqual(find(result, "provider-x").supporting_evidence_ids, ["clm_r1"]);
 });
 
 test("record-only input leaves the envelope evidence_ids empty", () => {
@@ -785,6 +880,7 @@ test("parseTimestamp accepts RFC 3339 forms and rejects everything else", () => 
   assert.equal(parseTimestamp("2027-02-29T00:00:00Z"), null);
   assert.equal(parseTimestamp("2026-04-31T00:00:00Z"), null);
   assert.equal(parseTimestamp("2026-11-05T12:00:00+24:00"), null);
+  assert.equal(parseTimestamp("2016-12-31T23:59:60Z"), null, "leap second is invalid");
   assert.equal(parseTimestamp("0026-11-05T12:00:00Z"), null);
   for (const bad of [undefined, null, 0, "", "2026-11-05", "2026-11-05 12:00:00Z", "2026-11-05T12:00Z"]) {
     assert.equal(parseTimestamp(bad), null, String(bad));

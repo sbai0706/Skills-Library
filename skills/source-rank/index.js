@@ -231,9 +231,17 @@ function foreignWarning(foreign) {
   };
 }
 
-function buildWarnings({ foreign, rejections, invalidTimestamps, sources, nowMs }) {
+function unresolvedLinkWarning(count) {
+  return {
+    code: "SOURCE_RECORD_LINK_UNRESOLVED",
+    message: `${count} evidence item(s) name a source_record_id that is not an accepted record of this request (absent, rejected, duplicate or foreign) and were excluded; they are not ranked.`,
+  };
+}
+
+function buildWarnings({ foreign, unresolvedLinks, rejections, invalidTimestamps, sources, nowMs }) {
   const warnings = [];
   if (foreign > 0) warnings.push(foreignWarning(foreign));
+  if (unresolvedLinks > 0) warnings.push(unresolvedLinkWarning(unresolvedLinks));
   if (rejections.length > 0) {
     warnings.push({
       code: "RECORDS_REJECTED",
@@ -325,8 +333,22 @@ export function rankSources(input, deps = {}) {
 
   const foreign = recordScreen.foreign + evidenceScreen.foreign;
   const rejections = [...recordScreen.rejections, ...evidenceScreen.rejections];
-  const accepted = rejectDuplicateIds([...recordScreen.accepted, ...evidenceScreen.accepted], rejections);
+  const screened = rejectDuplicateIds([...recordScreen.accepted, ...evidenceScreen.accepted], rejections);
   rejections.sort((left, right) => compareText(left.kind, right.kind) || left.index - right.index);
+
+  const recordIdentity = new Map();
+  for (const entry of screened) {
+    if (entry.kind === "record") recordIdentity.set(entry.id, sourceIdentity(entry.item, null));
+  }
+
+  // Evidence that names a source record which is not an accepted record of this request has no
+  // trustworthy source identity: it is excluded and counted, never regrouped by source_type.
+  const hasUnresolvedLink = (entry) =>
+    entry.kind === "evidence" &&
+    typeof entry.item.source_record_id === "string" &&
+    !recordIdentity.has(entry.item.source_record_id);
+  const accepted = screened.filter((entry) => !hasUnresolvedLink(entry));
+  const unresolvedLinks = screened.length - accepted.length;
 
   if (accepted.length === 0) {
     const errors = rejections.map(rejectionError);
@@ -340,10 +362,11 @@ export function rankSources(input, deps = {}) {
       });
       warnings.push(foreignWarning(foreign));
     }
+    if (unresolvedLinks > 0) warnings.push(unresolvedLinkWarning(unresolvedLinks));
     if (errors.length === 0) {
       errors.push({
         code: "EVIDENCE_REFERENCE_UNAVAILABLE",
-        message: "No records or evidence were supplied to rank.",
+        message: "No usable records or evidence were supplied to rank.",
         retryable: false,
       });
     }
@@ -357,17 +380,12 @@ export function rankSources(input, deps = {}) {
     });
   }
 
-  const recordIdentity = new Map();
-  for (const entry of accepted) {
-    if (entry.kind === "record") recordIdentity.set(entry.id, sourceIdentity(entry.item, null));
-  }
-
   const groups = new Map();
   for (const entry of accepted) {
     const linked =
       entry.kind === "evidence" && typeof entry.item.source_record_id === "string"
         ? recordIdentity.get(entry.item.source_record_id)
-        : undefined;
+        : undefined; // always resolved here: unresolved links were excluded above
     const identity = sourceIdentity(entry.item, linked);
     const key = `${identity.basis}\u0000${identity.id}`;
     if (!groups.has(key)) groups.set(key, { identity, entries: [] });
@@ -404,7 +422,7 @@ export function rankSources(input, deps = {}) {
   const evidenceIds = [
     ...new Set(data.sources.flatMap((source) => source.supporting_evidence_ids)),
   ].sort();
-  const partial = rejections.length > 0 || countRecency("unknown") > 0;
+  const partial = rejections.length > 0 || unresolvedLinks > 0 || countRecency("unknown") > 0;
 
   return envelope({
     status: partial ? "partial" : "success",
@@ -412,7 +430,7 @@ export function rankSources(input, deps = {}) {
     startedAt,
     finishedAt: finishedAt(),
     errors: rejections.map(rejectionError),
-    warnings: buildWarnings({ foreign, rejections, invalidTimestamps, sources, nowMs: clock.ms }),
+    warnings: buildWarnings({ foreign, unresolvedLinks, rejections, invalidTimestamps, sources, nowMs: clock.ms }),
     evidenceIds,
   });
 }

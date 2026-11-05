@@ -69,14 +69,21 @@ same data, `record_count` counts every accepted item, so the same underlying rec
 
 Records are grouped by the field the shared schema uses to name the source system:
 
-1. `metadata.provider` of a source record (trimmed, case-sensitive) — `source_id_basis: "metadata.provider"`.
+1. `metadata.provider` of a source record — `source_id_basis: "metadata.provider"`. Grouping is **exact**: the value is trimmed of surrounding whitespace and otherwise compared as-is, case-sensitively. `"Salesforce"` and `"salesforce"` are therefore different sources by design; no alias, case folding or vendor-name normalisation is inferred. Callers who want them merged must supply a consistent provider value.
 2. Fallback when the provider is absent or empty: the broad `source_type`, emitted as
    `source_type:<type>` — `source_id_basis: "source_type"`, with a `SOURCE_ID_FALLBACK` warning. This is a
    coarser grouping (for example `crm_record` and `crm_activity` land in separate groups).
 
 Evidence items have no provider field. An evidence item whose `source_record_id` equals the `record_id` of
-an accepted supplied record inherits that record's source identifier; any other evidence item is grouped
-by its own `source_type` (the same fallback).
+an accepted supplied record inherits that record's source identifier. An evidence item with **no**
+`source_record_id` (it is then addressed by `source_uri`) is grouped by its own `source_type` (the same
+fallback).
+
+An evidence item that **does** name a `source_record_id` which is not an accepted record of the request
+(absent, rejected as malformed, rejected as a duplicate ID, or belonging to another account) has no
+trustworthy source identity. It is **not ranked**: it is excluded, counted (count only, no IDs echoed) in a
+`SOURCE_RECORD_LINK_UNRESOLVED` warning, and the status is at most `partial`. It is never regrouped under
+`source_type`, so it cannot outrank real providers.
 
 ## Timestamp field precedence
 
@@ -103,7 +110,8 @@ retrieval time.
 ## Timestamp validity
 
 A timestamp is usable only if it is a string in RFC 3339 `date-time` form with an explicit offset
-(`2026-10-12T09:00:00Z`, `2026-10-12T11:00:00+02:00`) and a real calendar date. `null` and absent values are
+(`2026-10-12T09:00:00Z`, `2026-10-12T11:00:00+02:00`) and a real calendar date and time. A leap-second
+value (seconds field `:60`, for example `2016-12-31T23:59:60Z`) is treated as invalid. `null` and absent values are
 simply missing. Any other present value (wrong type, empty string, date only, no offset, impossible date such
 as 30 February) is invalid: it is treated as missing, counted in `invalid_timestamp_count` and
 `summary_counts.invalid_timestamps`, and reported through an `INVALID_TIMESTAMP_IGNORED` warning. An item is
@@ -174,14 +182,14 @@ Runnable fixture: `fixtures/source-rank-recency/` (`input.json`, `expected.json`
 | Situation | Status |
 | --- | --- |
 | At least one source is dated and every source has a usable timestamp (warnings allowed) | `success` |
-| Some source has recency unknown, or some item was rejected as malformed or duplicate | `partial` |
+| Some source has recency unknown, some item was rejected as malformed or duplicate, or some evidence item has an unresolved `source_record_id` | `partial` |
 | No item matches the account or is usable (nothing supplied, all foreign, or all rejected) | `blocked`, `data: null` |
 | Invalid request (bad account, bad `now`, wrong types, neither array, unknown property) | `failed`, `INVALID_INPUT` |
 
 Errors use existing codes: `INVALID_INPUT` (request, malformed or duplicate item),
 `ACCOUNT_SCOPE_MISMATCH` (nothing belongs to the account), `EVIDENCE_REFERENCE_UNAVAILABLE` (nothing supplied).
 Warning codes: `FOREIGN_ACCOUNT_RECORDS_EXCLUDED`, `RECORDS_REJECTED`, `INVALID_TIMESTAMP_IGNORED`,
-`SOURCE_ID_FALLBACK`, `RETRIEVAL_TIME_FALLBACK`, `RECENCY_UNKNOWN`, `RECENCY_TIE`, `FUTURE_TIMESTAMP`.
+`SOURCE_ID_FALLBACK`, `SOURCE_RECORD_LINK_UNRESOLVED`, `RETRIEVAL_TIME_FALLBACK`, `RECENCY_UNKNOWN`, `RECENCY_TIE`, `FUTURE_TIMESTAMP`.
 Items with duplicate IDs are all rejected, so the outcome cannot depend on which copy came first.
 
 ## Constraints
@@ -190,6 +198,8 @@ Items with duplicate IDs are all rejected, so the outcome cannot depend on which
 - Never apply business policy: no staleness threshold, freshness requirement or source preference is invented.
 - Never use a conflict, claim text or classification to influence order; never pick a conflict winner.
 - Never rank, count by ID or echo an item from another account.
+- Never rank evidence whose `source_record_id` does not resolve to an accepted record; never regroup it under `source_type`.
+- Never normalise or alias provider names; grouping is exact.
 - Never silently drop a source: sources without a usable timestamp are listed as recency unknown.
 - Never treat an invalid timestamp as valid, and never let `retrieved_at` override a data timestamp.
 - Never copy record content, titles, claims, excerpts or URIs into the result or diagnostics.
