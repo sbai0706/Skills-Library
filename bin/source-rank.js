@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 
+import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { isValidAccountId } from "../adapters/m365/index.js";
 import { parseSfAccountId } from "../adapters/salesforce/index.js";
 import { captureExitCode, createCaptureSession, resolveSourceOptions } from "../cli/capture-mode.js";
 import { retrieveEvidence } from "../skills/evidence-retrieve/index.js";
-import { rankSources } from "../skills/source-rank/index.js";
+import { validate } from "../schemas/index.js";
+import { SKILL_NAME, SKILL_VERSION, rankSources } from "../skills/source-rank/index.js";
 import { parseTimestamp } from "../skills/source-rank/timestamps.js";
 import { loadDefaultQuestions } from "../workflows/prepare-first-meeting/reference.js";
 
@@ -220,6 +222,28 @@ function present(result, output) {
   }
 }
 
+/**
+ * Capture mode, retrieval blocked or failed: there is nothing to rank, but `--output json` must
+ * still print a parseable source.rank envelope on stdout (as the workflow CLIs do for blocked or
+ * failed): same status, `data: null`, and the retrieval's own warnings and errors. Markdown output
+ * prints nothing on stdout, like the workflow CLIs.
+ */
+function printRetrievalStop(retrieval, at) {
+  const result = {
+    skill: SKILL_NAME,
+    skill_version: SKILL_VERSION,
+    status: retrieval.status,
+    data: null,
+    evidence_ids: [],
+    warnings: retrieval.warnings,
+    errors: retrieval.errors,
+    trace_id: `trace_${randomUUID()}`,
+    started_at: at,
+    finished_at: at,
+  };
+  if (validate("skillResult", result).valid) process.stdout.write(`${JSON.stringify(result)}\n`);
+}
+
 const uniqueCodes = (items) => [...new Set(items.map((item) => item.code))].join(",");
 
 /** Capture mode: retrieve from the captures, then rank the retrieved records by data recency. */
@@ -254,6 +278,7 @@ async function runCapture(options) {
   }
   if (retrieval.status === "failed" || retrieval.status === "blocked") {
     const label = retrieval.status === "failed" ? "RETRIEVAL_FAILED" : "RETRIEVAL_BLOCKED";
+    if (options.output === "json") printRetrievalStop(retrieval, options.now ?? session.latestCreatedAt);
     process.stderr.write(`source.rank: ${label}: ${uniqueCodes(retrieval.errors)}\n`);
     process.exitCode = captureExitCode(retrieval.status === "failed" ? 1 : 3, session);
     return;

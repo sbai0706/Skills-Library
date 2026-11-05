@@ -120,16 +120,18 @@ WARNING（不改变退出码）；`--init-capture` 只允许写入仓库 `.captu
 Host 端到端命令序列（一个账号，`<ref>` 为名称或 `sf_<Id>`）：
 
 ```bash
-npm run salesforce-capture-plan -- --init-capture .captures/<slug>.json --source-system salesforce
-npm run salesforce-capture-plan -- --account "<ref>"            # Phase 1：账号搜索调用
+npm run -s salesforce-capture-plan -- --init-capture .captures/<slug>.json --source-system salesforce
+npm run -s salesforce-capture-plan -- --account "<ref>"            # Phase 1：账号搜索调用
 # 仅用 dispatch_readonly、逐字使用打印出的 args 调用；把原始响应原样写入 .captures/tmp/r1.json，再逐次追加：
-npm run salesforce-capture-plan -- --append .captures/<slug>.json --account "<ref>" --step search --result-file .captures/tmp/r1.json
-npm run salesforce-capture-plan -- --account-id sf_<Id>          # Phase 2：证据调用（5 个）
+npm run -s salesforce-capture-plan -- --append .captures/<slug>.json --account "<ref>" --step search --result-file .captures/tmp/r1.json
+npm run -s salesforce-capture-plan -- --account-id sf_<Id>          # Phase 2：证据调用（5 个）
 # 同样调用，对每个 step 用 --append ... --account-id sf_<Id> --step <step> --result-file ...（错误载荷用 --error-file）
 # 分页：--append .captures/<slug>.json --page-url "<nextRecordsUrl>" --result-file ...
-npm run salesforce-capture-plan -- --validate .captures/<slug>.json --account "<ref>" --account-id sf_<Id>
-npm run prepare-first-meeting -- --account "<ref>" --source capture --capture .captures/<slug>.json --output json
+npm run -s salesforce-capture-plan -- --validate .captures/<slug>.json --account "<ref>" --account-id sf_<Id>
+npm run -s prepare-first-meeting -- --account "<ref>" --source capture --capture .captures/<slug>.json --output json
 ```
+
+所有输出 JSON 并由 host 解析的命令都要用 `npm run -s`（silent）：否则 npm 的 banner 行会出现在 JSON 之前，破坏解析。
 
 规则：只调用 Salesforce connector 的 `dispatch_readonly`（永不调用 `dispatch`、`describe`、
 `discover`，也不手写 SOQL）；遇到 401 `INVALID_AUTH_HEADER` 对同一调用重试一次，只追加最后一次
@@ -137,6 +139,12 @@ npm run prepare-first-meeting -- --account "<ref>" --source capture --capture .c
 `--page-url` 追加 `nextRecordsUrl` 对应页（`--validate` 会检查缺页）。不要手写 capture 条目或
 `captured_at`：`--append` 从 plan 取 tool 和 args、自动打时间戳，并只输出不含 payload 的摘要
 （详见 [MCP capture 文档](MCP_CAPTURE.md) 的 "Appending entries"）。
+
+账号解析是基于 token 的（见 `skills/account-resolve`），不是 SOQL 子串匹配：SOQL 返回的行不等于候选。
+多行匹配中出现精确名称会得到 `AMBIGUOUS_ACCOUNT`；弱 token 匹配即使 SOQL 有返回行也可能得到
+`ACCOUNT_NOT_FOUND`。要用 `--account sf_<Id>` 运行，必须先录制该 ID 查询，即使 Id 直接来自名称搜索；
+否则会得到 `REPLAY_INCOMPLETE`。缺少任何一个 Salesforce Phase 2 条目会按设计丢弃整个 crm 来源：
+按 failed 报告 `REPLAY_INCOMPLETE`。
 
 选账号：仅当恰好返回一行且其 `Name` 与搜索词（按 adapter 同样的 trim 后）忽略大小写相等时，
 才直接取其 Id（`sf_<Id>`）。否则在 Phase 1 之后运行一次 CLI，仅作歧义/确认检查：退出码 3 且
@@ -156,7 +164,12 @@ Salesforce 记录贴到聊天中。完整步骤与 capture 文件格式见
 
 可选的 M365 SharePoint 文档（第二个 capture 文件，`--capture-m365`、`--m365-mapping`，host 只调用
 `sharepoint_search`，绝不调用 `read_resource` 或任何写入/发送工具；source-rank 同样支持 capture 模式）
-见 [MCP capture 文档](MCP_CAPTURE.md) 的 "M365 SharePoint" 一节；不加 `--capture-m365` 时行为不变。
+见 [MCP capture 文档](MCP_CAPTURE.md) 的 "M365 SharePoint" 一节；不加 `--capture-m365` 时行为不变。M365 的原始结果文本
+（`sharepoint_search` 返回的、逐个拼接的 JSON 对象）原样存为 `.captures/` 下的文件，用
+`npm run -s m365-capture-plan -- --append ... --result-text-file <file>` 追加，不要自己写脚本包装。
+`m365-capture-plan` 的 plan 输出会显示映射的文件夹名：host 可以阅读以便发起调用，但不得粘贴到聊天中。
+result/error 文件中任何对象含重复 key 都会被拒绝（退出码 1，不修改 capture）。`source-rank` 在 capture 模式
+`--output json` 下，blocked/failed 也会在 stdout 打印 JSON 结果（`data: null`），退出码不变。
 
 ## 工作流契约
 

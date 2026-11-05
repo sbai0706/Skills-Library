@@ -2,6 +2,7 @@ import { mkdirSync, readFileSync, realpathSync, renameSync, statSync, unlinkSync
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { CAPTURE_LIMITS, CaptureError, canonicalize, loadCapture } from "../adapters/mcp/index.js";
+import { hasDuplicateKeys, splitJsonObjects } from "./json-text.js";
 
 /** Shared by the capture-plan CLIs: repository paths, the `.captures/`-only skeleton writer and the append command. */
 
@@ -95,21 +96,49 @@ function realCapturesFile(path, flag) {
 
 const isPlainObject = (value) => typeof value === "object" && value !== null && !Array.isArray(value);
 
-/** Read and parse a JSON file; messages are fixed text so no file content can reach the output. */
-function readJsonFile(real, bytes, flag) {
+/** Read a file as UTF-8 text without a BOM; messages are fixed text so no file content can reach the output. */
+function readTextFile(real, bytes, flag) {
   if (bytes > CAPTURE_LIMITS.maxFileBytes) throw new CaptureFileUsageError(`${flag} file exceeds the ${CAPTURE_LIMITS.maxFileBytes}-byte capture file limit.`);
   let text;
   try { text = readFileSync(real, "utf8"); } catch { throw new CaptureFileUsageError(`${flag} file cannot be read.`); }
-  if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
-  try { return JSON.parse(text); } catch { throw new CaptureFileUsageError(`${flag} file is not valid JSON.`); }
+  return text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
+}
+
+const duplicateKeysMessage = (flag) => `${flag} file contains an object with duplicate keys, which would collapse silently; fix the file. Nothing was changed.`;
+
+/**
+ * Read and parse a JSON file. With `rejectDuplicateKeys` (connector payload files) an object that
+ * repeats a key is refused instead of silently keeping the last value.
+ */
+function readJsonFile(real, bytes, flag, { rejectDuplicateKeys = false } = {}) {
+  const text = readTextFile(real, bytes, flag);
+  let value;
+  try { value = JSON.parse(text); } catch { throw new CaptureFileUsageError(`${flag} file is not valid JSON.`); }
+  if (rejectDuplicateKeys && hasDuplicateKeys(text)) throw new CaptureFileUsageError(duplicateKeysMessage(flag));
+  return value;
+}
+
+/**
+ * Read the raw text of a connector result that is a sequence of concatenated JSON objects (one per
+ * hit plus a trailer) and wrap it as `{content: [{type: "text", text: <each object's original
+ * text>}, ...]}`; blank text is `{content: []}`.
+ */
+function readResultTextFile(real, bytes, flag) {
+  const text = readTextFile(real, bytes, flag);
+  let objects;
+  try { objects = splitJsonObjects(text); } catch {
+    throw new CaptureFileUsageError(`${flag} file is not a sequence of JSON objects; nothing was changed.`);
+  }
+  if (objects.some((objectText) => hasDuplicateKeys(objectText))) throw new CaptureFileUsageError(duplicateKeysMessage(flag));
+  return { content: objects.map((objectText) => ({ type: "text", text: objectText })) };
 }
 
 /**
  * Append one entry to an existing capture file, atomically (temp file plus rename).
  *
  * The caller supplies the tool and args from a printed plan step, never host-typed JSON. The
- * payload is read from a JSON file under `.captures/` and stored exactly as parsed: no
- * normalisation and no redaction (the loader redacts at read time). Existing entries are never
+ * payload is read from a JSON file under `.captures/` and stored exactly as parsed (a file with a
+ * duplicate object key is refused rather than collapsed): no normalisation and no redaction (the loader redacts at read time). Existing entries are never
  * modified or reordered; the file is left untouched on any refusal. Refusal messages are fixed
  * text: no payload content is ever included. The returned `value` is the stored payload, for the
  * caller to derive counts only.
@@ -119,6 +148,8 @@ function readJsonFile(real, bytes, flag) {
  * @param {string} options.tool
  * @param {object} options.args exact args from the plan
  * @param {string} [options.resultFile] JSON file holding the raw connector result
+ * @param {string} [options.resultTextFile] file holding the raw text of a result that is a sequence of
+ *   concatenated JSON objects (M365 `sharepoint_search`); stored as `{content: [{type: "text", text}, ...]}`
  * @param {string} [options.errorFile] JSON object file holding the raw connector error
  * @param {boolean} [options.replaceLast] replace the last entry (must be the same tool and args)
  * @param {string} [options.capturedAt] RFC 3339; default is the current time
@@ -127,19 +158,23 @@ function readJsonFile(real, bytes, flag) {
  * @throws {CaptureFileUsageError}
  */
 export function appendCaptureEntry({
-  capturePath, sourceSystem, tool, args, resultFile, errorFile, replaceLast = false, capturedAt, checkPriorEntries,
+  capturePath, sourceSystem, tool, args, resultFile, resultTextFile, errorFile, replaceLast = false, capturedAt, checkPriorEntries,
 }) {
-  if ((resultFile === undefined) === (errorFile === undefined)) {
-    throw new CaptureFileUsageError("Give exactly one of --result-file and --error-file.");
+  if ([resultFile, resultTextFile, errorFile].filter((file) => file !== undefined).length !== 1) {
+    throw new CaptureFileUsageError(sourceSystem === "m365"
+      ? "Give exactly one of --result-file, --result-text-file and --error-file."
+      : "Give exactly one of --result-file and --error-file.");
   }
   const timestamp = capturedAt === undefined ? new Date().toISOString() : assertRfc3339(capturedAt, "--captured-at");
   const capture = realCapturesFile(capturePath, "--append");
-  const outcome = resultFile !== undefined ? "result" : "error";
-  const payloadFlag = outcome === "result" ? "--result-file" : "--error-file";
-  const payload = realCapturesFile(resultFile ?? errorFile, payloadFlag);
+  const outcome = errorFile === undefined ? "result" : "error";
+  const payloadFlag = errorFile !== undefined ? "--error-file" : resultTextFile !== undefined ? "--result-text-file" : "--result-file";
+  const payload = realCapturesFile(resultFile ?? resultTextFile ?? errorFile, payloadFlag);
   if (payload.real === capture.real) throw new CaptureFileUsageError(`${payloadFlag} must not be the capture file itself.`);
   return withCaptureLock(capture.real, () => {
-    const value = readJsonFile(payload.real, payload.bytes, payloadFlag);
+    const value = resultTextFile !== undefined
+      ? readResultTextFile(payload.real, payload.bytes, payloadFlag)
+      : readJsonFile(payload.real, payload.bytes, payloadFlag, { rejectDuplicateKeys: true });
     if (outcome === "error" && !isPlainObject(value)) throw new CaptureFileUsageError("--error-file must contain a JSON object.");
 
     const doc = readJsonFile(capture.real, capture.bytes, "--append");

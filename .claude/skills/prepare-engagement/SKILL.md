@@ -66,8 +66,10 @@ sparse by nature, so many gaps are correct output. Capture mode requires `--acco
 
 1. Create the capture file; only a file under the repository's git-ignored `.captures/`
    directory is accepted:
-   `npm run salesforce-capture-plan -- --init-capture .captures/<account-slug>.json --source-system salesforce`
-2. Phase 1, account search: `npm run salesforce-capture-plan -- --account "<name or sf_<Id>>"`
+   `npm run -s salesforce-capture-plan -- --init-capture .captures/<account-slug>.json --source-system salesforce`
+   Use `npm run -s` (silent) for every command in this section: their stdout is parsed as JSON and the
+   npm banner lines would break the parsing.
+2. Phase 1, account search: `npm run -s salesforce-capture-plan -- --account "<name or sf_<Id>>"`
    prints the calls. Call ONLY the Salesforce connector tool `dispatch_readonly`, once per
    printed call, with exactly the printed `args`. Never call `dispatch`, `describe` or
    `discover`, and never write, edit or "improve" SOQL. A call with a `condition` is made only
@@ -75,7 +77,7 @@ sparse by nature, so many gaps are correct output. Capture mode requires `--acco
 3. Recording rules: never hand-write capture entries, args or timestamps. After each connector call,
    write the connector's raw, unmodified response (success or error payload) to a JSON file under
    `.captures/` (for example `.captures/tmp/r1.json`; create the directory if needed), then append it:
-   `npm run salesforce-capture-plan -- --append .captures/<account-slug>.json --account "<ref>" --step <step> --result-file .captures/tmp/r1.json`
+   `npm run -s salesforce-capture-plan -- --append .captures/<account-slug>.json --account "<ref>" --step <step> --result-file .captures/tmp/r1.json`
    The CLI takes the tool and args from the printed plan step and stamps `captured_at` itself. For
    Phase 2 use `--account-id sf_<Id>` instead of `--account`; use `--error-file` instead of
    `--result-file` for an error payload; `<step>` is the printed `step` (`search`, `exact_name_guard`,
@@ -85,25 +87,32 @@ sparse by nature, so many gaps are correct output. Capture mode requires `--acco
    identical call once and append only the final attempt (if the failed attempt was already appended,
    append the retry with `--replace-last`). If a result has `done: false` (the summary shows
    `next_page_pending: true`), also call `{"url":"<nextRecordsUrl>","method":"GET"}` and append that page:
-   `npm run salesforce-capture-plan -- --append .captures/<account-slug>.json --page-url "<nextRecordsUrl>" --result-file .captures/tmp/r2.json`
+   `npm run -s salesforce-capture-plan -- --append .captures/<account-slug>.json --page-url "<nextRecordsUrl>" --result-file .captures/tmp/r2.json`
    (in Git Bash on Windows set `MSYS_NO_PATHCONV=1` so the leading `/` is kept), until done (validation
    fails on a missing page).
 4. Choose the account, then Phase 2 (evidence).
+   - Account resolution is token-based (see `skills/account-resolve`), not a SOQL substring match: a
+     row the name search returned does not by itself make a candidate. An exact name among several
+     matching rows yields `AMBIGUOUS_ACCOUNT` (the user chooses), and a weak token match can yield
+     `ACCOUNT_NOT_FOUND` although SOQL returned rows. Report either as printed.
    - Take the Id directly (the account is `sf_<Id>`) only when exactly one Account row matched
      AND its `Name` equals the search term case-insensitively (after trimming whitespace).
+     To run by `--account sf_<Id>` the ID query must be recorded first, even when the Id came straight
+     from the name search (append the `--account sf_<Id>` Phase 1 step); otherwise the run ends with
+     `REPLAY_INCOMPLETE`.
    - Otherwise run the CLI command from step 6 once now. This run is only an
      ambiguity/confirmation check: it exits 3 with `CONFIRMATION_REQUIRED` or ambiguous
      candidates (`account_candidates` present). Ask the user to choose an Id; never choose for
      them. Then re-run Phase 1 with `--account sf_<Id>` and record that ID query.
    - If that check instead ends with `REPLAY_INCOMPLETE` (exit 1), that is expected at this
      point because Phase 2 is not captured yet: take the matching Id and continue.
-   - Phase 2: `npm run salesforce-capture-plan -- --account-id sf_<Id>`; record all five printed
+   - Phase 2: `npm run -s salesforce-capture-plan -- --account-id sf_<Id>`; record all five printed
      calls (and their pages) the same way.
 5. Validate, using the same references you will pass to the CLI:
-   `npm run salesforce-capture-plan -- --validate .captures/<account-slug>.json --account "<ref>" --account-id sf_<Id>`
+   `npm run -s salesforce-capture-plan -- --validate .captures/<account-slug>.json --account "<ref>" --account-id sf_<Id>`
    It prints a payload-free summary and exits 1 on any problem (missing planned calls, a
    disallowed tool, a missing pagination page, a non-Salesforce capture); fix them first.
-6. Run: `npm run prepare-engagement -- --account "<ref>" --mode initial --source capture --capture .captures/<account-slug>.json --output json`
+6. Run: `npm run -s prepare-engagement -- --account "<ref>" --mode initial --source capture --capture .captures/<account-slug>.json --output json`
 7. Report faithfully from the exit code, `status` and `errors`:
    - Exit 0 success or 2 partial: present the artifact with its warnings.
    - Exit 3 blocked: read `status` and `errors`. Ask the user to choose an Id only when the code
@@ -115,8 +124,9 @@ sparse by nature, so many gaps are correct output. Capture mode requires `--acco
      the `status` and artifact on stdout (the JSON then shows a generic code such as
      `ADAPTER_UNAVAILABLE`; the library cannot add `REPLAY_INCOMPLETE` to the JSON without a
      contract change, so stderr and the exit code are authoritative). Re-capture the missing
-     calls (steps 2-5); never substitute fixture output. Any other exit 1 is a failure or invalid
-     usage.
+     calls (steps 2-5); never substitute fixture output. A single missing Salesforce Phase 2 entry drops the
+     whole `crm` source by design: it is a `REPLAY_INCOMPLETE` failure, never a smaller result. Any other
+     exit 1 is a failure or invalid usage.
    - Citations are the bracketed `[clm_...]` markers in `artifact.markdown` plus `evidence_ids`;
      there is no separate citations list.
 
@@ -135,23 +145,24 @@ location, file type and last-modified time become claims (wording is "Last modif
 `--capture-m365` nothing changes. Personal OneDrive is excluded by user decision; a document
 is only used when it sits under a location the user mapped to the account.
 
-1. `npm run m365-capture-plan -- --check-mapping`. It needs `local/m365-account-mapping.yaml`
+1. `npm run -s m365-capture-plan -- --check-mapping`. It needs `local/m365-account-mapping.yaml`
    (user-maintained, git-ignored; start from `reference/m365-account-mapping.example.yaml`).
    If it is missing or invalid, stop and ask the user. Never guess or add a mapping location
    yourself: use only locations the user states.
 2. Do the Salesforce steps above first, so that you know the resolved `sf_<Id>`.
-3. `npm run m365-capture-plan -- --init-capture .captures/<account-slug>-m365.json`
-4. `npm run m365-capture-plan -- --account-id sf_<Id>` prints the calls (its output contains folder
-   names from the local mapping: never paste it into chat). Call ONLY the Microsoft 365 connector tool
+3. `npm run -s m365-capture-plan -- --init-capture .captures/<account-slug>-m365.json`
+4. `npm run -s m365-capture-plan -- --account-id sf_<Id>` prints the calls (its output shows the mapped
+   folder names: you may read it to make the calls, but never paste it into chat). Call ONLY the Microsoft 365 connector tool
    `sharepoint_search`, once per printed call, with exactly the printed `args`. Never call
    `read_resource`, `sharepoint_folder_search` or any write, send, create, move, delete or upload
    tool, and never add filters or change `query`. Never hand-write capture entries, args or timestamps:
-   write each call's raw, unmodified response (`{"content":[<one text block per item, verbatim>, <trailer
-   block, verbatim>]}`, an empty result as `{"content":[]}`, or the tool error payload exactly as returned)
-   to a JSON file under `.captures/` (for example `.captures/tmp/r1.json`; create the directory if needed),
-   then append it:
-   `npm run m365-capture-plan -- --append .captures/<account-slug>-m365.json --account-id sf_<Id> --step <step> --result-file .captures/tmp/r1.json`
-   (`--error-file` instead of `--result-file` for a tool error; `<step>` is the printed `step`, `search_1`,
+   write each call's raw, unmodified response text (concatenated JSON objects: one per hit plus a trailer
+   object; empty text for no hits) to a file under `.captures/` (for example `.captures/tmp/r1.txt`; create
+   the directory if needed), then append it with `--result-text-file`, which wraps the text into the capture
+   shape itself (never write a helper script or wrap it by hand; a tool error payload is a JSON object file
+   for `--error-file`; a file with a duplicate key in any object is refused):
+   `npm run -s m365-capture-plan -- --append .captures/<account-slug>-m365.json --account-id sf_<Id> --step <step> --result-text-file .captures/tmp/r1.txt`
+   (`--error-file` instead of `--result-text-file` for a tool error; `<step>` is the printed `step`, `search_1`,
    `search_2`, ...; `--m365-mapping <path>` if you use a non-default mapping). Run it once per call, in
    call order; it takes the tool and args from the plan, stamps `captured_at`, prints a payload-free summary
    and exits 1 without writing on any refusal. While the trailer has `moreResults: true`, call the same
@@ -160,11 +171,11 @@ is only used when it sits under a location the user mapped to the account.
    retry the identical call once and append only the final attempt (if the failed attempt was already
    appended, append the retry with `--replace-last`). An unmapped account prints no call: append nothing
    (the empty skeleton is a valid M365 capture).
-5. `npm run m365-capture-plan -- --validate .captures/<account-slug>-m365.json --account-id sf_<Id>`
+5. `npm run -s m365-capture-plan -- --validate .captures/<account-slug>-m365.json --account-id sf_<Id>`
    prints a payload-free summary and exits 1 on any problem; fix them first.
 6. Run the Salesforce run command from step 6 above with `--capture-m365 .captures/<account-slug>-m365.json`
    added (optionally `--m365-mapping <path>`; the default is the local mapping), e.g.
-   `npm run prepare-engagement -- --account "<ref>" --mode initial --source capture --capture .captures/<account-slug>.json --capture-m365 .captures/<account-slug>-m365.json --output json`
+   `npm run -s prepare-engagement -- --account "<ref>" --mode initial --source capture --capture .captures/<account-slug>.json --capture-m365 .captures/<account-slug>-m365.json --output json`
 7. Report the stderr diagnostics as counts, exactly as printed: `M365_NOT_MAPPED`,
    `M365_PERSONAL_EXCLUDED`, `M365_OUTSIDE_MAPPING_EXCLUDED`, `M365_UNSUPPORTED_ITEMS_SKIPPED`,
    `M365_COPIES_MERGED`, `M365_SEARCH_TRUNCATED`, `M365_RECORDS_TRUNCATED`. An M365 failure (for example

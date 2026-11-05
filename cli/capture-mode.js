@@ -241,10 +241,10 @@ export function replayIncompleteMessage(misses) {
   const salesforce = misses.some((miss) => miss.tool !== M365_TOOL);
   const hints = [];
   if (salesforce) {
-    hints.push("run `npm run salesforce-capture-plan` for the account (Phase 1) and its Salesforce Id (Phase 2)");
+    hints.push("run `npm run -s salesforce-capture-plan` for the account (Phase 1) and its Salesforce Id (Phase 2)");
   }
   if (m365) {
-    hints.push("run `npm run m365-capture-plan -- --account-id sf_<Id>` for the M365 search calls");
+    hints.push("run `npm run -s m365-capture-plan -- --account-id sf_<Id>` for the M365 search calls");
   }
   return "capture: REPLAY_INCOMPLETE: failed: incomplete capture. The capture has no (or no further) recorded response for a call the workflow made; "
     + `ignore the status and artifact in the JSON result. Re-capture: ${hints.join("; and ")}, `

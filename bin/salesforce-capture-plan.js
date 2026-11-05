@@ -45,7 +45,7 @@ Append options (only with --append):
   --captured-at RFC3339    Override captured_at (tests); default is the time of the append
 
 Append refuses (exit 1, nothing written, payload never printed): files outside .captures/, non-JSON
-input, a capture with another source_system, a duplicate of the last entry without --replace-last,
+input, a result or error file with a duplicate key in any object, a capture with another source_system, a duplicate of the last entry without --replace-last,
 and entries or files over the capture size limits. Output is a payload-free summary.
 
 Output is JSON on stdout. Exit codes: 0 ok, 1 invalid usage or validation problems.
@@ -53,7 +53,7 @@ Output is JSON on stdout. Exit codes: 0 ok, 1 invalid usage or validation proble
 
 const HOST_RULES = [
   "Call only the Salesforce connector tool dispatch_readonly, with exactly the printed args. Never call dispatch, describe or discover for this workflow and never write SOQL by hand.",
-  "Record every call with --append, in call order: write the connector's raw response, unmodified, to a JSON file under .captures/ (for example .captures/tmp/r1.json), then run: npm run salesforce-capture-plan -- --append <capture path> --step <step> (--account <ref> | --account-id <sf_Id>) --result-file <file> (or --error-file <file> for an error payload). Never hand-write capture entries or captured_at.",
+  "Record every call with --append, in call order: write the connector's raw response, unmodified, to a JSON file under .captures/ (for example .captures/tmp/r1.json), then run: npm run -s salesforce-capture-plan -- --append <capture path> --step <step> (--account <ref> | --account-id <sf_Id>) --result-file <file> (or --error-file <file> for an error payload). Never hand-write capture entries or captured_at.",
   "On a 401 with INVALID_AUTH_HEADER, retry the identical call once and append only the final attempt (if the failed attempt was already appended, append the retry with --replace-last).",
   "If a result has done:false, immediately also call {url: <nextRecordsUrl>, method: \"GET\"} and append that page with: --append <capture path> --page-url <nextRecordsUrl> --result-file <file>; repeat until done.",
   "Raw captures may contain real customer data: keep them under .captures/ (git-ignored), never commit them and never paste raw content into chat.",
